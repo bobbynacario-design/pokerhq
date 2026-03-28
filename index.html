@@ -569,6 +569,14 @@ body.light .event-meta{color:rgba(0,0,0,.4)}
   .heatmap-grid{grid-template-columns:1fr}
   .sat-card{flex-wrap:wrap}
 }
+
+/* ── TIMER ── */
+body.light #timer-widget{background:rgba(0,0,0,.05);border-color:var(--rim)}
+body.light #timer-display{color:var(--txt)}
+@media(max-width:768px){
+  #timer-widget{min-width:140px;padding:.65rem 1rem}
+  #timer-display{font-size:20px}
+}
 </style>
 </head>
 <body>
@@ -601,9 +609,23 @@ body.light .event-meta{color:rgba(0,0,0,.4)}
 
   <!-- Bankroll Hero -->
   <div class="bankroll-hero">
-    <div class="bankroll-label">Current Bankroll</div>
-    <div class="bankroll-amount" id="dash-bankroll">₱0</div>
-    <div class="bankroll-grid">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+      <div>
+        <div class="bankroll-label">Current Bankroll</div>
+        <div class="bankroll-amount" id="dash-bankroll">₱0</div>
+      </div>
+      <!-- Session Timer -->
+      <div id="timer-widget" style="background:rgba(0,0,0,.25);border:1px solid var(--rim2);border-radius:12px;padding:.85rem 1.25rem;text-align:center;min-width:160px">
+        <div style="font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:rgba(255,255,255,.35);text-transform:uppercase;margin-bottom:.3rem">Session Timer</div>
+        <div id="timer-display" style="font-family:var(--mono);font-size:26px;font-weight:500;color:#fff;letter-spacing:.08em">00:00:00</div>
+        <div style="display:flex;gap:.4rem;margin-top:.6rem;justify-content:center">
+          <button id="timer-start-btn" onclick="startTimer()" style="font-family:var(--mono);font-size:10px;padding:.3rem .8rem;background:var(--green);color:#fff;border:none;border-radius:6px;cursor:pointer;transition:background .15s">START</button>
+          <button id="timer-stop-btn" onclick="stopTimer()" style="font-family:var(--mono);font-size:10px;padding:.3rem .8rem;background:var(--red-dim);color:var(--red);border:1px solid rgba(232,92,92,.3);border-radius:6px;cursor:pointer;display:none">STOP</button>
+          <button id="timer-log-btn" onclick="logTimerToSession()" style="font-family:var(--mono);font-size:10px;padding:.3rem .8rem;background:var(--gold-dim);color:var(--gold);border:1px solid rgba(201,168,76,.3);border-radius:6px;cursor:pointer;display:none">LOG ↗</button>
+        </div>
+      </div>
+    </div>
+    <div class="bankroll-grid" style="margin-top:1.25rem">
       <div class="bk-item"><div class="bk-item-label">Recommended Buy-in</div><div class="bk-item-val" id="dash-rec-buyin">—</div></div>
       <div class="bk-item"><div class="bk-item-label">Stretch Buy-in</div><div class="bk-item-val" id="dash-stretch-buyin">—</div></div>
       <div class="bk-item"><div class="bk-item-label">Shots Available</div><div class="bk-item-val" id="dash-shots">—</div></div>
@@ -668,6 +690,7 @@ body.light .event-meta{color:rgba(0,0,0,.4)}
 
   <div class="sec-hdr">
     <div class="sec-title"><span>♦</span>Session Log</div>
+    <button class="sec-action" onclick="exportCSV()">⬇ EXPORT CSV</button>
   </div>
 
   <!-- Bankroll Setup -->
@@ -733,9 +756,35 @@ body.light .event-meta{color:rgba(0,0,0,.4)}
         <input class="form-input" type="number" id="s-hours" placeholder="e.g. 6" step="0.5">
       </div>
     </div>
-    <div class="form-group" style="margin-bottom:1rem">
+    <div class="form-group" style="margin-bottom:.75rem">
       <label class="form-label">Notes</label>
       <input class="form-input" type="text" id="s-notes" placeholder="e.g. Deep run, busted KK vs AA on bubble">
+    </div>
+
+    <!-- Mental & Physical -->
+    <div style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:.65rem">Mental & Physical State</div>
+    <div class="form-grid" style="margin-bottom:1rem">
+      <div class="form-group">
+        <label class="form-label">Focus Level (1–10)</label>
+        <input class="form-input" type="number" id="s-focus" min="1" max="10" placeholder="e.g. 8">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Energy / Fatigue (1–10)</label>
+        <input class="form-input" type="number" id="s-energy" min="1" max="10" placeholder="e.g. 7">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Sleep Quality (1–10)</label>
+        <input class="form-input" type="number" id="s-sleep" min="1" max="10" placeholder="e.g. 6">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fasting?</label>
+        <select class="form-input" id="s-fasting">
+          <option value="">Not tracked</option>
+          <option value="yes">Yes — fasted</option>
+          <option value="no">No — ate normally</option>
+          <option value="partial">Partial fast</option>
+        </select>
+      </div>
     </div>
     <div class="form-row">
       <button class="sec-action primary" onclick="addSession()">LOG SESSION ↗</button>
@@ -939,6 +988,10 @@ body.light .event-meta{color:rgba(0,0,0,.4)}
     </div>
   </div>
   <div class="heatmap-card" style="margin-bottom:1rem">
+    <div class="heatmap-title">🧠 Mental & Physical vs P&L</div>
+    <div id="hmap-mental"></div>
+  </div>
+  <div class="heatmap-card" style="margin-bottom:1rem">
     <div class="heatmap-title">Monthly P&L — Last 12 Months</div>
     <div class="month-grid" id="hmap-monthly"></div>
     <div style="display:flex;gap:1rem;flex-wrap:wrap">
@@ -1044,11 +1097,40 @@ body.light .event-meta{color:rgba(0,0,0,.4)}
 </div>
 
 <script>
-// ── STORAGE ──
+// ── STORAGE — with offline queue ──
 function load(key, def) { try { return JSON.parse(localStorage.getItem('pokerhq_'+key)) || def; } catch(e) { return def; } }
+
+var _offlineQueue = JSON.parse(localStorage.getItem('pokerhq_offline_queue')||'{}');
+var _isOnline = navigator.onLine;
+
+window.addEventListener('online',  function(){ _isOnline=true;  flushOfflineQueue(); updateOnlineStatus(); });
+window.addEventListener('offline', function(){ _isOnline=false; updateOnlineStatus(); });
+
+function updateOnlineStatus() {
+  var el = document.getElementById('sync-status');
+  if (!el) return;
+  if (!_isOnline) { el.textContent='○ Offline — saved locally'; el.style.color='#F0A832'; }
+}
+
+function flushOfflineQueue() {
+  var keys = Object.keys(_offlineQueue);
+  if (!keys.length) return;
+  keys.forEach(function(k) {
+    if (window.fbSave) window.fbSave(k, _offlineQueue[k]);
+  });
+  _offlineQueue = {};
+  localStorage.setItem('pokerhq_offline_queue', '{}');
+}
+
 function save(key, val) {
   localStorage.setItem('pokerhq_'+key, JSON.stringify(val));
-  if (window.fbSave) window.fbSave(key, val);
+  if (_isOnline && window.fbSave) {
+    window.fbSave(key, val);
+  } else {
+    // Queue for later sync
+    _offlineQueue[key] = val;
+    localStorage.setItem('pokerhq_offline_queue', JSON.stringify(_offlineQueue));
+  }
 }
 
 window.sessions   = load('sessions', []);
@@ -1136,7 +1218,11 @@ function addSession() {
     prize: prize, pnl: pnl,
     hours: parseFloat(document.getElementById('s-hours').value)||0,
     notes: document.getElementById('s-notes').value || '',
-    result: prize>0 ? (pos<=3?'final':'itm') : 'bust'
+    result: prize>0 ? (pos<=3?'final':'itm') : 'bust',
+    focus:   parseFloat(document.getElementById('s-focus').value)||0,
+    energy:  parseFloat(document.getElementById('s-energy').value)||0,
+    sleep:   parseFloat(document.getElementById('s-sleep').value)||0,
+    fasting: document.getElementById('s-fasting').value||''
   };
   window.sessions.unshift(s); sessions = window.sessions;
   save('sessions', sessions);
@@ -1152,7 +1238,7 @@ function addSession() {
 }
 
 function clearSessionForm() {
-  ['s-date','s-name','s-venue','s-buyin','s-rebuy','s-field','s-position','s-prize','s-hours','s-notes'].forEach(function(id){
+  ['s-date','s-name','s-venue','s-buyin','s-rebuy','s-field','s-position','s-prize','s-hours','s-notes','s-focus','s-energy','s-sleep'].forEach(function(id){
     document.getElementById(id).value='';
   });
   document.getElementById('s-date').value = new Date().toISOString().split('T')[0];
@@ -2283,6 +2369,120 @@ function renderHeatmapBars(elId, data, maxVal) {
     var textCol = d.neutral?'rgba(201,168,76,.9)':d.val>=0?'rgba(45,184,122,.9)':'rgba(232,92,92,.9)';
     return '<div class="heatmap-row"><div class="heatmap-label" title="'+d.label+'">'+d.label+'</div><div class="heatmap-bar-wrap"><div class="heatmap-bar-fill '+cls+'" style="width:'+Math.max(pct,4)+'%"><span class="heatmap-bar-val" style="color:'+textCol+'">'+d.display+'</span></div></div></div>';
   }).join('');
+}
+
+// ── SESSION TIMER ──
+var _timerInterval = null;
+var _timerStart = null;
+var _timerElapsed = 0; // ms
+
+function startTimer() {
+  if (_timerInterval) return;
+  _timerStart = Date.now() - _timerElapsed;
+  _timerInterval = setInterval(updateTimerDisplay, 1000);
+  document.getElementById('timer-start-btn').style.display = 'none';
+  document.getElementById('timer-stop-btn').style.display = 'inline-block';
+  document.getElementById('timer-log-btn').style.display = 'none';
+}
+
+function stopTimer() {
+  if (!_timerInterval) return;
+  clearInterval(_timerInterval);
+  _timerInterval = null;
+  _timerElapsed = Date.now() - _timerStart;
+  document.getElementById('timer-start-btn').style.display = 'inline-block';
+  document.getElementById('timer-stop-btn').style.display = 'none';
+  document.getElementById('timer-log-btn').style.display = 'inline-block';
+  document.getElementById('timer-start-btn').textContent = 'RESUME';
+}
+
+function updateTimerDisplay() {
+  var elapsed = Date.now() - _timerStart;
+  var h = Math.floor(elapsed/3600000);
+  var m = Math.floor((elapsed%3600000)/60000);
+  var s = Math.floor((elapsed%60000)/1000);
+  var el = document.getElementById('timer-display');
+  if (el) el.textContent = pad(h)+':'+pad(m)+':'+pad(s);
+}
+
+function pad(n) { return n < 10 ? '0'+n : ''+n; }
+
+function logTimerToSession() {
+  var hours = _timerElapsed / 3600000;
+  var hoursField = document.getElementById('s-hours');
+  if (hoursField) hoursField.value = hours.toFixed(1);
+  // Switch to sessions tab
+  switchTab('sessions');
+  alert('Timer logged: '+hours.toFixed(1)+'h. Fill in the rest of the session details and click LOG SESSION.');
+  // Reset timer
+  _timerElapsed = 0;
+  _timerStart = null;
+  var el = document.getElementById('timer-display');
+  if (el) el.textContent = '00:00:00';
+  document.getElementById('timer-start-btn').style.display = 'inline-block';
+  document.getElementById('timer-start-btn').textContent = 'START';
+  document.getElementById('timer-stop-btn').style.display = 'none';
+  document.getElementById('timer-log-btn').style.display = 'none';
+}
+
+// ── CSV EXPORT ──
+function exportCSV() {
+  if (!sessions.length) { alert('No sessions to export.'); return; }
+  var headers = ['Date','Tournament','Venue','Buy-in','Rebuys','Total Invested','Field','Position','Prize','P&L','Hours','Result','Notes','Focus','Energy','Sleep','Fasting'];
+  var rows = sessions.map(function(s) {
+    return [
+      s.date||'', s.name||'', s.venue||'',
+      s.buyin||0, s.rebuy||0, s.total||0,
+      s.field||'', s.position||'', s.prize||0, s.pnl||0,
+      s.hours||0, s.result||'', '"'+(s.notes||'').replace(/"/g,"''")+'"',
+      s.focus||'', s.energy||'', s.sleep||'', s.fasting||''
+    ].join(',');
+  });
+  var csv = [headers.join(',')].concat(rows).join('\n');
+  var blob = new Blob([csv], {type:'text/csv'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'PokerHQ_Sessions_'+new Date().toISOString().split('T')[0]+'.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ── MENTAL/PHYSICAL HEATMAP — add to existing renderHeatmap ──
+var _origRenderHeatmap = renderHeatmap;
+renderHeatmap = function() {
+  _origRenderHeatmap();
+  renderMentalHeatmap();
+};
+
+function renderMentalHeatmap() {
+  // Find or create the mental heatmap card
+  var el = document.getElementById('hmap-mental');
+  if (!el) return;
+  var withData = sessions.filter(function(s){ return s.focus||s.energy||s.sleep; });
+  if (!withData.length) { el.innerHTML='<div class="heatmap-empty">Log mental stats with sessions to see trends</div>'; return; }
+
+  // Correlate focus/energy/sleep with P&L
+  var ranges = [
+    {label:'Focus 1-4 (Low)',   filter:function(s){ return s.focus && s.focus<=4; }},
+    {label:'Focus 5-7 (Mid)',   filter:function(s){ return s.focus && s.focus>=5 && s.focus<=7; }},
+    {label:'Focus 8-10 (High)', filter:function(s){ return s.focus && s.focus>=8; }},
+    {label:'Energy 1-4 (Low)',  filter:function(s){ return s.energy && s.energy<=4; }},
+    {label:'Energy 5-7 (Mid)',  filter:function(s){ return s.energy && s.energy>=5 && s.energy<=7; }},
+    {label:'Energy 8-10 (High)',filter:function(s){ return s.energy && s.energy>=8; }},
+    {label:'Fasted',            filter:function(s){ return s.fasting==='yes'; }},
+    {label:'Not Fasted',        filter:function(s){ return s.fasting==='no'; }},
+  ];
+  var data = ranges.map(function(r) {
+    var matching = withData.filter(r.filter);
+    if (!matching.length) return null;
+    var pnl = matching.reduce(function(a,s){ return a+(s.pnl||0); },0);
+    return {label:r.label, val:pnl, display:fmtCur(pnl)+' ('+matching.length+')'};
+  }).filter(Boolean);
+
+  renderHeatmapBars('hmap-mental', data);
 }
 
 // ── INIT ──
