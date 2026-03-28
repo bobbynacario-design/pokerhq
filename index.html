@@ -940,21 +940,21 @@ body.light .csv-banner-sub{color:rgba(0,0,0,.45)}
 <!-- ════════════════════ STRATEGY ════════════════════ -->
 <div class="page" id="page-strategy">
   <div class="sec-hdr">
-    <div class="sec-title"><span>♥</span>Strategy Intelligence</div>
+    <div class="sec-title"><span>♥</span>Intelligence & Strategy</div>
   </div>
 
   <div class="strategy-paste">
-    <div class="form-label" style="margin-bottom:.65rem">PASTE WEEKLY GEMINI POKERHQ JSON HERE</div>
-    <textarea id="strategy-raw" placeholder="Paste your weekly Gemini PokerHQ JSON here — auto-populates calendar, news and strategy..."></textarea>
+    <div class="form-label" style="margin-bottom:.65rem">IMPORT WEEKLY INTELLIGENCE BRIEFING</div>
+    <textarea id="strategy-raw" placeholder="Paste your weekly briefing here — calendar, news, and strategy update automatically..."></textarea>
     <div class="form-row" style="margin-top:.75rem">
-      <button class="sec-action primary" onclick="parseGeminiJSON()">RENDER BRIEFING ↗</button>
+      <button class="sec-action primary" onclick="parseGeminiJSON()">LOAD BRIEFING ↗</button>
       <button class="sec-action" onclick="document.getElementById('strategy-raw').value=''">CLEAR</button>
     </div>
   </div>
 
   <!-- Manual Strategy Form -->
   <div class="form-card">
-    <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:1rem">Add Manual Strategy Note</div>
+    <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:1rem">Add Study Note</div>
     <div class="form-grid">
       <div class="form-group">
         <label class="form-label">Week / Date</label>
@@ -992,6 +992,10 @@ body.light .csv-banner-sub{color:rgba(0,0,0,.45)}
       <button class="sec-action" onclick="openModal('modal-voice')">🎙 VOICE TO HAND</button>
       <button class="sec-action primary" onclick="openModal('modal-hand')">+ LOG HAND</button>
     </div>
+  </div>
+  <div style="background:var(--blue-dim);border:1px solid rgba(52,152,219,.2);border-radius:10px;padding:.75rem 1rem;margin-bottom:1.25rem;font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.5);display:flex;align-items:center;gap:.6rem">
+    <span style="font-size:16px">💡</span>
+    <span>Link hands to sessions using the session dropdown — view them together on the <strong style="color:var(--blue)">Session detail</strong> page.</span>
   </div>
 
   <!-- Session filter -->
@@ -1327,7 +1331,12 @@ function addSession() {
   clearSessionForm();
   renderSessionTable();
   refreshDashboard();
-  alert('Session logged! P&L: '+fmtCur(pnl));
+  // Prompt to log hands
+  var logHand = confirm('Session logged! P&L: '+fmtCur(pnl)+'\n\nWould you like to log a notable hand from this session now?');
+  if (logHand) {
+    var newSid = sessions[0] ? sessions[0].id : null;
+    if (newSid) openHandModalForSession(newSid);
+  }
 }
 
 function clearSessionForm() {
@@ -1655,6 +1664,7 @@ function renderCalendarList() {
       html += '<div class="event-buyin">₱'+t.buyin.toLocaleString()+'</div>';
       html += '<span class="'+badgeCls+'">'+badgeTxt+'</span>';
       html += '<span class="tourney-status '+sc+'">'+sl+'</span>';
+      html += '<button class="sec-action" style="font-size:10px;padding:3px 9px;margin-top:2px;border-color:var(--green);color:var(--green)" onclick="startSessionFromTourney('+t.id+')">▶ PLAY</button>';
       html += '<button class="del-btn" onclick="deleteTourney('+t.id+')">✕</button>';
       html += '</div></div>';
     });
@@ -1744,11 +1754,11 @@ function renderStrategy() {
   var el = document.getElementById('strategy-list');
   if (!el) return;
   if (!strategies.length) {
-    el.innerHTML='<div style="padding:2rem;text-align:center;color:rgba(255,255,255,.2);font-family:var(--mono);font-size:13px">No strategy notes yet. Paste your Gemini update or add a manual note.</div>';
+    el.innerHTML='<div style="padding:2rem;text-align:center;color:rgba(255,255,255,.2);font-family:var(--mono);font-size:13px">No strategy notes yet. Import a weekly briefing or add a manual note.</div>';
     return;
   }
   el.innerHTML = strategies.map(function(s) {
-    return '<div class="strategy-card"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem"><div><div class="strategy-week">'+(s.type==='gemini'?'♠ GEMINI UPDATE':'♦ MANUAL NOTE')+' · '+esc(s.week)+'</div><h4>'+esc(s.topic)+'</h4></div><button class="del-btn" onclick="deleteStrategy('+s.id+')">✕</button></div><p style="margin-top:.5rem">'+esc(s.note)+'</p></div>';
+    return '<div class="strategy-card"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem"><div><div class="strategy-week">'+(s.type==='gemini'?'♠ WEEKLY BRIEFING':'♦ MANUAL NOTE')+' · '+esc(s.week)+'</div><h4>'+esc(s.topic)+'</h4></div><button class="del-btn" onclick="deleteStrategy('+s.id+')">✕</button></div><p style="margin-top:.5rem">'+esc(s.note)+'</p></div>';
   }).join('');
 }
 
@@ -2619,6 +2629,25 @@ function clearRatings() {
   ['s-focus','s-energy','s-sleep','s-fasting'].forEach(function(id){
     var e = document.getElementById(id); if(e) e.value='';
   });
+}
+
+// ── CALENDAR → SESSION LOOP ──
+function startSessionFromTourney(tid) {
+  var t = tourneys.find(function(x){ return x.id===tid; });
+  if (!t) return;
+  // Switch to sessions tab and pre-fill the form
+  switchTab('sessions');
+  setTimeout(function(){
+    document.getElementById('s-name').value  = t.name || '';
+    document.getElementById('s-venue').value = t.venue || '';
+    document.getElementById('s-buyin').value = t.buyin || '';
+    document.getElementById('s-date').value  = t.date  || new Date().toISOString().split('T')[0];
+    // Scroll to form
+    var fc = document.querySelector('.form-card');
+    if (fc) fc.scrollIntoView({behavior:'smooth', block:'start'});
+    // Start timer automatically
+    startTimer();
+  }, 200);
 }
 
 // ── INIT ──
