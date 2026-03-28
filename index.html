@@ -577,6 +577,43 @@ body.light #timer-display{color:var(--txt)}
   #timer-widget{min-width:140px;padding:.65rem 1rem}
   #timer-display{font-size:20px}
 }
+
+/* ── MENTAL TRACKING CARD ── */
+.mental-card{background:linear-gradient(135deg,var(--bg2),var(--bg3));border:1px solid rgba(155,111,232,.25);border-radius:14px;padding:1.35rem;margin-bottom:1rem}
+.mental-card-header{display:flex;align-items:flex-start;gap:.85rem;margin-bottom:1.1rem}
+.mental-icon{font-size:28px;line-height:1;flex-shrink:0}
+.mental-title{font-family:var(--serif);font-size:17px;font-weight:700;color:#fff;margin-bottom:.2rem}
+.mental-sub{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.35);line-height:1.5}
+body.light .mental-title{color:#1A1A1A}
+body.light .mental-sub{color:rgba(0,0,0,.4)}
+.mental-ratings{display:flex;flex-direction:column;gap:.75rem}
+.mental-rating-row{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
+.mental-rating-label{font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.5);width:72px;flex-shrink:0}
+body.light .mental-rating-label{color:rgba(0,0,0,.5)}
+.mental-rating-btns{display:flex;gap:.3rem;flex-wrap:wrap}
+.rating-btn{font-family:var(--mono);font-size:11px;width:28px;height:28px;border-radius:6px;border:1px solid var(--rim);background:transparent;color:rgba(255,255,255,.4);cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center}
+.rating-btn:hover{border-color:var(--purple);color:var(--purple)}
+.rating-btn.selected{background:var(--purple);color:#fff;border-color:var(--purple)}
+.fast-btn{width:auto;padding:0 10px;font-size:10px;letter-spacing:.04em}
+.fast-btn.selected{background:var(--gold);border-color:var(--gold);color:var(--bg)}
+
+/* ── CSV BANNER ── */
+.csv-banner{background:var(--green-dim);border:1px solid rgba(45,184,122,.2);border-radius:12px;padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1.25rem;flex-wrap:wrap}
+.csv-banner-left{display:flex;align-items:center;gap:.85rem}
+.csv-banner-icon{font-size:28px;flex-shrink:0}
+.csv-banner-title{font-size:14px;font-weight:500;color:#fff;margin-bottom:.2rem}
+body.light .csv-banner-title{color:#1A1A1A}
+.csv-banner-sub{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.4);line-height:1.55;max-width:400px}
+body.light .csv-banner-sub{color:rgba(0,0,0,.45)}
+.btn-primary-lg{font-family:var(--mono);font-size:12px;padding:.6rem 1.4rem;background:var(--green);color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:500;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;transition:background .15s}
+.btn-primary-lg:hover{background:#25a865}
+
+@media(max-width:768px){
+  .mental-rating-btns{gap:.2rem}
+  .rating-btn{width:24px;height:24px;font-size:10px}
+  .csv-banner{flex-direction:column;align-items:flex-start}
+  .mental-rating-row{gap:.4rem}
+}
 </style>
 </head>
 <body>
@@ -690,7 +727,19 @@ body.light #timer-display{color:var(--txt)}
 
   <div class="sec-hdr">
     <div class="sec-title"><span>♦</span>Session Log</div>
-    <button class="sec-action" onclick="exportCSV()">⬇ EXPORT CSV</button>
+    <button class="sec-action" onclick="exportCSV()" style="display:flex;align-items:center;gap:.4rem;padding:.45rem 1.1rem;border-color:var(--green);color:var(--green)">
+      <span style="font-size:14px">⬇</span> EXPORT CSV
+    </button>
+  </div>
+  <div class="csv-banner">
+    <div class="csv-banner-left">
+      <div class="csv-banner-icon">📊</div>
+      <div>
+        <div class="csv-banner-title">Export Your Data</div>
+        <div class="csv-banner-sub">Downloads all sessions as a CSV file — open in Excel, Numbers, or Google Sheets for deeper analysis. Includes all mental tracking data.</div>
+      </div>
+    </div>
+    <button class="btn-primary-lg" onclick="exportCSV()">⬇ DOWNLOAD CSV</button>
   </div>
 
   <!-- Bankroll Setup -->
@@ -761,29 +810,73 @@ body.light #timer-display{color:var(--txt)}
       <input class="form-input" type="text" id="s-notes" placeholder="e.g. Deep run, busted KK vs AA on bubble">
     </div>
 
-    <!-- Mental & Physical -->
-    <div style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:.65rem">Mental & Physical State</div>
-    <div class="form-grid" style="margin-bottom:1rem">
-      <div class="form-group">
-        <label class="form-label">Focus Level (1–10)</label>
-        <input class="form-input" type="number" id="s-focus" min="1" max="10" placeholder="e.g. 8">
+    <!-- Mental & Physical — prominent card -->
+    <div class="mental-card">
+      <div class="mental-card-header">
+        <span class="mental-icon">🧠</span>
+        <div>
+          <div class="mental-title">Mental & Physical State</div>
+          <div class="mental-sub">Rate your condition before playing — reveals performance patterns over time</div>
+        </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Energy / Fatigue (1–10)</label>
-        <input class="form-input" type="number" id="s-energy" min="1" max="10" placeholder="e.g. 7">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Sleep Quality (1–10)</label>
-        <input class="form-input" type="number" id="s-sleep" min="1" max="10" placeholder="e.g. 6">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Fasting?</label>
-        <select class="form-input" id="s-fasting">
-          <option value="">Not tracked</option>
-          <option value="yes">Yes — fasted</option>
-          <option value="no">No — ate normally</option>
-          <option value="partial">Partial fast</option>
-        </select>
+      <div class="mental-ratings">
+        <div class="mental-rating-row">
+          <div class="mental-rating-label">🎯 Focus</div>
+          <div class="mental-rating-btns" id="focus-btns">
+            <button class="rating-btn" onclick="setRating('s-focus','focus-btns',1,this)">1</button>
+            <button class="rating-btn" onclick="setRating('s-focus','focus-btns',2,this)">2</button>
+            <button class="rating-btn" onclick="setRating('s-focus','focus-btns',3,this)">3</button>
+            <button class="rating-btn" onclick="setRating('s-focus','focus-btns',4,this)">4</button>
+            <button class="rating-btn" onclick="setRating('s-focus','focus-btns',5,this)">5</button>
+            <button class="rating-btn" onclick="setRating('s-focus','focus-btns',6,this)">6</button>
+            <button class="rating-btn" onclick="setRating('s-focus','focus-btns',7,this)">7</button>
+            <button class="rating-btn" onclick="setRating('s-focus','focus-btns',8,this)">8</button>
+            <button class="rating-btn" onclick="setRating('s-focus','focus-btns',9,this)">9</button>
+            <button class="rating-btn" onclick="setRating('s-focus','focus-btns',10,this)">10</button>
+          </div>
+          <input type="hidden" id="s-focus" value="">
+        </div>
+        <div class="mental-rating-row">
+          <div class="mental-rating-label">⚡ Energy</div>
+          <div class="mental-rating-btns" id="energy-btns">
+            <button class="rating-btn" onclick="setRating('s-energy','energy-btns',1,this)">1</button>
+            <button class="rating-btn" onclick="setRating('s-energy','energy-btns',2,this)">2</button>
+            <button class="rating-btn" onclick="setRating('s-energy','energy-btns',3,this)">3</button>
+            <button class="rating-btn" onclick="setRating('s-energy','energy-btns',4,this)">4</button>
+            <button class="rating-btn" onclick="setRating('s-energy','energy-btns',5,this)">5</button>
+            <button class="rating-btn" onclick="setRating('s-energy','energy-btns',6,this)">6</button>
+            <button class="rating-btn" onclick="setRating('s-energy','energy-btns',7,this)">7</button>
+            <button class="rating-btn" onclick="setRating('s-energy','energy-btns',8,this)">8</button>
+            <button class="rating-btn" onclick="setRating('s-energy','energy-btns',9,this)">9</button>
+            <button class="rating-btn" onclick="setRating('s-energy','energy-btns',10,this)">10</button>
+          </div>
+          <input type="hidden" id="s-energy" value="">
+        </div>
+        <div class="mental-rating-row">
+          <div class="mental-rating-label">😴 Sleep</div>
+          <div class="mental-rating-btns" id="sleep-btns">
+            <button class="rating-btn" onclick="setRating('s-sleep','sleep-btns',1,this)">1</button>
+            <button class="rating-btn" onclick="setRating('s-sleep','sleep-btns',2,this)">2</button>
+            <button class="rating-btn" onclick="setRating('s-sleep','sleep-btns',3,this)">3</button>
+            <button class="rating-btn" onclick="setRating('s-sleep','sleep-btns',4,this)">4</button>
+            <button class="rating-btn" onclick="setRating('s-sleep','sleep-btns',5,this)">5</button>
+            <button class="rating-btn" onclick="setRating('s-sleep','sleep-btns',6,this)">6</button>
+            <button class="rating-btn" onclick="setRating('s-sleep','sleep-btns',7,this)">7</button>
+            <button class="rating-btn" onclick="setRating('s-sleep','sleep-btns',8,this)">8</button>
+            <button class="rating-btn" onclick="setRating('s-sleep','sleep-btns',9,this)">9</button>
+            <button class="rating-btn" onclick="setRating('s-sleep','sleep-btns',10,this)">10</button>
+          </div>
+          <input type="hidden" id="s-sleep" value="">
+        </div>
+        <div class="mental-rating-row">
+          <div class="mental-rating-label">🍽 Fasting</div>
+          <div class="mental-rating-btns">
+            <button class="rating-btn fast-btn" id="fast-yes" onclick="setFasting('yes',this)">YES</button>
+            <button class="rating-btn fast-btn" id="fast-no"  onclick="setFasting('no',this)">NO</button>
+            <button class="rating-btn fast-btn" id="fast-partial" onclick="setFasting('partial',this)">PARTIAL</button>
+          </div>
+          <input type="hidden" id="s-fasting" value="">
+        </div>
       </div>
     </div>
     <div class="form-row">
@@ -1238,7 +1331,8 @@ function addSession() {
 }
 
 function clearSessionForm() {
-  ['s-date','s-name','s-venue','s-buyin','s-rebuy','s-field','s-position','s-prize','s-hours','s-notes','s-focus','s-energy','s-sleep'].forEach(function(id){
+  clearRatings();
+  ['s-date','s-name','s-venue','s-buyin','s-rebuy','s-field','s-position','s-prize','s-hours','s-notes'].forEach(function(id){
     document.getElementById(id).value='';
   });
   document.getElementById('s-date').value = new Date().toISOString().split('T')[0];
@@ -2483,6 +2577,48 @@ function renderMentalHeatmap() {
   }).filter(Boolean);
 
   renderHeatmapBars('hmap-mental', data);
+}
+
+// ── RATING BUTTONS ──
+function setRating(inputId, btnGroupId, val, btn) {
+  document.getElementById(inputId).value = val;
+  document.querySelectorAll('#'+btnGroupId+' .rating-btn').forEach(function(b){ b.classList.remove('selected'); });
+  btn.classList.add('selected');
+  // Color low numbers red, high green
+  document.querySelectorAll('#'+btnGroupId+' .rating-btn').forEach(function(b, i) {
+    if (i < val) {
+      var hue = Math.round(i * (120/9));
+      b.style.background = 'hsla('+hue+',60%,40%,0.4)';
+      b.style.borderColor = 'hsla('+hue+',60%,40%,0.6)';
+      b.style.color = 'hsla('+hue+',80%,75%,1)';
+    } else {
+      b.style.background = '';
+      b.style.borderColor = '';
+      b.style.color = '';
+      b.classList.remove('selected');
+    }
+  });
+  btn.style.background = '';
+  btn.classList.add('selected');
+}
+
+function setFasting(val, btn) {
+  document.getElementById('s-fasting').value = val;
+  document.querySelectorAll('.fast-btn').forEach(function(b){ b.classList.remove('selected'); });
+  btn.classList.add('selected');
+}
+
+function clearRatings() {
+  ['focus-btns','energy-btns','sleep-btns'].forEach(function(gid) {
+    document.querySelectorAll('#'+gid+' .rating-btn').forEach(function(b){
+      b.classList.remove('selected');
+      b.style.background=''; b.style.borderColor=''; b.style.color='';
+    });
+  });
+  document.querySelectorAll('.fast-btn').forEach(function(b){ b.classList.remove('selected'); });
+  ['s-focus','s-energy','s-sleep','s-fasting'].forEach(function(id){
+    var e = document.getElementById(id); if(e) e.value='';
+  });
 }
 
 // ── INIT ──
