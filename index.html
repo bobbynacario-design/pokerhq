@@ -2641,7 +2641,17 @@ function startSessionFromTourney(tid) {
     document.getElementById('s-name').value  = t.name || '';
     document.getElementById('s-venue').value = t.venue || '';
     document.getElementById('s-buyin').value = t.buyin || '';
-    document.getElementById('s-date').value  = t.date  || new Date().toISOString().split('T')[0];
+    // Convert "April 29, 2026" → "2026-04-29" for date input
+    var rawDate = t.date || '';
+    var parsedDate = '';
+    var MONTHS = {january:'01',february:'02',march:'03',april:'04',may:'05',june:'06',july:'07',august:'08',september:'09',october:'10',november:'11',december:'12'};
+    var dm = rawDate.match(/(\w+)\s+(\d{1,2}),?\s*(\d{4})/);
+    if (dm) {
+      var mon = MONTHS[dm[1].toLowerCase()] || '01';
+      var day = dm[2].length===1 ? '0'+dm[2] : dm[2];
+      parsedDate = dm[3]+'-'+mon+'-'+day;
+    }
+    document.getElementById('s-date').value = parsedDate || new Date().toISOString().split('T')[0];
     // Scroll to form
     var fc = document.querySelector('.form-card');
     if (fc) fc.scrollIntoView({behavior:'smooth', block:'start'});
