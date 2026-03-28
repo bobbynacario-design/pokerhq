@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PokerHQ">
+<meta name="theme-color" content="%23080A0E">
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiUG9rZXJIUSIsInNob3J0X25hbWUiOiJQb2tlckhRIiwic3RhcnRfdXJsIjoiLiIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiUyMzA4MEEwRSIsInRoZW1lX2NvbG9yIjoiJTIzMDgwQTBFIiwiaWNvbnMiOlt7InNyYyI6ImRhdGE6aW1hZ2Uvc3ZnK3htbCw8c3ZnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zycgdmlld0JveD0nMCAwIDEwMCAxMDAnPjxyZWN0IHdpZHRoPScxMDAnIGhlaWdodD0nMTAwJyBmaWxsPSclMjMwODBBMEUnLz48dGV4dCB5PScuOWVtJyBmb250LXNpemU9Jzg1JyB4PSc1MCUnIHRleHQtYW5jaG9yPSdtaWRkbGUnPvCfg488L3RleHQ+PC9zdmc+Iiwic2l6ZXMiOiI1MTJ4NTEyIiwidHlwZSI6ImltYWdlL3N2Zyt4bWwifV19">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23080A0E'/><text y='.9em' font-size='75' x='50%' text-anchor='middle'>🃏</text></svg>">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PokerHQ — Bob's Tournament Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -78,6 +84,7 @@ async function fbLoadAll() {
     renderStrategy();
     renderHands();
     loadBankrollForm();
+  populateSessionDropdowns();
   } catch(e) {
     setSyncStatus('error', 'Sync failed — using local data');
     console.error('fbLoadAll error:', e);
@@ -771,8 +778,21 @@ body.light .event-meta{color:rgba(0,0,0,.4)}
 <div class="page" id="page-hands">
   <div class="sec-hdr">
     <div class="sec-title"><span>♠</span>Hand History</div>
-    <button class="sec-action primary" onclick="openModal('modal-hand')">+ LOG HAND</button>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+      <button class="sec-action" onclick="openModal('modal-voice')">🎙 VOICE TO HAND</button>
+      <button class="sec-action primary" onclick="openModal('modal-hand')">+ LOG HAND</button>
+    </div>
   </div>
+
+  <!-- Session filter -->
+  <div style="margin-bottom:1rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+    <div class="form-label" style="margin:0">Filter by session:</div>
+    <select class="form-input" id="hand-session-filter" onchange="renderHands()" style="max-width:260px;padding:.4rem .8rem;font-size:12px">
+      <option value="">All sessions</option>
+    </select>
+    <span id="hand-count" style="font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.3)"></span>
+  </div>
+
   <div id="hand-list"></div>
 </div>
 
@@ -832,7 +852,13 @@ body.light .event-meta{color:rgba(0,0,0,.4)}
     <div class="modal-title">Log Notable Hand</div>
     <div class="form-grid">
       <div class="form-group">
-        <label class="form-label">Date / Session</label>
+        <label class="form-label">Link to Session</label>
+        <select class="form-input" id="h-session-link">
+          <option value="">Select session (optional)...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Date / Label</label>
         <input class="form-input" type="text" id="h-session" placeholder="e.g. Solaire Sunday, March 28">
       </div>
       <div class="form-group">
@@ -976,6 +1002,7 @@ function clearSessionForm() {
     document.getElementById(id).value='';
   });
   document.getElementById('s-date').value = new Date().toISOString().split('T')[0];
+populateSessionDropdowns();
 }
 
 function deleteSession(id) {
@@ -1392,9 +1419,17 @@ function renderStrategy() {
 
 // ── HANDS ──
 function addHand() {
+  var sessionLink = document.getElementById('h-session-link');
+  var sessionId = sessionLink ? parseInt(sessionLink.value)||0 : 0;
+  var sessionLabel = '';
+  if (sessionId) {
+    var linked = sessions.find(function(s){ return s.id===sessionId; });
+    if (linked) sessionLabel = linked.name + ' — ' + linked.date;
+  }
   var h = {
     id: Date.now(),
-    session: document.getElementById('h-session').value||new Date().toLocaleDateString(),
+    sessionId: sessionId,
+    session: sessionLabel || document.getElementById('h-session').value||new Date().toLocaleDateString(),
     title: document.getElementById('h-title').value||'Hand',
     desc: document.getElementById('h-desc').value||'',
     lesson: document.getElementById('h-lesson').value||'',
@@ -1403,6 +1438,7 @@ function addHand() {
   window.hands.unshift(h); hands = window.hands;
   save('hands', hands);
   closeModal('modal-hand');
+  populateSessionDropdowns();
   renderHands();
 }
 
@@ -1414,11 +1450,22 @@ function deleteHand(id) {
 
 function renderHands() {
   var el = document.getElementById('hand-list');
-  if (!hands.length) { el.innerHTML='<div style="padding:3rem;text-align:center;color:rgba(255,255,255,.2);font-family:var(--mono);font-size:13px">No hands logged yet. Click + LOG HAND to start building your review database.</div>'; return; }
-  el.innerHTML = hands.map(function(h) {
+  if (!el) return;
+  var filterEl = document.getElementById('hand-session-filter');
+  var filterVal = filterEl ? parseInt(filterEl.value)||0 : 0;
+  var filtered = filterVal ? hands.filter(function(h){ return h.sessionId===filterVal; }) : hands;
+  var countEl = document.getElementById('hand-count');
+  if (countEl) countEl.textContent = filtered.length+' hand'+(filtered.length!==1?'s':'');
+  if (!filtered.length) {
+    el.innerHTML='<div style="padding:3rem;text-align:center;color:rgba(255,255,255,.2);font-family:var(--mono);font-size:13px">'+(filterVal?'No hands logged for this session yet.':'No hands logged yet. Click + LOG HAND or use 🎙 VOICE TO HAND.')+'</div>';
+    return;
+  }
+  el.innerHTML = filtered.map(function(h) {
     var rc = {won:'hand-won',lost:'hand-lost',fold:'hand-fold'}[h.result]||'hand-fold';
     var rl = {won:'WON',lost:'LOST',fold:'FOLD'}[h.result]||'FOLD';
-    return '<div class="hand-card"><div class="hand-top"><div><div class="hand-meta">'+h.session+'</div><div class="hand-title">'+h.title+'</div></div><div style="display:flex;align-items:center;gap:.5rem"><span class="hand-result '+rc+'">'+rl+'</span><button class="del-btn" onclick="deleteHand('+h.id+')">✕</button></div></div>'+(h.desc?'<div class="hand-body">'+h.desc+'</div>':'')+(h.lesson?'<div style="margin-top:.6rem;font-size:11px;color:var(--gold);font-family:var(--mono)">💡 '+h.lesson+'</div>':'')+'</div>';
+    var linkedSession = h.sessionId ? sessions.find(function(s){ return s.id===h.sessionId; }) : null;
+    var sessionBadge = linkedSession ? '<span style="font-family:var(--mono);font-size:9px;background:var(--gold-dim);color:var(--gold);border:1px solid rgba(201,168,76,.25);border-radius:20px;padding:2px 7px;margin-left:.4rem">'+linkedSession.name+'</span>' : '';
+    return '<div class="hand-card"><div class="hand-top"><div style="flex:1"><div class="hand-meta">'+h.session+sessionBadge+'</div><div class="hand-title">'+h.title+'</div></div><div style="display:flex;align-items:center;gap:.5rem"><span class="hand-result '+rc+'">'+rl+'</span><button class="del-btn" onclick="deleteHand('+h.id+')">✕</button></div></div>'+(h.desc?'<div class="hand-body">'+h.desc+'</div>':'')+(h.lesson?'<div style="margin-top:.6rem;font-size:11px;color:var(--gold);font-family:var(--mono)">💡 '+h.lesson+'</div>':'')+'</div>';
   }).join('');
 }
 
@@ -1695,8 +1742,148 @@ function toggleTheme() {
   localStorage.setItem('pokerhq_theme', isLight ? 'light' : 'dark');
 }
 
+// ── POPULATE SESSION DROPDOWNS ──
+function populateSessionDropdowns() {
+  var opts = '<option value="">Select session (optional)...</option>';
+  sessions.forEach(function(s) {
+    opts += '<option value="'+s.id+'">'+s.date+' — '+s.name+'</option>';
+  });
+  ['h-session-link','voice-session-link','hand-session-filter'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var isFilter = id==='hand-session-filter';
+    el.innerHTML = isFilter ? '<option value="">All sessions</option>'+sessions.map(function(s){return '<option value="'+s.id+'">'+s.date+' — '+s.name+'</option>';}).join('') : opts;
+  });
+}
+
+// ── SESSION DETAIL VIEW ──
+function viewSessionDetail(sid) {
+  var s = sessions.find(function(x){ return x.id===sid; });
+  if (!s) return;
+  var linkedHands = hands.filter(function(h){ return h.sessionId===sid; });
+  var pnlCls = s.pnl>0?'color:#2DB87A':s.pnl<0?'color:#E85C5C':'color:rgba(255,255,255,.4)';
+  var html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1.25rem">';
+  html += '<div style="background:var(--bg3);border-radius:8px;padding:.75rem"><div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.3);margin-bottom:.25rem">BUY-IN</div><div style="font-family:var(--mono);font-size:16px">₱'+s.total.toLocaleString()+'</div></div>';
+  html += '<div style="background:var(--bg3);border-radius:8px;padding:.75rem"><div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.3);margin-bottom:.25rem">P&L</div><div style="font-family:var(--mono);font-size:16px;'+pnlCls+'">'+fmtCur(s.pnl)+'</div></div>';
+  html += '<div style="background:var(--bg3);border-radius:8px;padding:.75rem"><div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.3);margin-bottom:.25rem">POSITION</div><div style="font-family:var(--mono);font-size:16px">'+(s.position||'—')+(s.field?' / '+s.field:'')+'</div></div>';
+  html += '<div style="background:var(--bg3);border-radius:8px;padding:.75rem"><div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.3);margin-bottom:.25rem">HOURS</div><div style="font-family:var(--mono);font-size:16px">'+(s.hours||'—')+'h</div></div>';
+  html += '</div>';
+  if (s.notes) html += '<div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:1.25rem;padding:.75rem;background:var(--bg3);border-radius:8px">📝 '+s.notes+'</div>';
+
+  // Linked hands
+  html += '<div style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:rgba(255,255,255,.35);text-transform:uppercase;margin-bottom:.75rem">Logged Hands ('+linkedHands.length+')</div>';
+  if (!linkedHands.length) {
+    html += '<div style="font-size:12px;color:rgba(255,255,255,.25);font-style:italic;margin-bottom:.75rem">No hands logged for this session yet.</div>';
+  } else {
+    linkedHands.forEach(function(h) {
+      var rc = {won:'#2DB87A',lost:'#E85C5C',fold:'rgba(255,255,255,.3)'}[h.result]||'rgba(255,255,255,.3)';
+      var rl = {won:'WON',lost:'LOST',fold:'FOLD'}[h.result]||'FOLD';
+      html += '<div style="background:var(--bg3);border-radius:8px;padding:.75rem;margin-bottom:.5rem">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem"><span style="font-size:13px;font-weight:500;color:#fff">'+h.title+'</span><span style="font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:20px;background:rgba(0,0,0,.3);color:'+rc+'">'+rl+'</span></div>';
+      if (h.desc) html += '<div style="font-size:12px;color:rgba(255,255,255,.45);line-height:1.6;margin-bottom:.35rem">'+h.desc+'</div>';
+      if (h.lesson) html += '<div style="font-size:11px;color:var(--gold);font-family:var(--mono)">💡 '+h.lesson+'</div>';
+      html += '</div>';
+    });
+  }
+  html += '<button class="sec-action" style="margin-top:.5rem" onclick="closeModal(\'modal-session-detail\');openHandModalForSession('+sid+')">+ ADD HAND TO THIS SESSION</button>';
+
+  document.getElementById('sd-title').textContent = s.name + ' — ' + s.date;
+  document.getElementById('sd-body').innerHTML = html;
+  openModal('modal-session-detail');
+}
+
+function openHandModalForSession(sid) {
+  var s = sessions.find(function(x){ return x.id===sid; });
+  openModal('modal-hand');
+  setTimeout(function(){
+    var sl = document.getElementById('h-session-link');
+    if (sl && s) { sl.value = sid; }
+    var hs = document.getElementById('h-session');
+    if (hs && s) hs.value = s.name + ' — ' + s.date;
+  }, 100);
+}
+
+// ── VOICE TO HAND ──
+function clearVoiceModal() {
+  document.getElementById('voice-transcript').value='';
+  document.getElementById('voice-result').style.display='none';
+  document.getElementById('voice-save-btn').style.display='none';
+  document.getElementById('voice-structure-btn').style.display='inline-flex';
+  document.getElementById('voice-error').style.display='none';
+  document.getElementById('voice-loading').style.display='none';
+}
+
+async function structureHand() {
+  var transcript = document.getElementById('voice-transcript').value.trim();
+  if (!transcript) { alert('Paste a voice transcript first.'); return; }
+
+  document.getElementById('voice-loading').style.display='block';
+  document.getElementById('voice-structure-btn').style.display='none';
+  document.getElementById('voice-error').style.display='none';
+  document.getElementById('voice-result').style.display='none';
+
+  try {
+    var response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: 'You are a poker hand log structurer. Convert this voice transcript into a structured poker hand log. Respond ONLY with valid JSON, no other text. Use this exact format: {"result":"won|lost|fold","title":"concise 8-10 word hand situation","desc":"full hand description with positions actions board and reasoning","lesson":"one specific lesson from this hand"} Transcript: '+transcript
+        }]
+      })
+    });
+    var data = await response.json();
+    var text = (data.content||[]).map(function(c){ return c.text||''; }).join('');
+    var js = text.indexOf('{'), je = text.lastIndexOf('}');
+    var parsed = JSON.parse(text.substring(js,je+1));
+
+    document.getElementById('vr-result').value = parsed.result||'lost';
+    document.getElementById('vr-title').value  = parsed.title||'';
+    document.getElementById('vr-desc').value   = parsed.desc||'';
+    document.getElementById('vr-lesson').value = parsed.lesson||'';
+
+    document.getElementById('voice-result').style.display='block';
+    document.getElementById('voice-save-btn').style.display='inline-flex';
+  } catch(e) {
+    document.getElementById('voice-error').textContent = 'Could not structure hand: '+e.message+'. Try again or log manually.';
+    document.getElementById('voice-error').style.display='block';
+    document.getElementById('voice-structure-btn').style.display='inline-flex';
+  }
+  document.getElementById('voice-loading').style.display='none';
+}
+
+function saveVoiceHand() {
+  var sessionLink = document.getElementById('voice-session-link');
+  var sessionId = sessionLink ? parseInt(sessionLink.value)||0 : 0;
+  var sessionLabel = '';
+  if (sessionId) {
+    var linked = sessions.find(function(s){ return s.id===sessionId; });
+    if (linked) sessionLabel = linked.name + ' — ' + linked.date;
+  }
+  var h = {
+    id: Date.now(),
+    sessionId: sessionId,
+    session: sessionLabel || new Date().toLocaleDateString('en-PH'),
+    title: document.getElementById('vr-title').value||'Hand',
+    desc: document.getElementById('vr-desc').value||'',
+    lesson: document.getElementById('vr-lesson').value||'',
+    result: document.getElementById('vr-result').value,
+    source: 'voice'
+  };
+  window.hands.unshift(h); hands = window.hands;
+  save('hands', hands);
+  closeModal('modal-voice');
+  clearVoiceModal();
+  populateSessionDropdowns();
+  renderHands();
+}
+
 // ── INIT ──
 document.getElementById('s-date').value = new Date().toISOString().split('T')[0];
+populateSessionDropdowns();
 var savedTheme = localStorage.getItem('pokerhq_theme');
 if (savedTheme === 'light') {
   document.body.classList.add('light');
@@ -1704,6 +1891,54 @@ if (savedTheme === 'light') {
 }
 refreshDashboard();
 </script>
+
+<!-- Voice to Hand Modal -->
+<div class="modal-overlay" id="modal-voice">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title">🎙 Voice to Hand</div>
+    <div style="font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.4);margin-bottom:1.25rem;line-height:1.7">
+      Paste your voice transcript below — from iPhone Voice Memos transcription or any speech-to-text. Claude will structure it into a hand log entry automatically.
+    </div>
+    <div class="form-group" style="margin-bottom:1rem">
+      <label class="form-label">Voice Transcript</label>
+      <textarea class="form-input" id="voice-transcript" rows="6" placeholder="e.g. UTG raised 3x I called button with pocket tens flop came ace king four he bet half pot I folded probably should have called he was loose..."></textarea>
+    </div>
+    <div class="form-group" style="margin-bottom:1rem">
+      <label class="form-label">Session (optional)</label>
+      <select class="form-input" id="voice-session-link">
+        <option value="">Select session...</option>
+      </select>
+    </div>
+    <div id="voice-result" style="display:none;background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.2);border-radius:10px;padding:1rem;margin-bottom:1rem">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--gold);margin-bottom:.75rem;text-transform:uppercase">Structured Hand — Review & Edit</div>
+      <div class="form-grid" style="gap:.75rem">
+        <div class="form-group"><label class="form-label">Result</label><select class="form-input" id="vr-result"><option value="won">Won</option><option value="lost">Lost</option><option value="fold">Fold</option></select></div>
+        <div class="form-group"><label class="form-label">Title</label><input class="form-input" type="text" id="vr-title"></div>
+        <div class="form-group" style="grid-column:1/-1"><label class="form-label">Description</label><textarea class="form-input" id="vr-desc" rows="3"></textarea></div>
+        <div class="form-group" style="grid-column:1/-1"><label class="form-label">Lesson</label><input class="form-input" type="text" id="vr-lesson"></div>
+      </div>
+    </div>
+    <div id="voice-loading" style="display:none;text-align:center;padding:1rem;font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.4)">⟳ Structuring hand with Claude...</div>
+    <div id="voice-error" style="display:none;font-family:var(--mono);font-size:11px;color:#E85C5C;margin-bottom:.75rem"></div>
+    <div class="modal-actions">
+      <button class="sec-action" onclick="closeModal('modal-voice');clearVoiceModal()">CANCEL</button>
+      <button class="sec-action" id="voice-structure-btn" onclick="structureHand()">✨ STRUCTURE WITH AI</button>
+      <button class="sec-action primary" id="voice-save-btn" style="display:none" onclick="saveVoiceHand()">SAVE HAND ↗</button>
+    </div>
+  </div>
+</div>
+
+<!-- Session Detail Modal -->
+<div class="modal-overlay" id="modal-session-detail">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-title" id="sd-title">Session Detail</div>
+    <div id="sd-body"></div>
+    <div class="modal-actions">
+      <button class="sec-action" onclick="closeModal('modal-session-detail')">CLOSE</button>
+    </div>
+  </div>
+</div>
+
 
 <!-- MOBILE BOTTOM NAV -->
 <div class="mobile-nav">
