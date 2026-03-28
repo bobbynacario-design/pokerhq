@@ -9,8 +9,7 @@
 <script type="module">
 // ── FIREBASE CONFIG ──
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB_6PnXWdtpR-x-jcJIuzOaROoVRplY5SM",
@@ -23,7 +22,9 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
-const auth = getAuth(app);
+
+// Fixed path — all Bob's devices share the same data
+const USER_PATH = 'pokerhq-bob';
 
 // ── SYNC STATUS UI ──
 function setSyncStatus(status, msg) {
@@ -38,38 +39,39 @@ function setSyncStatus(status, msg) {
 // ── FIREBASE SAVE ──
 async function fbSave(key, data) {
   try {
-    var uid = auth.currentUser ? auth.currentUser.uid : null;
-    if (!uid) return;
-    await setDoc(doc(db, 'users', uid, 'data', key), { value: JSON.stringify(data), updated: Date.now() });
-  } catch(e) { console.error('fbSave error:', e); }
+    setSyncStatus('syncing', 'Saving...');
+    await setDoc(doc(db, USER_PATH, key), { value: JSON.stringify(data), updated: Date.now() });
+    setSyncStatus('ok', 'Synced');
+  } catch(e) {
+    setSyncStatus('error', 'Save failed');
+    console.error('fbSave error:', e);
+  }
 }
 
 // ── FIREBASE LOAD ALL ──
 async function fbLoadAll() {
   try {
-    var uid = auth.currentUser ? auth.currentUser.uid : null;
-    if (!uid) return;
     setSyncStatus('syncing', 'Syncing...');
     var keys = ['sessions','tourneys','hands','strategies','news','spotlights','bankroll'];
+    var loaded = false;
     for (var i=0; i<keys.length; i++) {
       var k = keys[i];
-      var snap = await getDoc(doc(db, 'users', uid, 'data', k));
+      var snap = await getDoc(doc(db, USER_PATH, k));
       if (snap.exists()) {
         var val = JSON.parse(snap.data().value);
-        // Update the global variables
-        if (k==='sessions')   { window.sessions   = val; }
-        if (k==='tourneys')   { window.tourneys    = val; }
-        if (k==='hands')      { window.hands       = val; }
-        if (k==='strategies') { window.strategies  = val; }
-        if (k==='news')       { window.newsItems   = val; }
-        if (k==='spotlights') { window.spotlights  = val; }
-        if (k==='bankroll')   { window.bankroll    = val; }
-        // Also update localStorage as offline fallback
+        if (k==='sessions')   window.sessions   = val;
+        if (k==='tourneys')   window.tourneys   = val;
+        if (k==='hands')      window.hands      = val;
+        if (k==='strategies') window.strategies = val;
+        if (k==='news')       window.newsItems  = val;
+        if (k==='spotlights') window.spotlights = val;
+        if (k==='bankroll')   window.bankroll   = val;
         localStorage.setItem('pokerhq_'+k, JSON.stringify(val));
+        loaded = true;
       }
     }
     setSyncStatus('ok', 'Synced');
-    // Refresh UI
+    // Refresh all UI
     refreshDashboard();
     renderCalendarMonth();
     renderCalendarList();
@@ -82,23 +84,36 @@ async function fbLoadAll() {
   }
 }
 
-// ── EXPOSE FB SAVE TO GLOBAL SCOPE ──
+// ── REAL-TIME LISTENER — updates UI when another device saves ──
+var keys = ['sessions','tourneys','hands','strategies','news','spotlights','bankroll'];
+keys.forEach(function(k) {
+  onSnapshot(doc(db, USER_PATH, k), function(snap) {
+    if (!snap.exists()) return;
+    var val = JSON.parse(snap.data().value);
+    if (k==='sessions')   window.sessions   = val;
+    if (k==='tourneys')   window.tourneys   = val;
+    if (k==='hands')      window.hands      = val;
+    if (k==='strategies') window.strategies = val;
+    if (k==='news')       window.newsItems  = val;
+    if (k==='spotlights') window.spotlights = val;
+    if (k==='bankroll')   window.bankroll   = val;
+    localStorage.setItem('pokerhq_'+k, JSON.stringify(val));
+    setSyncStatus('ok', 'Synced');
+    // Refresh relevant UI
+    refreshDashboard();
+    loadBankrollForm();
+    renderCalendarMonth();
+    renderCalendarList();
+    renderStrategy();
+    renderHands();
+  });
+});
+
+// ── EXPOSE TO GLOBAL SCOPE ──
 window.fbSave = fbSave;
 
-// ── AUTH ──
-signInAnonymously(auth).catch(function(e){ 
-  setSyncStatus('error', 'Auth failed — offline mode');
-  console.error('Auth error:', e); 
-});
-
-onAuthStateChanged(auth, function(user) {
-  if (user) {
-    setSyncStatus('syncing', 'Connecting...');
-    fbLoadAll();
-  } else {
-    setSyncStatus('offline', 'Offline');
-  }
-});
+// ── INIT LOAD ──
+fbLoadAll();
 </script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
