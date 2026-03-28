@@ -6,6 +6,100 @@
 <title>PokerHQ — Bob's Tournament Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script type="module">
+// ── FIREBASE CONFIG ──
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB_6PnXWdtpR-x-jcJIuzOaROoVRplY5SM",
+  authDomain: "pokerhq-a67e4.firebaseapp.com",
+  projectId: "pokerhq-a67e4",
+  storageBucket: "pokerhq-a67e4.firebasestorage.app",
+  messagingSenderId: "91226487101",
+  appId: "1:91226487101:web:0cf1b3411ff9d17a00ad54"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+const auth = getAuth(app);
+
+// ── SYNC STATUS UI ──
+function setSyncStatus(status, msg) {
+  var el = document.getElementById('sync-status');
+  if (!el) return;
+  var colors = {syncing:'#F0A832', ok:'#2ECC71', error:'#E74C3C', offline:'rgba(255,255,255,.3)'};
+  var icons  = {syncing:'⟳', ok:'✓', error:'✗', offline:'○'};
+  el.textContent = (icons[status]||'○') + ' ' + msg;
+  el.style.color = colors[status]||'rgba(255,255,255,.3)';
+}
+
+// ── FIREBASE SAVE ──
+async function fbSave(key, data) {
+  try {
+    var uid = auth.currentUser ? auth.currentUser.uid : null;
+    if (!uid) return;
+    await setDoc(doc(db, 'users', uid, 'data', key), { value: JSON.stringify(data), updated: Date.now() });
+  } catch(e) { console.error('fbSave error:', e); }
+}
+
+// ── FIREBASE LOAD ALL ──
+async function fbLoadAll() {
+  try {
+    var uid = auth.currentUser ? auth.currentUser.uid : null;
+    if (!uid) return;
+    setSyncStatus('syncing', 'Syncing...');
+    var keys = ['sessions','tourneys','hands','strategies','news','spotlights','bankroll'];
+    for (var i=0; i<keys.length; i++) {
+      var k = keys[i];
+      var snap = await getDoc(doc(db, 'users', uid, 'data', k));
+      if (snap.exists()) {
+        var val = JSON.parse(snap.data().value);
+        // Update the global variables
+        if (k==='sessions')   { window.sessions   = val; }
+        if (k==='tourneys')   { window.tourneys    = val; }
+        if (k==='hands')      { window.hands       = val; }
+        if (k==='strategies') { window.strategies  = val; }
+        if (k==='news')       { window.newsItems   = val; }
+        if (k==='spotlights') { window.spotlights  = val; }
+        if (k==='bankroll')   { window.bankroll    = val; }
+        // Also update localStorage as offline fallback
+        localStorage.setItem('pokerhq_'+k, JSON.stringify(val));
+      }
+    }
+    setSyncStatus('ok', 'Synced');
+    // Refresh UI
+    refreshDashboard();
+    renderCalendarMonth();
+    renderCalendarList();
+    renderStrategy();
+    renderHands();
+    loadBankrollForm();
+  } catch(e) {
+    setSyncStatus('error', 'Sync failed — using local data');
+    console.error('fbLoadAll error:', e);
+  }
+}
+
+// ── EXPOSE FB SAVE TO GLOBAL SCOPE ──
+window.fbSave = fbSave;
+
+// ── AUTH ──
+signInAnonymously(auth).catch(function(e){ 
+  setSyncStatus('error', 'Auth failed — offline mode');
+  console.error('Auth error:', e); 
+});
+
+onAuthStateChanged(auth, function(user) {
+  if (user) {
+    setSyncStatus('syncing', 'Connecting...');
+    fbLoadAll();
+  } else {
+    setSyncStatus('offline', 'Offline');
+  }
+});
+</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -407,6 +501,7 @@ body.light .event-meta{color:rgba(0,0,0,.4)}
   <div class="nav-right">
     <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">🌙</button>
     <div class="clock-nav" id="clock">--:--</div>
+    <div class="clock-nav" id="sync-status" style="letter-spacing:.04em">○ Loading...</div>
     <button class="btn-pdf" onclick="exportPDF()">⬇ WEEKLY REPORT</button>
   </div>
 </nav>
@@ -756,15 +851,26 @@ body.light .event-meta{color:rgba(0,0,0,.4)}
 <script>
 // ── STORAGE ──
 function load(key, def) { try { return JSON.parse(localStorage.getItem('pokerhq_'+key)) || def; } catch(e) { return def; } }
-function save(key, val) { localStorage.setItem('pokerhq_'+key, JSON.stringify(val)); }
+function save(key, val) {
+  localStorage.setItem('pokerhq_'+key, JSON.stringify(val));
+  if (window.fbSave) window.fbSave(key, val);
+}
 
-var sessions  = load('sessions', []);
-var tourneys  = load('tourneys', []);
-var hands     = load('hands', []);
-var strategies= load('strategies', []);
-var newsItems = load('news', []);
-var spotlights= load('spotlights', []);
-var bankroll  = load('bankroll', {amount:0, rule:15});
+window.sessions   = load('sessions', []);
+window.tourneys   = load('tourneys', []);
+window.hands      = load('hands', []);
+window.strategies = load('strategies', []);
+window.newsItems  = load('news', []);
+window.spotlights = load('spotlights', []);
+window.bankroll   = load('bankroll', {amount:0, rule:15});
+// Shorthand aliases
+var sessions   = window.sessions;
+var tourneys   = window.tourneys;
+var hands      = window.hands;
+var strategies = window.strategies;
+var newsItems  = window.newsItems;
+var spotlights = window.spotlights;
+var bankroll   = window.bankroll;
 
 // ── CLOCK ──
 function tickClock() {
@@ -837,7 +943,7 @@ function addSession() {
     notes: document.getElementById('s-notes').value || '',
     result: prize>0 ? (pos<=3?'final':'itm') : 'bust'
   };
-  sessions.unshift(s);
+  window.sessions.unshift(s); sessions = window.sessions;
   save('sessions', sessions);
 
   // Update bankroll
@@ -960,7 +1066,7 @@ function addTourney() {
     notes: document.getElementById('t-notes').value||'',
     status: status
   };
-  tourneys.push(t);
+  window.tourneys.push(t); tourneys = window.tourneys;
   tourneys.sort(function(a,b){ return a.date.localeCompare(b.date); });
   save('tourneys', tourneys);
   closeModal('modal-tourney');
@@ -1279,7 +1385,7 @@ function addHand() {
     lesson: document.getElementById('h-lesson').value||'',
     result: document.getElementById('h-result').value
   };
-  hands.unshift(h);
+  window.hands.unshift(h); hands = window.hands;
   save('hands', hands);
   closeModal('modal-hand');
   renderHands();
