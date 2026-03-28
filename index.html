@@ -504,6 +504,71 @@ body.light .event-meta{color:rgba(0,0,0,.4)}
   .event-date-box{min-width:40px}
   .series-events{padding-left:.4rem}
 }
+
+/* ── SATELLITE TRACKER ── */
+.sat-hero{background:linear-gradient(135deg,var(--bg2),var(--bg3));border:1px solid rgba(155,111,232,.2);border-radius:14px;padding:1.5rem 2rem;margin-bottom:1.5rem;position:relative;overflow:hidden}
+.sat-hero::after{content:'🛰';position:absolute;right:1.5rem;top:50%;transform:translateY(-50%);font-size:60px;opacity:.06;pointer-events:none}
+.sat-goal-label{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:rgba(155,111,232,.8);text-transform:uppercase;margin-bottom:.4rem}
+.sat-goal-name{font-family:var(--serif);font-size:24px;font-weight:700;color:#fff;margin-bottom:.25rem}
+.sat-progress-wrap{background:rgba(0,0,0,.3);border-radius:20px;height:8px;margin:.75rem 0}
+.sat-progress-bar{height:8px;border-radius:20px;background:linear-gradient(90deg,var(--purple),#C084FC);transition:width .5s ease}
+.sat-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-top:.75rem}
+.sat-stat{background:rgba(0,0,0,.2);border-radius:8px;padding:.6rem .85rem}
+.sat-stat-label{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:.2rem}
+.sat-stat-val{font-family:var(--mono);font-size:16px;color:#fff;font-weight:500}
+.sat-card{background:var(--bg2);border:1px solid var(--rim);border-radius:12px;padding:1rem 1.25rem;margin-bottom:.65rem;display:flex;align-items:center;gap:1rem}
+.sat-card-left{flex:1}
+.sat-card-name{font-size:14px;font-weight:500;color:#fff;margin-bottom:.25rem}
+.sat-card-meta{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.35);display:flex;gap:.6rem;flex-wrap:wrap}
+.sat-card-right{display:flex;flex-direction:column;align-items:flex-end;gap:.3rem;flex-shrink:0}
+.sat-buyin{font-family:var(--mono);font-size:14px;color:var(--purple)}
+.sat-result-badge{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.05em}
+.sat-won{background:rgba(45,184,122,.15);color:var(--green);border:1px solid rgba(45,184,122,.3)}
+.sat-lost{background:rgba(232,92,92,.1);color:rgba(255,255,255,.4);border:1px solid var(--rim)}
+.sat-pending{background:rgba(155,111,232,.12);color:var(--purple);border:1px solid rgba(155,111,232,.25)}
+
+/* ── OPPONENTS ── */
+.opp-card{background:var(--bg2);border:1px solid var(--rim);border-radius:12px;padding:1.1rem 1.35rem;margin-bottom:.75rem;transition:border-color .2s}
+.opp-card:hover{border-color:var(--rim2)}
+.opp-top{display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;margin-bottom:.5rem}
+.opp-name{font-size:15px;font-weight:500;color:#fff}
+.opp-venue{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.35);margin-top:.15rem}
+.opp-tags{display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.5rem}
+.opp-tag{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:20px;background:var(--bg3);color:rgba(255,255,255,.5);border:1px solid var(--rim)}
+.opp-tag.loose{background:rgba(232,92,92,.1);color:#E85C5C;border-color:rgba(232,92,92,.25)}
+.opp-tag.tight{background:rgba(45,184,122,.1);color:#2DB87A;border-color:rgba(45,184,122,.25)}
+.opp-tag.aggressive{background:rgba(240,168,50,.1);color:#F0A832;border-color:rgba(240,168,50,.25)}
+.opp-tag.passive{background:rgba(52,152,219,.1);color:#3498DB;border-color:rgba(52,152,219,.25)}
+.opp-tag.fish{background:rgba(155,111,232,.1);color:var(--purple);border-color:rgba(155,111,232,.25)}
+.opp-tag.reg{background:rgba(201,168,76,.1);color:var(--gold);border-color:rgba(201,168,76,.25)}
+.opp-notes{font-size:12px;color:rgba(255,255,255,.45);line-height:1.7}
+.tag-select-grid{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.35rem}
+.tag-toggle{font-family:var(--mono);font-size:10px;padding:3px 10px;border-radius:20px;border:1px solid var(--rim);background:transparent;color:rgba(255,255,255,.4);cursor:pointer;transition:all .15s}
+.tag-toggle.selected{border-color:var(--gold);color:var(--gold);background:var(--gold-dim)}
+
+/* ── HEATMAP ── */
+.heatmap-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;margin-bottom:1.5rem}
+.heatmap-card{background:var(--bg2);border:1px solid var(--rim);border-radius:13px;padding:1.25rem;overflow:hidden}
+.heatmap-title{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:1rem}
+.heatmap-row{display:flex;align-items:center;gap:.65rem;margin-bottom:.5rem}
+.heatmap-label{font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.55);width:130px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.heatmap-bar-wrap{flex:1;background:rgba(255,255,255,.06);border-radius:4px;height:20px;position:relative;overflow:hidden}
+.heatmap-bar-fill{height:100%;border-radius:4px;transition:width .6s ease;display:flex;align-items:center;justify-content:flex-end;padding-right:6px}
+.heatmap-bar-val{font-family:var(--mono);font-size:9px;font-weight:500;white-space:nowrap}
+.heat-pos{background:linear-gradient(90deg,rgba(45,184,122,.3),rgba(45,184,122,.6))}
+.heat-neg{background:linear-gradient(90deg,rgba(232,92,92,.3),rgba(232,92,92,.6))}
+.heat-neutral{background:linear-gradient(90deg,rgba(201,168,76,.2),rgba(201,168,76,.4))}
+.heatmap-empty{font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.2);text-align:center;padding:2rem}
+.month-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;margin-bottom:1rem}
+.month-cell{aspect-ratio:1;border-radius:4px;cursor:default;position:relative}
+.month-cell:hover .month-tooltip{display:block}
+.month-tooltip{display:none;position:absolute;bottom:110%;left:50%;transform:translateX(-50%);background:var(--bg);border:1px solid var(--rim2);border-radius:6px;padding:4px 8px;font-family:var(--mono);font-size:9px;color:#fff;white-space:nowrap;z-index:10}
+
+@media(max-width:768px){
+  .sat-stats{grid-template-columns:1fr 1fr}
+  .heatmap-grid{grid-template-columns:1fr}
+  .sat-card{flex-wrap:wrap}
+}
 </style>
 </head>
 <body>
@@ -518,6 +583,9 @@ body.light .event-meta{color:rgba(0,0,0,.4)}
       <button class="tab" onclick="switchTab('calendar')">Calendar</button>
       <button class="tab" onclick="switchTab('strategy')">Strategy</button>
       <button class="tab" onclick="switchTab('hands')">Hands</button>
+      <button class="tab" onclick="switchTab('satellite')">🛰 Satellites</button>
+      <button class="tab" onclick="switchTab('opponents')">👤 Opponents</button>
+      <button class="tab" onclick="switchTab('heatmap')">🔥 Heatmap</button>
     </div>
   </div>
   <div class="nav-right">
@@ -796,7 +864,93 @@ body.light .event-meta{color:rgba(0,0,0,.4)}
   <div id="hand-list"></div>
 </div>
 
+<!-- ════════════════════ SATELLITE PAGE ════════════════════ -->
+<div class="page" id="page-satellite">
+  <div class="sat-hero">
+    <div class="sat-goal-label">Current Satellite Target</div>
+    <div class="sat-goal-name" id="sat-target-name">No target set</div>
+    <div style="font-family:var(--mono);font-size:12px;color:rgba(155,111,232,.6)" id="sat-target-buyin"></div>
+    <div class="sat-progress-wrap"><div class="sat-progress-bar" id="sat-progress-bar" style="width:0%"></div></div>
+    <div class="sat-stats">
+      <div class="sat-stat"><div class="sat-stat-label">Sats Played</div><div class="sat-stat-val" id="sat-played">0</div></div>
+      <div class="sat-stat"><div class="sat-stat-label">Seats Won</div><div class="sat-stat-val" id="sat-won">0</div></div>
+      <div class="sat-stat"><div class="sat-stat-label">Total Invested</div><div class="sat-stat-val" id="sat-invested">₱0</div></div>
+      <div class="sat-stat"><div class="sat-stat-label">vs Direct Buy-in</div><div class="sat-stat-val" id="sat-saved">₱0</div></div>
+    </div>
+  </div>
+
+  <div class="sec-hdr">
+    <div class="sec-title"><span>🛰</span>Satellite Log</div>
+    <button class="sec-action primary" onclick="openModal('modal-satellite')">+ LOG SATELLITE</button>
+  </div>
+
+  <!-- Set target form -->
+  <div class="form-card" style="margin-bottom:1.5rem">
+    <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:1rem">Set Target Tournament</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Target Event</label>
+        <input class="form-input" type="text" id="sat-target-input" placeholder="e.g. Okada Manila Millions Main Event">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Direct Buy-in (₱)</label>
+        <input class="form-input" type="number" id="sat-target-buyin-input" placeholder="e.g. 7500">
+      </div>
+    </div>
+    <button class="sec-action primary" onclick="setSatTarget()" style="margin-top:.5rem">SET TARGET ↗</button>
+  </div>
+
+  <div id="satellite-list"></div>
+</div>
+
+<!-- ════════════════════ OPPONENTS PAGE ════════════════════ -->
+<div class="page" id="page-opponents">
+  <div class="sec-hdr">
+    <div class="sec-title"><span>👤</span>Villain Database</div>
+    <button class="sec-action primary" onclick="openModal('modal-opponent')">+ ADD VILLAIN</button>
+  </div>
+  <div class="form-card" style="margin-bottom:1.25rem;padding:.75rem 1rem">
+    <input class="form-input" type="text" id="opp-search" placeholder="🔍  Search by name or venue..." oninput="renderOpponents()" style="border:none;background:transparent;padding:0;font-size:14px;width:100%">
+  </div>
+  <div id="opponent-list"></div>
+</div>
+
+<!-- ════════════════════ HEATMAP PAGE ════════════════════ -->
+<div class="page" id="page-heatmap">
+  <div class="sec-hdr">
+    <div class="sec-title"><span>🔥</span>Results Heatmap</div>
+  </div>
+  <div class="heatmap-grid">
+    <div class="heatmap-card">
+      <div class="heatmap-title">P&L by Venue</div>
+      <div id="hmap-venue"></div>
+    </div>
+    <div class="heatmap-card">
+      <div class="heatmap-title">P&L by Buy-in Range</div>
+      <div id="hmap-buyin"></div>
+    </div>
+    <div class="heatmap-card">
+      <div class="heatmap-title">ITM Rate by Venue</div>
+      <div id="hmap-itm"></div>
+    </div>
+    <div class="heatmap-card">
+      <div class="heatmap-title">ROI by Tournament</div>
+      <div id="hmap-roi"></div>
+    </div>
+  </div>
+  <div class="heatmap-card" style="margin-bottom:1rem">
+    <div class="heatmap-title">Monthly P&L — Last 12 Months</div>
+    <div class="month-grid" id="hmap-monthly"></div>
+    <div style="display:flex;gap:1rem;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:.4rem;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.35)"><div style="width:12px;height:12px;background:rgba(45,184,122,.5);border-radius:2px"></div>Profitable</div>
+      <div style="display:flex;align-items:center;gap:.4rem;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.35)"><div style="width:12px;height:12px;background:rgba(232,92,92,.5);border-radius:2px"></div>Loss</div>
+      <div style="display:flex;align-items:center;gap:.4rem;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.35)"><div style="width:12px;height:12px;background:rgba(255,255,255,.08);border-radius:2px"></div>No data</div>
+    </div>
+  </div>
+</div>
+
 <!-- ════════════════════ MODALS ════════════════════ -->
+
 
 <!-- Tournament Modal -->
 <div class="modal-overlay" id="modal-tourney">
@@ -1002,6 +1156,7 @@ function clearSessionForm() {
     document.getElementById(id).value='';
   });
   document.getElementById('s-date').value = new Date().toISOString().split('T')[0];
+var satDateEl = document.getElementById('sat-date'); if (satDateEl) satDateEl.value = new Date().toISOString().split('T')[0];
 populateSessionDropdowns();
 }
 
@@ -1731,7 +1886,10 @@ function switchTabMobile(id, el) {
   if (id==='sessions') { loadBankrollForm(); renderSessionTable(); }
   if (id==='calendar') { renderCalendar(); }
   if (id==='strategy') renderStrategy();
-  if (id==='hands') renderHands();
+  if (id==='hands') { populateSessionDropdowns(); renderHands(); }
+  if (id==='satellite') renderSatellites();
+  if (id==='opponents') renderOpponents();
+  if (id==='heatmap') renderHeatmap();
   window.scrollTo(0,0);
 }
 
@@ -1881,8 +2039,255 @@ function saveVoiceHand() {
   renderHands();
 }
 
+// ── SATELLITE TRACKER ──
+var satellites = load('satellites', []);
+var satTarget  = load('satTarget', {name:'',buyin:0});
+
+function setSatTarget() {
+  var name  = document.getElementById('sat-target-input').value.trim();
+  var buyin = parseFloat(document.getElementById('sat-target-buyin-input').value)||0;
+  if (!name) return;
+  satTarget = {name:name, buyin:buyin};
+  save('satTarget', satTarget);
+  renderSatellites();
+}
+
+function addSatellite() {
+  var s = {
+    id: Date.now(),
+    date:   document.getElementById('sat-date').value || new Date().toISOString().split('T')[0],
+    name:   document.getElementById('sat-name').value || 'Satellite',
+    venue:  document.getElementById('sat-venue').value || '',
+    buyin:  parseFloat(document.getElementById('sat-buyin').value)||0,
+    result: document.getElementById('sat-result').value,
+    forEvent: document.getElementById('sat-for').value || satTarget.name || '',
+    notes:  document.getElementById('sat-notes').value || ''
+  };
+  satellites.unshift(s);
+  save('satellites', satellites);
+  closeModal('modal-satellite');
+  ['sat-name','sat-venue','sat-buyin','sat-for','sat-notes'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('sat-result').value='won';
+  renderSatellites();
+}
+
+function deleteSatellite(id) {
+  satellites = satellites.filter(function(x){ return x.id!==id; });
+  save('satellites', satellites);
+  renderSatellites();
+}
+
+function renderSatellites() {
+  // Update hero stats
+  var played   = satellites.length;
+  var won      = satellites.filter(function(s){ return s.result==='won'; }).length;
+  var invested = satellites.reduce(function(a,s){ return a+s.buyin; },0);
+  var saved    = won * (satTarget.buyin||0) - invested;
+
+  var nameEl = document.getElementById('sat-target-name');
+  var buyinEl = document.getElementById('sat-target-buyin');
+  if (nameEl) nameEl.textContent = satTarget.name || 'No target set';
+  if (buyinEl) buyinEl.textContent = satTarget.buyin ? 'Direct buy-in: ₱'+satTarget.buyin.toLocaleString() : '';
+
+  var pct = satTarget.buyin && invested > 0 ? Math.min(100, Math.round((invested/satTarget.buyin)*100)) : 0;
+  var pb = document.getElementById('sat-progress-bar');
+  if (pb) pb.style.width = pct+'%';
+
+  var els = {
+    'sat-played':   played,
+    'sat-won':      won,
+    'sat-invested': '₱'+invested.toLocaleString(),
+    'sat-saved':    (saved>=0?'+':'')+'₱'+Math.abs(Math.round(saved)).toLocaleString()
+  };
+  Object.keys(els).forEach(function(id){ var e=document.getElementById(id); if(e) e.textContent=els[id]; });
+
+  // Prefill target input if set
+  var ti = document.getElementById('sat-target-input');
+  var tb = document.getElementById('sat-target-buyin-input');
+  if (ti && satTarget.name) ti.value = satTarget.name;
+  if (tb && satTarget.buyin) tb.value = satTarget.buyin;
+
+  // List
+  var el = document.getElementById('satellite-list');
+  if (!el) return;
+  if (!satellites.length) {
+    el.innerHTML='<div style="padding:3rem;text-align:center;color:rgba(255,255,255,.2);font-family:var(--mono);font-size:13px">No satellites logged yet. Set a target and start logging your satellite attempts.</div>';
+    return;
+  }
+  el.innerHTML = satellites.map(function(s) {
+    var rc = {won:'sat-won',lost:'sat-lost',pending:'sat-pending'}[s.result]||'sat-lost';
+    var rl = {won:'🎟 SEAT WON',lost:'DID NOT WIN',pending:'PENDING'}[s.result]||'DID NOT WIN';
+    return '<div class="sat-card"><div class="sat-card-left"><div class="sat-card-name">'+s.name+'</div><div class="sat-card-meta"><span>'+s.date+'</span><span>'+s.venue+'</span>'+(s.forEvent?'<span>→ '+s.forEvent+'</span>':'')+(s.notes?'<span>'+s.notes+'</span>':'')+'</div></div><div class="sat-card-right"><div class="sat-buyin">₱'+s.buyin.toLocaleString()+'</div><span class="sat-result-badge '+rc+'">'+rl+'</span><button class="del-btn" onclick="deleteSatellite('+s.id+')">✕</button></div></div>';
+  }).join('');
+}
+
+// ── OPPONENT NOTES ──
+var opponents = load('opponents', []);
+var _selectedOppTags = [];
+
+function toggleOppTag(btn) {
+  btn.classList.toggle('selected');
+  var tag = btn.dataset.tag;
+  if (_selectedOppTags.includes(tag)) {
+    _selectedOppTags = _selectedOppTags.filter(function(t){ return t!==tag; });
+  } else {
+    _selectedOppTags.push(tag);
+  }
+}
+
+function addOpponent() {
+  var name = document.getElementById('opp-name').value.trim();
+  if (!name) return;
+  var o = {
+    id: Date.now(),
+    name: name,
+    venue: document.getElementById('opp-venue').value||'',
+    tags: _selectedOppTags.slice(),
+    notes: document.getElementById('opp-notes').value||'',
+    added: new Date().toLocaleDateString('en-PH')
+  };
+  opponents.unshift(o);
+  save('opponents', opponents);
+  // Reset modal
+  document.getElementById('opp-name').value='';
+  document.getElementById('opp-venue').value='';
+  document.getElementById('opp-notes').value='';
+  _selectedOppTags=[];
+  document.querySelectorAll('.tag-toggle').forEach(function(b){ b.classList.remove('selected'); });
+  closeModal('modal-opponent');
+  renderOpponents();
+}
+
+function deleteOpponent(id) {
+  opponents = opponents.filter(function(x){ return x.id!==id; });
+  save('opponents', opponents);
+  renderOpponents();
+}
+
+function renderOpponents() {
+  var el = document.getElementById('opponent-list');
+  if (!el) return;
+  var q = (document.getElementById('opp-search')||{}).value||'';
+  var filtered = q ? opponents.filter(function(o){
+    return o.name.toLowerCase().includes(q.toLowerCase()) || o.venue.toLowerCase().includes(q.toLowerCase()) || (o.notes||'').toLowerCase().includes(q.toLowerCase());
+  }) : opponents;
+
+  if (!filtered.length) {
+    el.innerHTML='<div style="padding:3rem;text-align:center;color:rgba(255,255,255,.2);font-family:var(--mono);font-size:13px">'+(q?'No villains matching "'+q+'"':'No villains logged yet. Add a player you want to remember.')+'</div>';
+    return;
+  }
+  el.innerHTML = filtered.map(function(o) {
+    var tagHTML = (o.tags||[]).map(function(t){
+      return '<span class="opp-tag '+t+'">'+t+'</span>';
+    }).join('');
+    return '<div class="opp-card"><div class="opp-top"><div><div class="opp-name">'+o.name+'</div><div class="opp-venue">'+o.venue+(o.added?' · Added '+o.added:'')+'</div></div><button class="del-btn" onclick="deleteOpponent('+o.id+')">✕</button></div>'+(tagHTML?'<div class="opp-tags">'+tagHTML+'</div>':'')+(o.notes?'<div class="opp-notes">'+o.notes+'</div>':'')+'</div>';
+  }).join('');
+}
+
+// ── RESULTS HEATMAP ──
+function renderHeatmap() {
+  if (!sessions.length) {
+    ['hmap-venue','hmap-buyin','hmap-itm','hmap-roi','hmap-monthly'].forEach(function(id){
+      var e=document.getElementById(id); if(e) e.innerHTML='<div class="heatmap-empty">Log sessions to see heatmap</div>';
+    });
+    return;
+  }
+
+  // P&L by venue
+  var venueMap = {};
+  sessions.forEach(function(s) {
+    var v = s.venue||'Unknown';
+    if (!venueMap[v]) venueMap[v] = {pnl:0,count:0,itm:0};
+    venueMap[v].pnl += s.pnl||0;
+    venueMap[v].count++;
+    if (s.result==='itm'||s.result==='final') venueMap[v].itm++;
+  });
+  renderHeatmapBars('hmap-venue', Object.keys(venueMap).map(function(k){
+    return {label:k, val:venueMap[k].pnl, display:fmtCur(venueMap[k].pnl)};
+  }));
+
+  // P&L by buy-in range
+  var ranges = [
+    {label:'₱0–₱2,999',   min:0,     max:2999},
+    {label:'₱3k–₱5,999',  min:3000,  max:5999},
+    {label:'₱6k–₱9,999',  min:6000,  max:9999},
+    {label:'₱10k–₱15k',   min:10000, max:15000},
+    {label:'₱15k+',        min:15001, max:999999}
+  ];
+  var rangeData = ranges.map(function(r) {
+    var inRange = sessions.filter(function(s){ return s.total>=r.min && s.total<=r.max; });
+    var pnl = inRange.reduce(function(a,s){ return a+(s.pnl||0); },0);
+    return {label:r.label, val:pnl, display:fmtCur(pnl)+' ('+inRange.length+')'};
+  }).filter(function(r){ return r.val!==0; });
+  renderHeatmapBars('hmap-buyin', rangeData);
+
+  // ITM rate by venue
+  renderHeatmapBars('hmap-itm', Object.keys(venueMap).map(function(k) {
+    var v=venueMap[k];
+    var rate = v.count>0 ? Math.round((v.itm/v.count)*100) : 0;
+    return {label:k, val:rate, display:rate+'% ITM ('+v.count+' sessions)', neutral:true};
+  }), 100);
+
+  // ROI by tournament name
+  var nameMap = {};
+  sessions.forEach(function(s) {
+    var n = s.name||'Unknown';
+    if (!nameMap[n]) nameMap[n]={invested:0,returned:0};
+    nameMap[n].invested += s.total||0;
+    nameMap[n].returned += s.prize||0;
+  });
+  renderHeatmapBars('hmap-roi', Object.keys(nameMap).map(function(k) {
+    var v=nameMap[k];
+    var roi = v.invested>0 ? Math.round(((v.returned-v.invested)/v.invested)*100) : 0;
+    return {label:k, val:roi, display:roi+'% ROI'};
+  }));
+
+  // Monthly P&L grid
+  var monthlyEl = document.getElementById('hmap-monthly');
+  if (monthlyEl) {
+    var now = new Date();
+    var monthData = {};
+    sessions.forEach(function(s) {
+      if (!s.date) return;
+      var d = new Date(s.date+'T00:00:00');
+      var key = d.getFullYear()+'-'+(d.getMonth()+1);
+      if (!monthData[key]) monthData[key]={pnl:0,count:0};
+      monthData[key].pnl += s.pnl||0;
+      monthData[key].count++;
+    });
+    var html = '';
+    for (var i=11;i>=0;i--) {
+      var d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+      var key = d.getFullYear()+'-'+(d.getMonth()+1);
+      var mon = monthData[key];
+      var label = d.toLocaleString('en',{month:'short',year:'2-digit'});
+      var bg, title;
+      if (!mon) { bg='rgba(255,255,255,.06)'; title=label+': No data'; }
+      else if (mon.pnl>0) { var intensity=Math.min(1,mon.pnl/10000); bg='rgba(45,184,122,'+(0.2+intensity*0.6)+')'; title=label+': '+fmtCur(mon.pnl)+' ('+mon.count+' sessions)'; }
+      else { var intensity=Math.min(1,Math.abs(mon.pnl)/10000); bg='rgba(232,92,92,'+(0.2+intensity*0.6)+')'; title=label+': '+fmtCur(mon.pnl)+' ('+mon.count+' sessions)'; }
+      html += '<div class="month-cell" style="background:'+bg+'" title="'+title+'"><div class="month-tooltip">'+title+'</div></div>';
+    }
+    monthlyEl.innerHTML = html;
+  }
+}
+
+function renderHeatmapBars(elId, data, maxVal) {
+  var el = document.getElementById(elId);
+  if (!el) return;
+  if (!data.length) { el.innerHTML='<div class="heatmap-empty">No data yet</div>'; return; }
+  var sorted = data.slice().sort(function(a,b){ return Math.abs(b.val)-Math.abs(a.val); });
+  var max = maxVal || Math.max.apply(null, sorted.map(function(d){ return Math.abs(d.val)||1; }));
+  el.innerHTML = sorted.map(function(d) {
+    var pct = Math.round((Math.abs(d.val)/max)*100);
+    var cls = d.neutral?'heat-neutral':d.val>=0?'heat-pos':'heat-neg';
+    var textCol = d.neutral?'rgba(201,168,76,.9)':d.val>=0?'rgba(45,184,122,.9)':'rgba(232,92,92,.9)';
+    return '<div class="heatmap-row"><div class="heatmap-label" title="'+d.label+'">'+d.label+'</div><div class="heatmap-bar-wrap"><div class="heatmap-bar-fill '+cls+'" style="width:'+Math.max(pct,4)+'%"><span class="heatmap-bar-val" style="color:'+textCol+'">'+d.display+'</span></div></div></div>';
+  }).join('');
+}
+
 // ── INIT ──
 document.getElementById('s-date').value = new Date().toISOString().split('T')[0];
+var satDateEl = document.getElementById('sat-date'); if (satDateEl) satDateEl.value = new Date().toISOString().split('T')[0];
 populateSessionDropdowns();
 var savedTheme = localStorage.getItem('pokerhq_theme');
 if (savedTheme === 'light') {
@@ -1892,7 +2297,93 @@ if (savedTheme === 'light') {
 refreshDashboard();
 </script>
 
+<!-- Satellite Modal -->
+<div class="modal-overlay" id="modal-satellite">
+  <div class="modal">
+    <div class="modal-title">Log Satellite</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input class="form-input" type="date" id="sat-date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Satellite Name</label>
+        <input class="form-input" type="text" id="sat-name" placeholder="e.g. Okada Daily Satellite">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Venue</label>
+        <input class="form-input" type="text" id="sat-venue" placeholder="e.g. Okada Manila">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Buy-in (₱)</label>
+        <input class="form-input" type="number" id="sat-buyin" placeholder="e.g. 1100">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Result</label>
+        <select class="form-input" id="sat-result">
+          <option value="won">Won Seat 🎟</option>
+          <option value="lost">Did Not Win</option>
+          <option value="pending">Pending / Upcoming</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Target Event</label>
+        <input class="form-input" type="text" id="sat-for" placeholder="e.g. Okada Manila Millions ME">
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:1rem;margin-top:.5rem">
+      <label class="form-label">Notes</label>
+      <input class="form-input" type="text" id="sat-notes" placeholder="e.g. Busted AK vs QQ, 3 seats given">
+    </div>
+    <div class="modal-actions">
+      <button class="sec-action" onclick="closeModal('modal-satellite')">CANCEL</button>
+      <button class="sec-action primary" onclick="addSatellite()">LOG ↗</button>
+    </div>
+  </div>
+</div>
+
+<!-- Opponent Modal -->
+<div class="modal-overlay" id="modal-opponent">
+  <div class="modal">
+    <div class="modal-title">Add Villain</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Name / Nickname</label>
+        <input class="form-input" type="text" id="opp-name" placeholder="e.g. The Limper, Table 3 Guy">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Venue Seen</label>
+        <input class="form-input" type="text" id="opp-venue" placeholder="e.g. Metro Card Club">
+      </div>
+    </div>
+    <div class="form-group" style="margin:.75rem 0 .5rem">
+      <label class="form-label">Player Type Tags</label>
+      <div class="tag-select-grid" id="opp-tag-grid">
+        <button class="tag-toggle" data-tag="loose" onclick="toggleOppTag(this)">Loose</button>
+        <button class="tag-toggle" data-tag="tight" onclick="toggleOppTag(this)">Tight</button>
+        <button class="tag-toggle" data-tag="aggressive" onclick="toggleOppTag(this)">Aggressive</button>
+        <button class="tag-toggle" data-tag="passive" onclick="toggleOppTag(this)">Passive</button>
+        <button class="tag-toggle" data-tag="fish" onclick="toggleOppTag(this)">Fish 🐟</button>
+        <button class="tag-toggle" data-tag="reg" onclick="toggleOppTag(this)">Reg ♠</button>
+        <button class="tag-toggle" data-tag="calling-station" onclick="toggleOppTag(this)">Calling Station</button>
+        <button class="tag-toggle" data-tag="bluffer" onclick="toggleOppTag(this)">Bluffer</button>
+        <button class="tag-toggle" data-tag="nit" onclick="toggleOppTag(this)">Nit</button>
+        <button class="tag-toggle" data-tag="maniac" onclick="toggleOppTag(this)">Maniac</button>
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:1rem">
+      <label class="form-label">Tendencies / Notes</label>
+      <textarea class="form-input" id="opp-notes" rows="3" placeholder="e.g. Never folds top pair, always open-limps UTG, huge river overbets with nuts..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="sec-action" onclick="closeModal('modal-opponent')">CANCEL</button>
+      <button class="sec-action primary" onclick="addOpponent()">SAVE ↗</button>
+    </div>
+  </div>
+</div>
+
 <!-- Voice to Hand Modal -->
+
 <div class="modal-overlay" id="modal-voice">
   <div class="modal" style="max-width:560px">
     <div class="modal-title">🎙 Voice to Hand</div>
@@ -1948,14 +2439,14 @@ refreshDashboard();
   <button class="mobile-tab" id="mob-sessions" onclick="switchTabMobile('sessions',this)">
     <span class="mobile-tab-icon">♦</span>LOG
   </button>
-  <button class="mobile-tab" id="mob-calendar" onclick="switchTabMobile('calendar',this)">
-    <span class="mobile-tab-icon">📅</span>EVENTS
-  </button>
-  <button class="mobile-tab" id="mob-strategy" onclick="switchTabMobile('strategy',this)">
-    <span class="mobile-tab-icon">🧠</span>INTEL
-  </button>
   <button class="mobile-tab" id="mob-hands" onclick="switchTabMobile('hands',this)">
     <span class="mobile-tab-icon">🃏</span>HANDS
+  </button>
+  <button class="mobile-tab" id="mob-satellite" onclick="switchTabMobile('satellite',this)">
+    <span class="mobile-tab-icon">🛰</span>SAT
+  </button>
+  <button class="mobile-tab" id="mob-opponents" onclick="switchTabMobile('opponents',this)">
+    <span class="mobile-tab-icon">👤</span>VILLAINS
   </button>
 </div>
 
