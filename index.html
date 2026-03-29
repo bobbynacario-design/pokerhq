@@ -3218,9 +3218,8 @@ function clearDemoMode() {
 function refreshDemoBanner() {
   var banner = document.getElementById('demo-banner');
   if (!banner) return;
-  // Show only when no real sessions AND not in demo mode
-  var realSessions = window._demoMode ? [] : (load('sessions', []));
-  banner.style.display = (!window._demoMode && realSessions.length === 0) ? 'flex' : 'none';
+  // Show only when no sessions in memory AND not in demo mode
+  banner.style.display = (!window._demoMode && sessions.length === 0) ? 'flex' : 'none';
 }
 
 // ── INIT ──
@@ -3233,6 +3232,7 @@ if (savedTheme === 'light') {
   document.getElementById('theme-toggle').textContent = '☀️';
 }
 refreshDashboard();
+refreshDemoBanner();
 // Restore timer state from localStorage (Firebase will re-sync shortly after)
 restoreTimerState(load('timer', null));
 </script>
