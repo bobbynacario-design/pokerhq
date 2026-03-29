@@ -704,14 +704,34 @@ body.light .pct-input{background:#fff;border-color:var(--rim);color:#1A1A1A}
 .calc-rec-banner.shove{background:rgba(231,76,60,0.15);border:1px solid rgba(231,76,60,0.3);color:var(--red)}
 .calc-rec-banner.normal{background:rgba(46,204,113,0.1);border:1px solid rgba(46,204,113,0.25);color:var(--green)}
 .calc-rec-banner.protect{background:rgba(212,175,55,0.1);border:1px solid rgba(212,175,55,0.25);color:var(--gold)}
-.calc-stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.65rem;margin-top:1rem}
-.calc-stat-box{background:var(--bg3);border-radius:10px;padding:.85rem;text-align:center}
-.calc-stat-label{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:.3rem}
-.calc-stat-val{font-family:var(--mono);font-size:18px;font-weight:500;color:#fff}
-body.light .calc-stat-box{background:var(--bg3)}
-body.light .calc-stat-label{color:rgba(0,0,0,.4)}
-body.light .calc-stat-val{color:#1A1A1A}
-@media(max-width:768px){.calc-result-grid{grid-template-columns:repeat(2,1fr)}}
+.calc-rec-banner.amber{background:rgba(240,168,50,0.12);border:1px solid rgba(240,168,50,0.3);color:#F0A832}
+.calc-rec-banner.blue{background:rgba(52,152,219,0.12);border:1px solid rgba(52,152,219,0.3);color:var(--blue)}
+.calc-advisor-grid{display:grid;grid-template-columns:1fr 1fr;gap:.85rem;margin-top:1rem}
+.calc-advisor-card{background:var(--bg3);border-radius:12px;padding:1.1rem 1rem;text-align:center}
+.calc-advisor-label{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:.5rem}
+.calc-advisor-val{font-family:var(--mono);font-size:22px;font-weight:500;color:#fff;margin-bottom:.25rem;line-height:1.2}
+.calc-advisor-sub{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.4)}
+.calc-pushfold-guide{background:var(--bg3);border-radius:12px;padding:1rem 1.1rem;margin-top:.85rem}
+.calc-pushfold-title{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:.65rem}
+.calc-pushfold-row{display:flex;justify-content:space-between;align-items:center;padding:.42rem .65rem;border-radius:7px;margin-bottom:.2rem;gap:.75rem;border:1px solid transparent}
+.pfrow-range{font-family:var(--mono);font-size:11px;font-weight:500;color:rgba(255,255,255,.45);white-space:nowrap;flex-shrink:0;min-width:80px}
+.pfrow-desc{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.3);text-align:right}
+.calc-pushfold-row.active{background:rgba(212,175,55,0.12);border-color:rgba(212,175,55,0.22)}
+.calc-pushfold-row.active .pfrow-range{color:var(--gold)}
+.calc-pushfold-row.active .pfrow-desc{color:rgba(255,255,255,.65)}
+body.light .calc-advisor-card{background:var(--bg3)}
+body.light .calc-advisor-label{color:rgba(0,0,0,.4)}
+body.light .calc-advisor-val{color:#1A1A1A}
+body.light .calc-advisor-sub{color:rgba(0,0,0,.4)}
+body.light .calc-pushfold-guide{background:var(--bg3)}
+body.light .calc-pushfold-title{color:rgba(0,0,0,.3)}
+body.light .pfrow-range{color:rgba(0,0,0,.45)}
+body.light .pfrow-desc{color:rgba(0,0,0,.35)}
+body.light .calc-pushfold-row.active .pfrow-range{color:var(--gold)}
+body.light .calc-pushfold-row.active .pfrow-desc{color:rgba(0,0,0,.7)}
+.calc-payout-total{font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.4);margin-top:.75rem;text-align:right}
+body.light .calc-payout-total{color:rgba(0,0,0,.4)}
+@media(max-width:768px){.calc-result-grid{grid-template-columns:repeat(2,1fr)}.calc-advisor-grid{grid-template-columns:1fr 1fr}.pfrow-desc{display:none}}
 
 /* ── DEMO MODE ── */
 .demo-banner{background:linear-gradient(135deg,rgba(212,175,55,0.08),rgba(212,175,55,0.04));border:1px solid rgba(212,175,55,0.25);border-radius:14px;padding:1.1rem 1.4rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1.25rem;flex-wrap:wrap}
@@ -874,7 +894,7 @@ body.light .btn-demo-clear{color:rgba(0,0,0,.45)}
     <div class="next-action-card" onclick="switchGroup('play','calculator')">
       <div class="na-icon">🧮</div>
       <div class="na-label">Calculator</div>
-      <div class="na-sub">Payout &amp; ICM</div>
+      <div class="na-sub">Payout &amp; advice</div>
     </div>
   </div>
 
@@ -1277,64 +1297,129 @@ body.light .btn-demo-clear{color:rgba(0,0,0,.45)}
 <!-- ════════════════════ CALCULATOR ════════════════════ -->
 <div class="page" id="page-calculator">
 
+  <div style="font-family:var(--serif);font-size:22px;letter-spacing:.04em;margin-bottom:1rem;color:#fff">🧮 Tournament Calculator</div>
+
   <!-- Mode Toggle -->
   <div class="calc-toggle">
-    <button class="calc-mode-btn active" id="calc-btn-payout" onclick="calcSwitchMode('payout')">🏆 Prize Pool Breakdown</button>
+    <button class="calc-mode-btn active" id="calc-btn-payout" onclick="calcSwitchMode('payout')">💰 Prize Pool Breakdown</button>
     <button class="calc-mode-btn" id="calc-btn-icm" onclick="calcSwitchMode('icm')">📊 Stack &amp; Bubble Advisor</button>
   </div>
 
-  <!-- PAYOUT PANEL -->
+  <!-- ── MODE 1: PRIZE POOL BREAKDOWN ── -->
   <div class="calc-panel active" id="calc-panel-payout">
     <div class="form-card">
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Total Prize Pool (₱)</label>
-          <input class="form-input" id="calc-pool" type="number" placeholder="e.g. 50000" oninput="calcPayouts()">
+          <input class="form-input" id="calc-pool" type="number" min="0" placeholder="e.g. 500000" oninput="calcPayouts()">
         </div>
         <div class="form-group">
           <label class="form-label">Places Paid</label>
-          <input class="form-input" id="calc-places" type="number" placeholder="e.g. 3" min="1" max="20" oninput="calcPayouts()">
+          <select class="form-input" id="calc-places" onchange="calcPlacesChanged()">
+            <option value="">— Select —</option>
+            <option value="1">1</option>
+            <option value="3">3</option>
+            <option value="5">5</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+            <option value="18">18</option>
+            <option value="27">27</option>
+            <option value="custom">Custom</option>
+          </select>
         </div>
       </div>
-      <div style="margin-top:.75rem">
-        <div class="form-label" style="margin-bottom:.4rem">Presets</div>
+      <div id="calc-custom-places-wrap" style="display:none;margin-top:.5rem">
+        <label class="form-label">Custom number of places</label>
+        <input class="form-input" id="calc-custom-places" type="number" min="1" max="100" placeholder="e.g. 15" oninput="calcCustomPlaces()">
+      </div>
+      <div style="margin-top:.9rem">
+        <div class="form-label" style="margin-bottom:.5rem">Structure Presets</div>
         <div class="calc-preset">
-          <button class="calc-preset-btn" onclick="calcApplyPreset(3)">3-Handed (50/30/20)</button>
-          <button class="calc-preset-btn" onclick="calcApplyPreset(5)">5 Places (40/25/17/11/7)</button>
-          <button class="calc-preset-btn" onclick="calcApplyPreset(9)">9 Places (30/20/14/10/8/6/5/4/3)</button>
-          <button class="calc-preset-btn" onclick="calcApplyPreset(10)">10 Places (27/18/13/10/8/7/6/5/4/2)</button>
+          <button class="calc-preset-btn" onclick="calcApplyPreset(3)">3-HANDED</button>
+          <button class="calc-preset-btn" onclick="calcApplyPreset(5)">5-HANDED</button>
+          <button class="calc-preset-btn" onclick="calcApplyPreset(9)">9-HANDED</button>
+          <button class="calc-preset-btn" onclick="calcApplyPreset(10)">FINAL TABLE</button>
         </div>
       </div>
-      <div id="calc-pct-editor" style="margin-top:.75rem"></div>
+      <div id="calc-pct-editor" style="margin-top:.85rem"></div>
       <div id="calc-payout-results" class="calc-result-grid"></div>
+      <div id="calc-payout-total" class="calc-payout-total"></div>
     </div>
   </div>
 
-  <!-- ICM / STACK PANEL -->
+  <!-- ── MODE 2: STACK & BUBBLE ADVISOR ── -->
   <div class="calc-panel" id="calc-panel-icm">
     <div class="form-card">
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Your Stack (chips)</label>
-          <input class="form-input" id="calc-stack" type="number" placeholder="e.g. 15000" oninput="calcICM()">
+          <label class="form-label">Your Current Stack (chips)</label>
+          <input class="form-input" id="calc-stack" type="number" min="0" placeholder="e.g. 24000" oninput="calcStackAdvisor()">
         </div>
         <div class="form-group">
-          <label class="form-label">Big Blind Size</label>
-          <input class="form-input" id="calc-bb" type="number" placeholder="e.g. 600" oninput="calcICM()">
+          <label class="form-label">Current Big Blind</label>
+          <input class="form-input" id="calc-bb" type="number" min="0" placeholder="e.g. 1000" oninput="calcStackAdvisor()">
         </div>
       </div>
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Players Remaining</label>
-          <input class="form-input" id="calc-players" type="number" placeholder="e.g. 12" min="2" oninput="calcICM()">
+          <input class="form-input" id="calc-players" type="number" min="2" placeholder="e.g. 45" oninput="calcStackAdvisor()">
         </div>
         <div class="form-group">
-          <label class="form-label">Places Paid</label>
-          <input class="form-input" id="calc-paid" type="number" placeholder="e.g. 3" min="1" oninput="calcICM()">
+          <label class="form-label">Players Paid (money bubble)</label>
+          <input class="form-input" id="calc-paid" type="number" min="1" placeholder="e.g. 9" oninput="calcStackAdvisor()">
         </div>
       </div>
-      <div class="calc-stat-row" id="calc-icm-stats"></div>
-      <div id="calc-icm-banner"></div>
+
+      <!-- Empty state -->
+      <div id="calc-advisor-empty" style="text-align:center;padding:2.5rem 0;font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.22)">Enter values above to see calculations</div>
+
+      <!-- Results (hidden until inputs present) -->
+      <div id="calc-advisor-results" style="display:none">
+
+        <!-- 2-card row: Stack + Bubble -->
+        <div class="calc-advisor-grid">
+          <div class="calc-advisor-card">
+            <div class="calc-advisor-label">Your Stack</div>
+            <div class="calc-advisor-val" id="adv-bb-val">— BB</div>
+            <div class="calc-advisor-sub" id="adv-m-val">M-ratio: —</div>
+          </div>
+          <div class="calc-advisor-card">
+            <div class="calc-advisor-label">Bubble Status</div>
+            <div class="calc-advisor-val" id="adv-bubble-val" style="font-size:16px;line-height:1.3">—</div>
+            <div class="calc-advisor-sub" id="adv-pct-paid">—% of field paid</div>
+          </div>
+        </div>
+
+        <!-- Recommendation banner -->
+        <div id="adv-rec-banner" class="calc-rec-banner" style="margin-top:.85rem"></div>
+
+        <!-- Push/Fold Guide -->
+        <div class="calc-pushfold-guide">
+          <div class="calc-pushfold-title">Push / Fold Guide</div>
+          <div class="calc-pushfold-row" id="pfrow-10">
+            <span class="pfrow-range">Under 10BB</span>
+            <span class="pfrow-desc">Shove any two cards</span>
+          </div>
+          <div class="calc-pushfold-row" id="pfrow-13">
+            <span class="pfrow-range">10 – 13BB</span>
+            <span class="pfrow-desc">Shove top 40% — any pair, Ax, KJ+, QJ</span>
+          </div>
+          <div class="calc-pushfold-row" id="pfrow-17">
+            <span class="pfrow-range">13 – 17BB</span>
+            <span class="pfrow-desc">Shove top 25% — 66+, AJ+, KQ</span>
+          </div>
+          <div class="calc-pushfold-row" id="pfrow-20">
+            <span class="pfrow-range">17 – 20BB</span>
+            <span class="pfrow-desc">Shove top 15% — 88+, AQ+</span>
+          </div>
+          <div class="calc-pushfold-row" id="pfrow-deep">
+            <span class="pfrow-range">Over 20BB</span>
+            <span class="pfrow-desc">Normal raise / fold strategy</span>
+          </div>
+        </div>
+
+      </div><!-- /calc-advisor-results -->
     </div>
   </div>
 
@@ -2311,16 +2396,68 @@ function calcSwitchMode(mode) {
 }
 
 var _calcPresets = {
-  3:  [50,30,20],
-  5:  [40,25,17,11,7],
-  9:  [30,20,14,10,8,6,5,4,3],
-  10: [27,18,13,10,8,7,6,5,4,2]
+  3:  [50, 30, 20],
+  5:  [40, 25, 16, 11, 8],
+  9:  [32, 20, 13, 9, 7, 6, 5, 4.5, 3.5],
+  10: [30, 18, 12, 9, 7, 6, 5, 4.5, 4, 3.5]
 };
 var _calcPcts = [];
+var _calcNumPlaces = 0;
+
+function calcPlacesChanged() {
+  var sel = document.getElementById('calc-places');
+  var customWrap = document.getElementById('calc-custom-places-wrap');
+  if (sel.value === 'custom') {
+    customWrap.style.display = '';
+    document.getElementById('calc-custom-places').value = '';
+    _calcPcts = [];
+    _calcNumPlaces = 0;
+    document.getElementById('calc-pct-editor').innerHTML = '';
+    document.getElementById('calc-payout-results').innerHTML = '';
+    document.getElementById('calc-payout-total').textContent = '';
+  } else {
+    customWrap.style.display = 'none';
+    var n = parseInt(sel.value) || 0;
+    if (n > 0) {
+      _calcNumPlaces = n;
+      if (_calcPresets[n]) {
+        _calcPcts = _calcPresets[n].slice();
+      } else {
+        _calcPcts = [];
+        while (_calcPcts.length < n) _calcPcts.push(0);
+      }
+      calcRenderPctEditor();
+      calcPayouts();
+    }
+  }
+}
+
+function calcCustomPlaces() {
+  var n = parseInt(document.getElementById('calc-custom-places').value) || 0;
+  if (n < 1 || n > 100) return;
+  _calcNumPlaces = n;
+  if (_calcPcts.length > n) {
+    _calcPcts = _calcPcts.slice(0, n);
+  } else {
+    while (_calcPcts.length < n) _calcPcts.push(0);
+  }
+  calcRenderPctEditor();
+  calcPayouts();
+}
 
 function calcApplyPreset(n) {
   _calcPcts = _calcPresets[n].slice();
-  document.getElementById('calc-places').value = n;
+  _calcNumPlaces = n;
+  // Update the places dropdown
+  var sel = document.getElementById('calc-places');
+  if (sel) {
+    var found = false;
+    for (var i = 0; i < sel.options.length; i++) {
+      if (parseInt(sel.options[i].value) === n) { sel.value = String(n); found = true; break; }
+    }
+    if (!found) sel.value = 'custom';
+  }
+  document.getElementById('calc-custom-places-wrap').style.display = 'none';
   calcRenderPctEditor();
   calcPayouts();
 }
@@ -2331,103 +2468,128 @@ function ordinal(n) {
 }
 
 function calcRenderPctEditor() {
-  var html = '<div style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:center">';
+  if (!_calcPcts.length) { document.getElementById('calc-pct-editor').innerHTML = ''; return; }
+  var total = _calcPcts.reduce(function(a,b){ return a+b; }, 0);
+  var tcolor = Math.abs(total-100) < 0.15 ? 'var(--green)' : 'var(--red)';
+  var warn   = Math.abs(total-100) >= 0.15 ? ' ⚠ must equal 100%' : ' ✓';
+  var html = '<div style="display:flex;flex-wrap:wrap;gap:.5rem .75rem;align-items:center;margin-bottom:.5rem">';
   for (var i=0; i<_calcPcts.length; i++) {
     html += '<div style="display:flex;align-items:center;gap:.3rem">';
     html += '<span style="font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.4)">'+ordinal(i+1)+'</span>';
-    html += '<input class="pct-input" type="number" step="0.1" value="'+_calcPcts[i]+'" data-idx="'+i+'" oninput="calcPctChange(this)">';
-    html += '<span style="font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.35)">%</span>';
+    html += '<input class="pct-input" type="number" step="0.5" min="0" max="100" value="'+_calcPcts[i]+'" data-idx="'+i+'" oninput="calcPctChange(this)">';
+    html += '<span style="font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.3)">%</span>';
     html += '</div>';
   }
-  var total = _calcPcts.reduce(function(a,b){ return a+b; }, 0);
-  var tcolor = Math.abs(total-100) < 0.1 ? 'var(--green)' : 'var(--red)';
-  html += '<span style="font-family:var(--mono);font-size:11px;color:'+tcolor+';margin-left:.5rem">Σ '+total.toFixed(1)+'%</span>';
   html += '</div>';
+  html += '<div id="calc-pct-total" style="font-family:var(--mono);font-size:10px;color:'+tcolor+'">Total: '+total.toFixed(1)+'%'+warn+'</div>';
   document.getElementById('calc-pct-editor').innerHTML = html;
 }
 
 function calcPctChange(input) {
   var idx = parseInt(input.getAttribute('data-idx'));
   _calcPcts[idx] = parseFloat(input.value) || 0;
-  // update total indicator without full re-render (avoid cursor jump)
   var total = _calcPcts.reduce(function(a,b){ return a+b; }, 0);
-  var tcolor = Math.abs(total-100) < 0.1 ? 'var(--green)' : 'var(--red)';
-  var sigma = input.parentElement && input.parentElement.parentElement
-    ? input.parentElement.parentElement.querySelector('span:last-child') : null;
-  if (sigma) { sigma.style.color = tcolor; sigma.textContent = 'Σ '+total.toFixed(1)+'%'; }
+  var tcolor = Math.abs(total-100) < 0.15 ? 'var(--green)' : 'var(--red)';
+  var warn   = Math.abs(total-100) >= 0.15 ? ' ⚠ must equal 100%' : ' ✓';
+  var totEl = document.getElementById('calc-pct-total');
+  if (totEl) { totEl.style.color = tcolor; totEl.textContent = 'Total: '+total.toFixed(1)+'%'+warn; }
   calcPayouts();
 }
 
 function calcPayouts() {
-  var pool   = parseFloat(document.getElementById('calc-pool').value) || 0;
-  var places = parseInt(document.getElementById('calc-places').value) || 0;
-  if (places > 0 && places !== _calcPcts.length) {
-    if (places < _calcPcts.length) {
-      _calcPcts = _calcPcts.slice(0, places);
-    } else {
-      while (_calcPcts.length < places) _calcPcts.push(0);
-    }
-    calcRenderPctEditor();
-  }
-  if (!pool || !places || _calcPcts.length === 0) {
-    document.getElementById('calc-payout-results').innerHTML = '';
+  var pool = parseFloat(document.getElementById('calc-pool').value) || 0;
+  var resultsEl = document.getElementById('calc-payout-results');
+  var totalEl   = document.getElementById('calc-payout-total');
+  if (!pool || !_calcPcts.length) {
+    resultsEl.innerHTML = '';
+    totalEl.textContent = '';
     return;
   }
   var html = '';
+  var totalPayout = 0;
   for (var i=0; i<_calcPcts.length; i++) {
     var pct    = _calcPcts[i];
     var amount = pool * pct / 100;
+    totalPayout += amount;
     html += '<div class="calc-result-item">';
     html += '<div class="calc-result-place">'+ordinal(i+1)+' Place</div>';
     html += '<div class="calc-result-pct">'+pct.toFixed(1)+'%</div>';
     html += '<div class="calc-result-amount">₱'+Math.round(amount).toLocaleString()+'</div>';
     html += '</div>';
   }
-  document.getElementById('calc-payout-results').innerHTML = html;
+  resultsEl.innerHTML = html;
+  totalEl.textContent = 'Total: ₱'+Math.round(totalPayout).toLocaleString()+' across '+_calcPcts.length+' place'+((_calcPcts.length!==1)?'s':'');
 }
 
-function calcICM() {
-  var stack   = parseFloat(document.getElementById('calc-stack').value)   || 0;
-  var bb      = parseFloat(document.getElementById('calc-bb').value)      || 0;
-  var players = parseInt(document.getElementById('calc-players').value)   || 0;
-  var paid    = parseInt(document.getElementById('calc-paid').value)      || 0;
-  var statsEl  = document.getElementById('calc-icm-stats');
-  var bannerEl = document.getElementById('calc-icm-banner');
+function calcStackAdvisor() {
+  var stack   = parseFloat(document.getElementById('calc-stack').value)  || 0;
+  var bb      = parseFloat(document.getElementById('calc-bb').value)     || 0;
+  var players = parseInt(document.getElementById('calc-players').value)  || 0;
+  var paid    = parseInt(document.getElementById('calc-paid').value)     || 0;
+  var emptyEl   = document.getElementById('calc-advisor-empty');
+  var resultsEl = document.getElementById('calc-advisor-results');
   if (!stack || !bb || !players || !paid) {
-    statsEl.innerHTML = '';
-    bannerEl.innerHTML = '';
+    emptyEl.style.display   = '';
+    resultsEl.style.display = 'none';
     return;
   }
-  var bbDepth  = stack / bb;
-  var pctPaid  = paid / players * 100;
-  var toBubble = players - paid;
-  statsEl.innerHTML =
-    '<div class="calc-stat-box"><div class="calc-stat-label">BB Depth</div><div class="calc-stat-val">'+bbDepth.toFixed(1)+'</div></div>'+
-    '<div class="calc-stat-box"><div class="calc-stat-label">% Field Paid</div><div class="calc-stat-val">'+pctPaid.toFixed(0)+'%</div></div>'+
-    '<div class="calc-stat-box"><div class="calc-stat-label">To Bubble</div><div class="calc-stat-val">'+toBubble+'</div></div>';
+  emptyEl.style.display   = 'none';
+  resultsEl.style.display = '';
+
+  var bbDepth          = stack / bb;
+  var mRatio           = stack / (bb * 2);   // approx SB+BB, no antes
+  var playersFromMoney = Math.max(0, players - paid);
+  var nearBubble       = playersFromMoney <= 10;
+  var pctPaid          = (paid / players * 100).toFixed(0);
+
+  // Card 1 — Stack
+  document.getElementById('adv-bb-val').textContent  = bbDepth.toFixed(1)+' BB';
+  document.getElementById('adv-m-val').textContent   = 'M-ratio: '+mRatio.toFixed(1)+'x';
+
+  // Card 2 — Bubble
+  var bubbleTxt = playersFromMoney === 0
+    ? 'In the money ✓'
+    : playersFromMoney+' spot'+(playersFromMoney!==1?'s':'')+' from the money';
+  document.getElementById('adv-bubble-val').textContent = bubbleTxt;
+  document.getElementById('adv-pct-paid').textContent   = pctPaid+'% of field paid';
+
+  // Recommendation
   var rec, cls, detail;
-  if (bbDepth <= 8) {
+  if (bbDepth <= 10) {
     rec = 'SHOVE ANY TWO'; cls = 'shove';
-    detail = 'Below 8BB — push/fold only. Shove strong Ax, KQ+, any pair from any position.';
-  } else if (bbDepth <= 15) {
-    rec = 'PUSH / FOLD'; cls = 'shove';
-    detail = bbDepth.toFixed(1)+'BB — use push/fold charts. Shove premium hands, re-jam over limps.';
-  } else if (toBubble <= 2 && pctPaid < 30) {
-    rec = 'LOCK IT UP'; cls = 'protect';
-    detail = 'Bubble pressure high — tighten vs. active players. Let short stacks bust for ICM equity.';
-  } else if (bbDepth >= 40) {
-    rec = 'NORMAL PLAY'; cls = 'normal';
-    detail = 'Deep stack — play your A-game. Open wide in position; use stack leverage vs. medium stacks.';
+    detail = bbDepth.toFixed(1)+'BB — push/fold only. Get it in before the blinds cripple you.';
+  } else if (bbDepth <= 15 && nearBubble) {
+    rec = 'SHOVE TOP 40%'; cls = 'amber';
+    detail = 'Short stack near the bubble — shove any pair, Ax, KJ+, QJ from any position.';
+  } else if (bbDepth <= 20 && nearBubble) {
+    rec = 'SHOVE TOP 25%'; cls = 'amber';
+    detail = 'Bubble pressure — shove 66+, AJ+, KQ. Fold marginal hands and preserve your equity.';
+  } else if (bbDepth <= 20) {
+    rec = 'PLAY AGGRESSIVE'; cls = 'blue';
+    detail = bbDepth.toFixed(1)+'BB — steal blinds, squeeze spots, and build a stack.';
   } else {
     rec = 'NORMAL PLAY'; cls = 'normal';
-    detail = bbDepth.toFixed(1)+'BB — standard play. Avoid marginal spots; accumulate vs. weak players.';
+    detail = bbDepth.toFixed(1)+'BB — play your A-game. Open wide in position, use your stack leverage.';
   }
+  var bannerEl = document.getElementById('adv-rec-banner');
+  bannerEl.className = 'calc-rec-banner '+cls;
   bannerEl.innerHTML =
-    '<div class="calc-rec-banner '+cls+'">'+
     '<div class="rec-label">Recommendation</div>'+
     '<div class="rec-action">'+rec+'</div>'+
-    '<div class="rec-detail">'+detail+'</div>'+
-    '</div>';
+    '<div class="rec-detail">'+detail+'</div>';
+
+  // Push/fold guide — highlight active row
+  var pfRows = [
+    {id:'pfrow-10',  min:0,  max:10},
+    {id:'pfrow-13',  min:10, max:13},
+    {id:'pfrow-17',  min:13, max:17},
+    {id:'pfrow-20',  min:17, max:20},
+    {id:'pfrow-deep',min:20, max:Infinity}
+  ];
+  pfRows.forEach(function(r) {
+    var el = document.getElementById(r.id);
+    if (el) el.classList.toggle('active', bbDepth >= r.min && bbDepth < r.max);
+  });
 }
 
 // ── THEME TOGGLE ──
