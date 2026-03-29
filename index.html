@@ -614,6 +614,15 @@ body.light .csv-banner-sub{color:rgba(0,0,0,.45)}
   .csv-banner{flex-direction:column;align-items:flex-start}
   .mental-rating-row{gap:.4rem}
 }
+
+/* ── SESSION TOAST ── */
+#session-toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--green);border-radius:12px;padding:.85rem 1.25rem;display:flex;align-items:center;gap:1rem;z-index:500;box-shadow:0 8px 32px rgba(0,0,0,.4);font-family:var(--mono);font-size:12px;white-space:nowrap;transition:opacity .3s,transform .3s;opacity:0;pointer-events:none;max-width:90vw}
+#session-toast.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(-4px)}
+.toast-msg{color:rgba(255,255,255,.7)}
+.toast-pnl{font-weight:500}
+.toast-btn{background:var(--gold);color:var(--bg);border:none;border-radius:6px;padding:.35rem .85rem;cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;flex-shrink:0}
+.toast-close{background:transparent;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:16px;padding:0 2px;flex-shrink:0}
+@media(max-width:768px){#session-toast{bottom:72px;font-size:11px}}
 </style>
 </head>
 <body>
@@ -1331,12 +1340,8 @@ function addSession() {
   clearSessionForm();
   renderSessionTable();
   refreshDashboard();
-  // Prompt to log hands
-  var logHand = confirm('Session logged! P&L: '+fmtCur(pnl)+'\n\nWould you like to log a notable hand from this session now?');
-  if (logHand) {
-    var newSid = sessions[0] ? sessions[0].id : null;
-    if (newSid) openHandModalForSession(newSid);
-  }
+  // Show gentle toast — not a blocking dialog
+  showSessionToast(fmtCur(pnl), sessions[0] ? sessions[0].id : null);
 }
 
 function clearSessionForm() {
@@ -2660,6 +2665,35 @@ function startSessionFromTourney(tid) {
   }, 200);
 }
 
+// ── SESSION TOAST ──
+var _toastSid = null;
+var _toastTimer = null;
+
+function showSessionToast(pnl, sid) {
+  _toastSid = sid;
+  var el = document.getElementById('session-toast');
+  var pnlEl = document.getElementById('toast-pnl');
+  if (!el) return;
+  if (pnlEl) pnlEl.textContent = pnl;
+  pnlEl.style.color = pnl.includes('-') ? 'var(--red)' : 'var(--green)';
+  el.classList.add('show');
+  // Auto-dismiss after 8 seconds
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(hideSessionToast, 8000);
+}
+
+function hideSessionToast() {
+  var el = document.getElementById('session-toast');
+  if (el) el.classList.remove('show');
+  clearTimeout(_toastTimer);
+}
+
+function logHandFromToast() {
+  hideSessionToast();
+  if (_toastSid) openHandModalForSession(_toastSid);
+  else openModal('modal-hand');
+}
+
 // ── INIT ──
 document.getElementById('s-date').value = new Date().toISOString().split('T')[0];
 var satDateEl = document.getElementById('sat-date'); if (satDateEl) satDateEl.value = new Date().toISOString().split('T')[0];
@@ -2803,6 +2837,14 @@ refreshDashboard();
       <button class="sec-action" onclick="closeModal('modal-session-detail')">CLOSE</button>
     </div>
   </div>
+</div>
+
+
+<!-- Session Toast -->
+<div id="session-toast">
+  <span class="toast-msg">Session logged &nbsp;<span class="toast-pnl" id="toast-pnl"></span></span>
+  <button class="toast-btn" id="toast-hand-btn" onclick="logHandFromToast()">🃏 LOG A HAND</button>
+  <button class="toast-close" onclick="hideSessionToast()">✕</button>
 </div>
 
 
