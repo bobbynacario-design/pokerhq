@@ -2476,7 +2476,7 @@ function calcRenderPctEditor() {
   for (var i=0; i<_calcPcts.length; i++) {
     html += '<div style="display:flex;align-items:center;gap:.3rem">';
     html += '<span style="font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.4)">'+ordinal(i+1)+'</span>';
-    html += '<input class="pct-input" type="number" step="0.5" min="0" max="100" value="'+_calcPcts[i]+'" data-idx="'+i+'" oninput="calcPctChange(this)">';
+    html += '<input class="pct-input" type="number" step="0.5" min="0" max="100" value="'+_calcPcts[i]+'" data-idx="'+i+'" oninput="onPercentChange(+this.getAttribute(\'data-idx\'))">';
     html += '<span style="font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.3)">%</span>';
     html += '</div>';
   }
@@ -2485,14 +2485,60 @@ function calcRenderPctEditor() {
   document.getElementById('calc-pct-editor').innerHTML = html;
 }
 
-function calcPctChange(input) {
-  var idx = parseInt(input.getAttribute('data-idx'));
-  _calcPcts[idx] = parseFloat(input.value) || 0;
-  var total = _calcPcts.reduce(function(a,b){ return a+b; }, 0);
-  var tcolor = Math.abs(total-100) < 0.15 ? 'var(--green)' : 'var(--red)';
-  var warn   = Math.abs(total-100) >= 0.15 ? ' ⚠ must equal 100%' : ' ✓';
+function onPercentChange(editedIndex) {
+  var inputs = document.querySelectorAll('.pct-input');
+  var editedVal = parseFloat(inputs[editedIndex].value) || 0;
+
+  // Cap at 100
+  if (editedVal > 100) { editedVal = 100; inputs[editedIndex].value = 100; }
+  _calcPcts[editedIndex] = editedVal;
+
+  var remaining = 100 - editedVal;
+
+  // Collect other inputs and their current values
+  var others = [];
+  var otherTotal = 0;
+  inputs.forEach(function(inp, i) {
+    if (i !== editedIndex) {
+      var v = parseFloat(inp.value) || 0;
+      others.push({ el: inp, idx: i, val: v });
+      otherTotal += v;
+    }
+  });
+
+  if (others.length === 0) { calcPayouts(); return; }
+
+  // Redistribute remaining proportionally; fall back to even split if all others are 0
+  if (otherTotal === 0) {
+    var share = Math.round(remaining / others.length * 10) / 10;
+    others.forEach(function(o) {
+      o.el.value = share;
+      _calcPcts[o.idx] = share;
+    });
+  } else {
+    others.forEach(function(o) {
+      var newVal = Math.round((o.val / otherTotal) * remaining * 10) / 10;
+      o.el.value = newVal;
+      _calcPcts[o.idx] = newVal;
+    });
+  }
+
+  // Enforce 1st place is always the highest — swap with 2nd if needed
+  if (_calcPcts.length >= 2 && _calcPcts[0] < _calcPcts[1]) {
+    var tmp = _calcPcts[0]; _calcPcts[0] = _calcPcts[1]; _calcPcts[1] = tmp;
+    if (inputs[0]) inputs[0].value = _calcPcts[0];
+    if (inputs[1]) inputs[1].value = _calcPcts[1];
+  }
+
+  // Update total indicator (no full re-render — keeps cursor in focused input)
+  var finalTotal = _calcPcts.reduce(function(a,b){ return a+b; }, 0);
+  var ok = Math.abs(finalTotal - 100) < 0.5;
   var totEl = document.getElementById('calc-pct-total');
-  if (totEl) { totEl.style.color = tcolor; totEl.textContent = 'Total: '+total.toFixed(1)+'%'+warn; }
+  if (totEl) {
+    totEl.style.color = ok ? 'var(--green)' : 'var(--red)';
+    totEl.textContent = 'Total: ' + Math.round(finalTotal * 10) / 10 + '%' + (ok ? ' ✓' : ' ⚠ must equal 100%');
+  }
+
   calcPayouts();
 }
 
