@@ -660,6 +660,58 @@ body.light .csv-banner-sub{color:rgba(0,0,0,.45)}
 .toast-btn{background:var(--gold);color:var(--bg);border:none;border-radius:6px;padding:.35rem .85rem;cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;flex-shrink:0}
 .toast-close{background:transparent;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:16px;padding:0 2px;flex-shrink:0}
 @media(max-width:768px){#session-toast{bottom:72px;font-size:11px}}
+
+/* ── NEXT ACTIONS PANEL ── */
+.next-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:.85rem;margin-bottom:1.25rem}
+.next-action-card{background:var(--bg2);border:1.5px solid var(--gold-dim);border-radius:14px;padding:1.25rem 1rem;display:flex;flex-direction:column;align-items:center;gap:.55rem;cursor:pointer;transition:border-color .18s,background .18s,transform .1s;text-align:center;user-select:none}
+.next-action-card:hover{border-color:var(--gold);background:rgba(212,175,55,0.07);transform:translateY(-2px)}
+.next-action-card:active{transform:translateY(0)}
+.na-icon{font-size:28px;line-height:1}
+.na-label{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);font-weight:500}
+.na-sub{font-size:10px;color:rgba(255,255,255,.35);font-family:var(--mono)}
+body.light .next-action-card{background:#FFFFFF;border-color:rgba(139,105,20,0.2)}
+body.light .next-action-card:hover{border-color:var(--gold);background:var(--gold-dim)}
+body.light .na-sub{color:rgba(0,0,0,.4)}
+@media(max-width:768px){.next-actions{grid-template-columns:repeat(2,1fr);gap:.65rem}}
+
+/* ── TOURNAMENT CALCULATOR ── */
+.calc-toggle{display:flex;gap:.5rem;margin-bottom:1.25rem;background:var(--bg3);border-radius:10px;padding:.3rem}
+.calc-mode-btn{flex:1;font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;padding:.55rem .5rem;border:none;border-radius:7px;background:transparent;color:rgba(255,255,255,.4);cursor:pointer;transition:all .18s}
+.calc-mode-btn.active{background:var(--gold);color:var(--bg);font-weight:500}
+body.light .calc-mode-btn{color:rgba(0,0,0,.4)}
+body.light .calc-mode-btn.active{color:#fff}
+.calc-panel{display:none}
+.calc-panel.active{display:block}
+.calc-preset{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.5rem}
+.calc-preset-btn{font-family:var(--mono);font-size:10px;padding:.3rem .75rem;border:1px solid var(--rim2);border-radius:6px;background:transparent;color:rgba(255,255,255,.45);cursor:pointer;transition:all .15s}
+.calc-preset-btn:hover{border-color:var(--gold);color:var(--gold)}
+body.light .calc-preset-btn{color:rgba(0,0,0,.5);border-color:var(--rim)}
+.calc-result-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.65rem;margin-top:1rem}
+.calc-result-item{background:var(--bg3);border-radius:10px;padding:.9rem .85rem;text-align:center}
+.calc-result-place{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.35);margin-bottom:.25rem;text-transform:uppercase}
+.calc-result-pct{font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.5);margin-bottom:.2rem}
+.calc-result-amount{font-family:var(--mono);font-size:17px;font-weight:500;color:var(--gold)}
+body.light .calc-result-item{background:var(--bg3)}
+body.light .calc-result-place{color:rgba(0,0,0,.4)}
+body.light .calc-result-pct{color:rgba(0,0,0,.4)}
+.pct-input{font-family:var(--mono);font-size:11px;width:52px;padding:.25rem .4rem;background:var(--bg);border:1px solid var(--rim2);border-radius:5px;color:rgba(255,255,255,.7);text-align:center}
+.pct-input:focus{outline:none;border-color:var(--gold)}
+body.light .pct-input{background:#fff;border-color:var(--rim);color:#1A1A1A}
+.calc-rec-banner{border-radius:12px;padding:1rem 1.25rem;margin-top:1rem;text-align:center}
+.calc-rec-banner .rec-label{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;opacity:.7;margin-bottom:.3rem}
+.calc-rec-banner .rec-action{font-family:var(--serif);font-size:26px;letter-spacing:.04em}
+.calc-rec-banner .rec-detail{font-family:var(--mono);font-size:11px;margin-top:.4rem;opacity:.8}
+.calc-rec-banner.shove{background:rgba(231,76,60,0.15);border:1px solid rgba(231,76,60,0.3);color:var(--red)}
+.calc-rec-banner.normal{background:rgba(46,204,113,0.1);border:1px solid rgba(46,204,113,0.25);color:var(--green)}
+.calc-rec-banner.protect{background:rgba(212,175,55,0.1);border:1px solid rgba(212,175,55,0.25);color:var(--gold)}
+.calc-stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.65rem;margin-top:1rem}
+.calc-stat-box{background:var(--bg3);border-radius:10px;padding:.85rem;text-align:center}
+.calc-stat-label{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:.3rem}
+.calc-stat-val{font-family:var(--mono);font-size:18px;font-weight:500;color:#fff}
+body.light .calc-stat-box{background:var(--bg3)}
+body.light .calc-stat-label{color:rgba(0,0,0,.4)}
+body.light .calc-stat-val{color:#1A1A1A}
+@media(max-width:768px){.calc-result-grid{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
@@ -693,6 +745,7 @@ body.light .csv-banner-sub{color:rgba(0,0,0,.45)}
     <div class="subtab-group" id="subtabs-play">
       <button class="subtab" data-page="sessions" onclick="switchTab('sessions')">♦ Log Session</button>
       <button class="subtab" data-page="hands" onclick="switchTab('hands')">🃏 Hands</button>
+      <button class="subtab" data-page="calculator" onclick="switchTab('calculator')">🧮 Calc</button>
     </div>
     <div class="subtab-group" id="subtabs-review">
       <button class="subtab" data-page="sessions" onclick="switchTab('sessions')">♦ History</button>
@@ -767,6 +820,30 @@ body.light .csv-banner-sub{color:rgba(0,0,0,.45)}
     </div>
   </div>
 
+  <!-- Next Actions -->
+  <div class="next-actions">
+    <div class="next-action-card" onclick="switchGroup('play');startTimer()">
+      <div class="na-icon">▶</div>
+      <div class="na-label">Start Session</div>
+      <div class="na-sub">Timer + log</div>
+    </div>
+    <div class="next-action-card" onclick="switchGroup('plan')">
+      <div class="na-icon">📅</div>
+      <div class="na-label">View Calendar</div>
+      <div class="na-sub">Upcoming events</div>
+    </div>
+    <div class="next-action-card" onclick="openModal('modal-hand')">
+      <div class="na-icon">🃏</div>
+      <div class="na-label">Log a Hand</div>
+      <div class="na-sub">Review a spot</div>
+    </div>
+    <div class="next-action-card" onclick="switchGroup('play','calculator')">
+      <div class="na-icon">🧮</div>
+      <div class="na-label">Calculator</div>
+      <div class="na-sub">Payout &amp; ICM</div>
+    </div>
+  </div>
+
   <!-- P&L Chart -->
   <div class="chart-wrap">
     <div class="chart-title">Cumulative P&L — Last 10 Sessions</div>
@@ -776,7 +853,7 @@ body.light .csv-banner-sub{color:rgba(0,0,0,.45)}
   <!-- Recent Sessions -->
   <div class="sec-hdr">
     <div class="sec-title"><span>♠</span>Recent Sessions</div>
-    <button class="sec-action primary" onclick="switchTab('sessions')">LOG SESSION ↗</button>
+    <button class="sec-action primary" onclick="switchGroup('play')">LOG SESSION ↗</button>
   </div>
   <div class="table-wrap">
     <table class="tbl">
@@ -1161,6 +1238,72 @@ body.light .csv-banner-sub{color:rgba(0,0,0,.45)}
       <div style="display:flex;align-items:center;gap:.4rem;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.35)"><div style="width:12px;height:12px;background:rgba(255,255,255,.08);border-radius:2px"></div>No data</div>
     </div>
   </div>
+</div>
+
+<!-- ════════════════════ CALCULATOR ════════════════════ -->
+<div class="page" id="page-calculator">
+
+  <!-- Mode Toggle -->
+  <div class="calc-toggle">
+    <button class="calc-mode-btn active" id="calc-btn-payout" onclick="calcSwitchMode('payout')">🏆 Prize Pool Breakdown</button>
+    <button class="calc-mode-btn" id="calc-btn-icm" onclick="calcSwitchMode('icm')">📊 Stack &amp; Bubble Advisor</button>
+  </div>
+
+  <!-- PAYOUT PANEL -->
+  <div class="calc-panel active" id="calc-panel-payout">
+    <div class="form-card">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Total Prize Pool (₱)</label>
+          <input class="form-input" id="calc-pool" type="number" placeholder="e.g. 50000" oninput="calcPayouts()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Places Paid</label>
+          <input class="form-input" id="calc-places" type="number" placeholder="e.g. 3" min="1" max="20" oninput="calcPayouts()">
+        </div>
+      </div>
+      <div style="margin-top:.75rem">
+        <div class="form-label" style="margin-bottom:.4rem">Presets</div>
+        <div class="calc-preset">
+          <button class="calc-preset-btn" onclick="calcApplyPreset(3)">3-Handed (50/30/20)</button>
+          <button class="calc-preset-btn" onclick="calcApplyPreset(5)">5 Places (40/25/17/11/7)</button>
+          <button class="calc-preset-btn" onclick="calcApplyPreset(9)">9 Places (30/20/14/10/8/6/5/4/3)</button>
+          <button class="calc-preset-btn" onclick="calcApplyPreset(10)">10 Places (27/18/13/10/8/7/6/5/4/2)</button>
+        </div>
+      </div>
+      <div id="calc-pct-editor" style="margin-top:.75rem"></div>
+      <div id="calc-payout-results" class="calc-result-grid"></div>
+    </div>
+  </div>
+
+  <!-- ICM / STACK PANEL -->
+  <div class="calc-panel" id="calc-panel-icm">
+    <div class="form-card">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Your Stack (chips)</label>
+          <input class="form-input" id="calc-stack" type="number" placeholder="e.g. 15000" oninput="calcICM()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Big Blind Size</label>
+          <input class="form-input" id="calc-bb" type="number" placeholder="e.g. 600" oninput="calcICM()">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Players Remaining</label>
+          <input class="form-input" id="calc-players" type="number" placeholder="e.g. 12" min="2" oninput="calcICM()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Places Paid</label>
+          <input class="form-input" id="calc-paid" type="number" placeholder="e.g. 3" min="1" oninput="calcICM()">
+        </div>
+      </div>
+      <div class="calc-stat-row" id="calc-icm-stats"></div>
+      <div id="calc-icm-banner"></div>
+    </div>
+  </div>
+
 </div>
 
 <!-- ════════════════════ MODALS ════════════════════ -->
@@ -2087,7 +2230,7 @@ function parseGeminiJSON() {
 function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 // ── GROUP SWITCHING — top-level nav; HOME is standalone, others expand sub-tab row ──
-function switchGroup(group) {
+function switchGroup(group, page) {
   // Desktop group tab highlights
   document.querySelectorAll('.group-tab').forEach(function(t){ t.classList.remove('active'); });
   var gtab = document.getElementById('gtab-'+group);
@@ -2117,10 +2260,138 @@ function switchGroup(group) {
   var mstgrp = document.getElementById('mob-subtabs-'+group);
   if (mstgrp) mstgrp.classList.add('active');
 
-  // Navigate to the default first page for this group
+  // Navigate to the default first page for this group (or override)
   var defaults = {plan:'calendar', play:'sessions', review:'sessions', improve:'strategy'};
-  switchTab(defaults[group]);
+  switchTab(page || defaults[group]);
   window.scrollTo(0,0);
+}
+
+// ── TOURNAMENT CALCULATOR ──
+function calcSwitchMode(mode) {
+  document.querySelectorAll('.calc-mode-btn').forEach(function(b){ b.classList.remove('active'); });
+  document.querySelectorAll('.calc-panel').forEach(function(p){ p.classList.remove('active'); });
+  document.getElementById('calc-btn-'+mode).classList.add('active');
+  document.getElementById('calc-panel-'+mode).classList.add('active');
+}
+
+var _calcPresets = {
+  3:  [50,30,20],
+  5:  [40,25,17,11,7],
+  9:  [30,20,14,10,8,6,5,4,3],
+  10: [27,18,13,10,8,7,6,5,4,2]
+};
+var _calcPcts = [];
+
+function calcApplyPreset(n) {
+  _calcPcts = _calcPresets[n].slice();
+  document.getElementById('calc-places').value = n;
+  calcRenderPctEditor();
+  calcPayouts();
+}
+
+function ordinal(n) {
+  var s = ['th','st','nd','rd'], v = n % 100;
+  return n + (s[(v-20)%10] || s[v] || s[0]);
+}
+
+function calcRenderPctEditor() {
+  var html = '<div style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:center">';
+  for (var i=0; i<_calcPcts.length; i++) {
+    html += '<div style="display:flex;align-items:center;gap:.3rem">';
+    html += '<span style="font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.4)">'+ordinal(i+1)+'</span>';
+    html += '<input class="pct-input" type="number" step="0.1" value="'+_calcPcts[i]+'" data-idx="'+i+'" oninput="calcPctChange(this)">';
+    html += '<span style="font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.35)">%</span>';
+    html += '</div>';
+  }
+  var total = _calcPcts.reduce(function(a,b){ return a+b; }, 0);
+  var tcolor = Math.abs(total-100) < 0.1 ? 'var(--green)' : 'var(--red)';
+  html += '<span style="font-family:var(--mono);font-size:11px;color:'+tcolor+';margin-left:.5rem">Σ '+total.toFixed(1)+'%</span>';
+  html += '</div>';
+  document.getElementById('calc-pct-editor').innerHTML = html;
+}
+
+function calcPctChange(input) {
+  var idx = parseInt(input.getAttribute('data-idx'));
+  _calcPcts[idx] = parseFloat(input.value) || 0;
+  // update total indicator without full re-render (avoid cursor jump)
+  var total = _calcPcts.reduce(function(a,b){ return a+b; }, 0);
+  var tcolor = Math.abs(total-100) < 0.1 ? 'var(--green)' : 'var(--red)';
+  var sigma = input.parentElement && input.parentElement.parentElement
+    ? input.parentElement.parentElement.querySelector('span:last-child') : null;
+  if (sigma) { sigma.style.color = tcolor; sigma.textContent = 'Σ '+total.toFixed(1)+'%'; }
+  calcPayouts();
+}
+
+function calcPayouts() {
+  var pool   = parseFloat(document.getElementById('calc-pool').value) || 0;
+  var places = parseInt(document.getElementById('calc-places').value) || 0;
+  if (places > 0 && places !== _calcPcts.length) {
+    if (places < _calcPcts.length) {
+      _calcPcts = _calcPcts.slice(0, places);
+    } else {
+      while (_calcPcts.length < places) _calcPcts.push(0);
+    }
+    calcRenderPctEditor();
+  }
+  if (!pool || !places || _calcPcts.length === 0) {
+    document.getElementById('calc-payout-results').innerHTML = '';
+    return;
+  }
+  var html = '';
+  for (var i=0; i<_calcPcts.length; i++) {
+    var pct    = _calcPcts[i];
+    var amount = pool * pct / 100;
+    html += '<div class="calc-result-item">';
+    html += '<div class="calc-result-place">'+ordinal(i+1)+' Place</div>';
+    html += '<div class="calc-result-pct">'+pct.toFixed(1)+'%</div>';
+    html += '<div class="calc-result-amount">₱'+Math.round(amount).toLocaleString()+'</div>';
+    html += '</div>';
+  }
+  document.getElementById('calc-payout-results').innerHTML = html;
+}
+
+function calcICM() {
+  var stack   = parseFloat(document.getElementById('calc-stack').value)   || 0;
+  var bb      = parseFloat(document.getElementById('calc-bb').value)      || 0;
+  var players = parseInt(document.getElementById('calc-players').value)   || 0;
+  var paid    = parseInt(document.getElementById('calc-paid').value)      || 0;
+  var statsEl  = document.getElementById('calc-icm-stats');
+  var bannerEl = document.getElementById('calc-icm-banner');
+  if (!stack || !bb || !players || !paid) {
+    statsEl.innerHTML = '';
+    bannerEl.innerHTML = '';
+    return;
+  }
+  var bbDepth  = stack / bb;
+  var pctPaid  = paid / players * 100;
+  var toBubble = players - paid;
+  statsEl.innerHTML =
+    '<div class="calc-stat-box"><div class="calc-stat-label">BB Depth</div><div class="calc-stat-val">'+bbDepth.toFixed(1)+'</div></div>'+
+    '<div class="calc-stat-box"><div class="calc-stat-label">% Field Paid</div><div class="calc-stat-val">'+pctPaid.toFixed(0)+'%</div></div>'+
+    '<div class="calc-stat-box"><div class="calc-stat-label">To Bubble</div><div class="calc-stat-val">'+toBubble+'</div></div>';
+  var rec, cls, detail;
+  if (bbDepth <= 8) {
+    rec = 'SHOVE ANY TWO'; cls = 'shove';
+    detail = 'Below 8BB — push/fold only. Shove strong Ax, KQ+, any pair from any position.';
+  } else if (bbDepth <= 15) {
+    rec = 'PUSH / FOLD'; cls = 'shove';
+    detail = bbDepth.toFixed(1)+'BB — use push/fold charts. Shove premium hands, re-jam over limps.';
+  } else if (toBubble <= 2 && pctPaid < 30) {
+    rec = 'LOCK IT UP'; cls = 'protect';
+    detail = 'Bubble pressure high — tighten vs. active players. Let short stacks bust for ICM equity.';
+  } else if (bbDepth >= 40) {
+    rec = 'NORMAL PLAY'; cls = 'normal';
+    detail = 'Deep stack — play your A-game. Open wide in position; use stack leverage vs. medium stacks.';
+  } else {
+    rec = 'NORMAL PLAY'; cls = 'normal';
+    detail = bbDepth.toFixed(1)+'BB — standard play. Avoid marginal spots; accumulate vs. weak players.';
+  }
+  bannerEl.innerHTML =
+    '<div class="calc-rec-banner '+cls+'">'+
+    '<div class="rec-label">Recommendation</div>'+
+    '<div class="rec-action">'+rec+'</div>'+
+    '<div class="rec-detail">'+detail+'</div>'+
+    '</div>';
 }
 
 // ── THEME TOGGLE ──
@@ -2945,6 +3216,7 @@ restoreTimerState(load('timer', null));
   <div class="mob-subtab-group" id="mob-subtabs-play">
     <button class="mob-subtab" data-page="sessions" onclick="switchTab('sessions')">♦ Log Session</button>
     <button class="mob-subtab" data-page="hands" onclick="switchTab('hands')">🃏 Hands</button>
+    <button class="mob-subtab" data-page="calculator" onclick="switchTab('calculator')">🧮 Calc</button>
   </div>
   <div class="mob-subtab-group" id="mob-subtabs-review">
     <button class="mob-subtab" data-page="sessions" onclick="switchTab('sessions')">♦ History</button>
