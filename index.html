@@ -1330,7 +1330,8 @@ body.light .btn-demo-clear{color:rgba(0,0,0,.45)}
       </div>
       <div id="calc-custom-places-wrap" style="display:none;margin-top:.5rem">
         <label class="form-label">Custom number of places</label>
-        <input class="form-input" id="calc-custom-places" type="number" min="1" max="100" placeholder="e.g. 15" oninput="calcCustomPlaces()">
+        <input class="form-input" id="calc-custom-places" type="number" min="1" max="100" placeholder="e.g. 15" oninput="calcCustomPlacesDebounced()">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--gold);opacity:.75;margin-top:.35rem">Auto-generated structure — edit any % to customize. Others adjust automatically.</div>
       </div>
       <div style="margin-top:.9rem">
         <div class="form-label" style="margin-bottom:.5rem">Structure Presets</div>
@@ -2432,17 +2433,36 @@ function calcPlacesChanged() {
   }
 }
 
-function calcCustomPlaces() {
-  var n = parseInt(document.getElementById('calc-custom-places').value) || 0;
-  if (n < 1 || n > 100) return;
-  _calcNumPlaces = n;
-  if (_calcPcts.length > n) {
-    _calcPcts = _calcPcts.slice(0, n);
-  } else {
-    while (_calcPcts.length < n) _calcPcts.push(0);
-  }
-  calcRenderPctEditor();
-  calcPayouts();
+function generateCustomStructure(places) {
+  if (places < 1) return [];
+  if (places === 1) return [100];
+  var decay = 0.75;
+  var raw = [];
+  for (var i = 0; i < places; i++) raw.push(Math.pow(decay, i));
+  var total = raw.reduce(function(a, b){ return a + b; }, 0);
+  var pcts = raw.map(function(v){ return Math.round((v / total) * 1000) / 10; });
+  // Fix rounding drift on 1st place
+  var sum = pcts.reduce(function(a, b){ return a + b; }, 0);
+  pcts[0] = Math.round((pcts[0] + Math.round((100 - sum) * 10) / 10) * 10) / 10;
+  return pcts;
+}
+
+var _calcCustomDebounceTimer = null;
+function calcCustomPlacesDebounced() {
+  clearTimeout(_calcCustomDebounceTimer);
+  _calcCustomDebounceTimer = setTimeout(function() {
+    var n = parseInt(document.getElementById('calc-custom-places').value) || 0;
+    if (n < 1 || n > 100) return;
+    _calcNumPlaces = n;
+    // Use preset if available, otherwise generate
+    if (_calcPresets[n]) {
+      _calcPcts = _calcPresets[n].slice();
+    } else {
+      _calcPcts = generateCustomStructure(n);
+    }
+    calcRenderPctEditor();
+    calcPayouts();
+  }, 500);
 }
 
 function calcApplyPreset(n) {
