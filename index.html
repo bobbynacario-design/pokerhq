@@ -839,8 +839,8 @@ body.light .btn-demo-clear{color:rgba(0,0,0,.45)}
     </div>
   </div>
 
-  <!-- Demo Banner — shown only when no real sessions exist -->
-  <div class="demo-banner" id="demo-banner" style="display:none">
+  <!-- Demo Banner — shown until dismissed or demo is active -->
+  <div class="demo-banner" id="demo-banner">
     <div class="demo-banner-left">
       <div class="demo-banner-icon">👁</div>
       <div>
@@ -848,7 +848,10 @@ body.light .btn-demo-clear{color:rgba(0,0,0,.45)}
         <div class="demo-banner-sub">Load sample data to explore all features with realistic Philippine MTT session history.</div>
       </div>
     </div>
-    <button class="btn-demo-load" onclick="loadDemoMode()">LOAD DEMO DATA ↗</button>
+    <div style="display:flex;align-items:center;gap:.6rem;flex-shrink:0">
+      <button class="btn-demo-load" onclick="loadDemoMode()">LOAD DEMO DATA ↗</button>
+      <button onclick="dismissDemoBanner()" title="Dismiss" style="background:transparent;border:none;color:rgba(255,255,255,.3);font-size:18px;cursor:pointer;line-height:1;padding:0 2px;flex-shrink:0">✕</button>
+    </div>
   </div>
 
   <!-- Next Actions -->
@@ -3218,8 +3221,14 @@ function clearDemoMode() {
 function refreshDemoBanner() {
   var banner = document.getElementById('demo-banner');
   if (!banner) return;
-  // Show only when no sessions in memory AND not in demo mode
-  banner.style.display = (!window._demoMode && sessions.length === 0) ? 'flex' : 'none';
+  var dismissed = localStorage.getItem('pokerhq_demo_dismissed');
+  banner.style.display = (!window._demoMode && !dismissed) ? 'flex' : 'none';
+}
+
+function dismissDemoBanner() {
+  localStorage.setItem('pokerhq_demo_dismissed', '1');
+  var banner = document.getElementById('demo-banner');
+  if (banner) banner.style.display = 'none';
 }
 
 // ── INIT ──
