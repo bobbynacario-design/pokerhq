@@ -58,7 +58,7 @@ async function fbSave(key, data) {
 async function fbLoadAll() {
   try {
     setSyncStatus('syncing', 'Syncing...');
-    var keys = ['sessions','tourneys','hands','strategies','news','spotlights','bankroll'];
+    var keys = ['sessions','tourneys','hands','strategies','news','spotlights','bankroll','satellites','opponents','timer'];
     var loaded = false;
     for (var i=0; i<keys.length; i++) {
       var k = keys[i];
@@ -72,6 +72,9 @@ async function fbLoadAll() {
         if (k==='news')       window.newsItems  = val;
         if (k==='spotlights') window.spotlights = val;
         if (k==='bankroll')   window.bankroll   = val;
+        if (k==='satellites') window.satellites = val;
+        if (k==='opponents')  window.opponents  = val;
+        if (k==='timer')      { if (window.restoreTimerState) window.restoreTimerState(val); }
         localStorage.setItem('pokerhq_'+k, JSON.stringify(val));
         loaded = true;
       }
@@ -84,7 +87,9 @@ async function fbLoadAll() {
     renderStrategy();
     renderHands();
     loadBankrollForm();
-  populateSessionDropdowns();
+    populateSessionDropdowns();
+    if (window.renderSatellites) window.renderSatellites();
+    if (window.renderOpponents)  window.renderOpponents();
   } catch(e) {
     setSyncStatus('error', 'Sync failed — using local data');
     console.error('fbLoadAll error:', e);
@@ -92,7 +97,7 @@ async function fbLoadAll() {
 }
 
 // ── REAL-TIME LISTENER — updates UI when another device saves ──
-var keys = ['sessions','tourneys','hands','strategies','news','spotlights','bankroll'];
+var keys = ['sessions','tourneys','hands','strategies','news','spotlights','bankroll','satellites','opponents','timer'];
 keys.forEach(function(k) {
   onSnapshot(doc(db, USER_PATH, k), function(snap) {
     if (!snap.exists()) return;
@@ -104,6 +109,9 @@ keys.forEach(function(k) {
     if (k==='news')       window.newsItems  = val;
     if (k==='spotlights') window.spotlights = val;
     if (k==='bankroll')   window.bankroll   = val;
+    if (k==='satellites') window.satellites = val;
+    if (k==='opponents')  window.opponents  = val;
+    if (k==='timer')      { if (window.restoreTimerState && !window._timerInterval) window.restoreTimerState(val); }
     localStorage.setItem('pokerhq_'+k, JSON.stringify(val));
     setSyncStatus('ok', 'Synced');
     // Refresh relevant UI
@@ -113,6 +121,8 @@ keys.forEach(function(k) {
     renderCalendarList();
     renderStrategy();
     renderHands();
+    if (k==='satellites' && window.renderSatellites) window.renderSatellites();
+    if (k==='opponents'  && window.renderOpponents)  window.renderOpponents();
   });
 });
 
@@ -150,9 +160,16 @@ body.light {
 body.light { color:#1A1A1A; }
 body.light .nav { background:#FFFFFF; }
 body.light .nav-brand { color:var(--gold); }
-body.light .tab { color:rgba(0,0,0,0.45); }
-body.light .tab:hover { color:#1A1A1A; background:var(--bg3); }
-body.light .tab.active { color:var(--gold); background:var(--gold-dim); }
+body.light .group-tab { color:rgba(0,0,0,0.45); }
+body.light .group-tab:hover { color:#1A1A1A; background:var(--bg3); }
+body.light .group-tab.active { color:var(--gold); background:var(--gold-dim); }
+body.light .subtab-bar { background:#FFFFFF; border-top-color:var(--rim); }
+body.light .subtab { color:rgba(0,0,0,0.35); }
+body.light .subtab:hover { color:#1A1A1A; background:var(--bg3); }
+body.light .subtab.active { color:#1A1A1A; background:var(--bg3); }
+body.light .mobile-subtab-strip { background:#FFFFFF; border-top-color:var(--rim); }
+body.light .mob-subtab { color:rgba(0,0,0,0.4); border-color:rgba(0,0,0,0.12); }
+body.light .mob-subtab.active { color:var(--gold); border-color:rgba(139,105,20,0.3); background:var(--gold-dim); }
 body.light .clock-nav { color:rgba(0,0,0,0.4); }
 body.light .bankroll-hero { background:linear-gradient(135deg,#FFFFFF,#F5F2EC); border-color:rgba(139,105,20,0.2); }
 body.light .bankroll-amount { color:var(--gold); }
@@ -219,17 +236,34 @@ body.light ::-webkit-scrollbar-thumb { background:var(--bg4); }
 html,body{background:var(--bg);color:#fff;font-family:var(--sans);min-height:100vh;overflow-x:hidden}
 
 /* ── NAV ── */
-.nav{background:var(--bg2);border-bottom:1px solid var(--rim);padding:.7rem 2rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.nav{background:var(--bg2);border-bottom:1px solid var(--rim);position:sticky;top:0;z-index:100;display:flex;flex-direction:column}
+.nav-row{padding:.7rem 2rem;display:flex;align-items:center;justify-content:space-between}
 .nav-brand{font-family:var(--serif);font-size:22px;letter-spacing:.08em;color:var(--gold)}
 .nav-brand span{color:rgba(255,255,255,.3);font-size:14px;font-family:var(--mono);letter-spacing:.1em;margin-left:.75rem}
-.nav-tabs{display:flex;gap:.25rem}
-.tab{font-family:var(--mono);font-size:11px;letter-spacing:.08em;padding:.4rem .9rem;border-radius:6px;border:none;background:transparent;color:rgba(255,255,255,.4);cursor:pointer;transition:all .15s;text-transform:uppercase}
-.tab:hover{color:#fff;background:var(--bg3)}
-.tab.active{color:var(--gold);background:var(--gold-dim);border:1px solid rgba(212,175,55,.25)}
+.nav-groups{display:flex;gap:.2rem}
+.group-tab{font-family:var(--mono);font-size:11px;letter-spacing:.08em;padding:.4rem .9rem;border-radius:6px;border:1px solid transparent;background:transparent;color:rgba(255,255,255,.4);cursor:pointer;transition:all .15s;text-transform:uppercase}
+.group-tab:hover{color:#fff;background:var(--bg3)}
+.group-tab.active{color:var(--gold);background:var(--gold-dim);border-color:rgba(212,175,55,.25)}
 .nav-right{display:flex;align-items:center;gap:.75rem}
 .clock-nav{font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.3);letter-spacing:.06em}
 .btn-pdf{font-family:var(--mono);font-size:11px;padding:.4rem .9rem;border-radius:6px;border:1px solid var(--rim2);background:transparent;color:rgba(255,255,255,.5);cursor:pointer;transition:all .15s;text-transform:uppercase;letter-spacing:.06em}
 .btn-pdf:hover{border-color:var(--gold);color:var(--gold);background:var(--gold-dim)}
+
+/* ── SUBTAB BAR (desktop, second row inside nav) ── */
+.subtab-bar{display:none;padding:.4rem 2rem;border-top:1px solid var(--rim);gap:.15rem}
+.subtab-bar.open{display:flex}
+.subtab-group{display:none;gap:.15rem}
+.subtab-group.active{display:flex}
+.subtab{font-family:var(--mono);font-size:10px;letter-spacing:.07em;padding:.28rem .85rem;border-radius:5px;border:none;background:transparent;color:rgba(255,255,255,.32);cursor:pointer;transition:all .15s;text-transform:uppercase}
+.subtab:hover{color:rgba(255,255,255,.8);background:var(--bg3)}
+.subtab.active{color:#fff;background:var(--bg3)}
+
+/* ── MOBILE SUB-TAB STRIP (fixed above bottom nav) ── */
+.mobile-subtab-strip{display:none;position:fixed;bottom:60px;left:0;right:0;background:var(--bg2);border-top:1px solid var(--rim);z-index:199;padding:.3rem .75rem;gap:.4rem;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.mob-subtab-group{display:none;gap:.4rem;flex-shrink:0}
+.mob-subtab-group.active{display:flex}
+.mob-subtab{font-family:var(--mono);font-size:10px;letter-spacing:.05em;padding:.28rem .9rem;border-radius:20px;border:1px solid var(--rim2);background:transparent;color:rgba(255,255,255,.4);cursor:pointer;white-space:nowrap;text-transform:uppercase;transition:all .15s;flex-shrink:0}
+.mob-subtab.active{color:var(--gold);border-color:rgba(212,175,55,.3);background:var(--gold-dim)}
 
 /* ── PAGES ── */
 .page{display:none;padding:2rem;max-width:1300px;margin:0 auto;animation:fadeIn .3s ease}
@@ -353,11 +387,11 @@ html,body{background:var(--bg);color:#fff;font-family:var(--sans);min-height:100
 
 /* ── MOBILE RESPONSIVE ── */
 @media (max-width: 768px) {
-  .nav{padding:.6rem 1rem;flex-wrap:wrap;gap:.5rem}
+  .nav-row{padding:.55rem .85rem}
   .nav-brand{font-size:18px}
   .nav-brand span{display:none}
-  .nav-tabs{gap:.15rem;flex-wrap:wrap}
-  .tab{font-size:10px;padding:.35rem .6rem;letter-spacing:.04em}
+  .nav-groups{display:none} /* group tabs handled by mobile bottom nav */
+  .subtab-bar,.subtab-bar.open{display:none !important} /* use mobile strip instead */
   .nav-right{gap:.5rem}
   .clock-nav{display:none}
   .btn-pdf{font-size:10px;padding:.35rem .7rem}
@@ -401,16 +435,19 @@ html,body{background:var(--bg);color:#fff;font-family:var(--sans);min-height:100
   .chart-wrap{padding:1rem}
   .bar-chart{height:80px}
 
-  /* Bottom nav for mobile */
+  /* Bottom nav for mobile — 5 group tabs */
   .mobile-nav{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--rim);z-index:200;padding:.5rem 0 calc(.5rem + env(safe-area-inset-bottom))}
   .mobile-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:.4rem .25rem;border:none;background:transparent;color:rgba(255,255,255,.4);cursor:pointer;font-family:var(--mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;transition:color .15s}
   .mobile-tab.active{color:var(--gold)}
   .mobile-tab-icon{font-size:18px;line-height:1}
-  body{padding-bottom:70px}
+  /* Sub-tab strip visible above bottom nav when non-HOME group active */
+  .mobile-subtab-strip.open{display:flex}
+  body{padding-bottom:112px} /* bottom nav ~60px + strip ~48px */
 }
 
 @media (min-width:769px){
   .mobile-nav{display:none}
+  .mobile-subtab-strip{display:none !important}
 }
 
 .theme-toggle{background:transparent;border:1px solid var(--rim2);border-radius:6px;padding:.35rem .6rem;cursor:pointer;font-size:15px;transition:all .15s;line-height:1}
@@ -629,24 +666,42 @@ body.light .csv-banner-sub{color:rgba(0,0,0,.45)}
 
 <!-- NAV -->
 <nav class="nav">
-  <div style="display:flex;align-items:center;gap:1.5rem">
-    <div class="nav-brand">PokerHQ <span>// BOB</span></div>
-    <div class="nav-tabs">
-      <button class="tab active" onclick="switchTab('dashboard')">Dashboard</button>
-      <button class="tab" onclick="switchTab('sessions')">Sessions</button>
-      <button class="tab" onclick="switchTab('calendar')">Calendar</button>
-      <button class="tab" onclick="switchTab('strategy')">Strategy</button>
-      <button class="tab" onclick="switchTab('hands')">Hands</button>
-      <button class="tab" onclick="switchTab('satellite')">🛰 Satellites</button>
-      <button class="tab" onclick="switchTab('opponents')">👤 Opponents</button>
-      <button class="tab" onclick="switchTab('heatmap')">🔥 Heatmap</button>
+  <div class="nav-row">
+    <div style="display:flex;align-items:center;gap:1.5rem">
+      <div class="nav-brand">PokerHQ <span>// BOB</span></div>
+      <div class="nav-groups">
+        <button class="group-tab active" id="gtab-home" onclick="switchGroup('home')">♠ HOME</button>
+        <button class="group-tab" id="gtab-plan" onclick="switchGroup('plan')">PLAN</button>
+        <button class="group-tab" id="gtab-play" onclick="switchGroup('play')">PLAY</button>
+        <button class="group-tab" id="gtab-review" onclick="switchGroup('review')">REVIEW</button>
+        <button class="group-tab" id="gtab-improve" onclick="switchGroup('improve')">IMPROVE</button>
+      </div>
+    </div>
+    <div class="nav-right">
+      <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">🌙</button>
+      <div class="clock-nav" id="clock">--:--</div>
+      <div class="clock-nav" id="sync-status" style="letter-spacing:.04em">○ Loading...</div>
+      <button class="btn-pdf" onclick="exportPDF()">⬇ WEEKLY REPORT</button>
     </div>
   </div>
-  <div class="nav-right">
-    <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">🌙</button>
-    <div class="clock-nav" id="clock">--:--</div>
-    <div class="clock-nav" id="sync-status" style="letter-spacing:.04em">○ Loading...</div>
-    <button class="btn-pdf" onclick="exportPDF()">⬇ WEEKLY REPORT</button>
+  <!-- Sub-tab row — hidden for HOME, revealed for other groups -->
+  <div class="subtab-bar" id="subtab-bar">
+    <div class="subtab-group" id="subtabs-plan">
+      <button class="subtab" data-page="calendar" onclick="switchTab('calendar')">📅 Calendar</button>
+      <button class="subtab" data-page="satellite" onclick="switchTab('satellite')">🛰 Satellites</button>
+    </div>
+    <div class="subtab-group" id="subtabs-play">
+      <button class="subtab" data-page="sessions" onclick="switchTab('sessions')">♦ Log Session</button>
+      <button class="subtab" data-page="hands" onclick="switchTab('hands')">🃏 Hands</button>
+    </div>
+    <div class="subtab-group" id="subtabs-review">
+      <button class="subtab" data-page="sessions" onclick="switchTab('sessions')">♦ History</button>
+      <button class="subtab" data-page="heatmap" onclick="switchTab('heatmap')">🔥 Heatmap</button>
+    </div>
+    <div class="subtab-group" id="subtabs-improve">
+      <button class="subtab" data-page="strategy" onclick="switchTab('strategy')">♥ Strategy</button>
+      <button class="subtab" data-page="opponents" onclick="switchTab('opponents')">👤 Opponents</button>
+    </div>
   </div>
 </nav>
 
@@ -1262,22 +1317,28 @@ function tickClock() {
 }
 tickClock(); setInterval(tickClock,1000);
 
-// ── TAB SWITCHING ──
+// ── TAB SWITCHING — activates a page and syncs subtab highlights ──
 function switchTab(id) {
   document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
-  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
-  document.querySelectorAll('.mobile-tab').forEach(function(t){ t.classList.remove('active'); });
   var pg = document.getElementById('page-'+id);
   if (pg) pg.classList.add('active');
-  if (event && event.target) event.target.classList.add('active');
-  var mob = document.getElementById('mob-'+id);
-  if (mob) mob.classList.add('active');
+  // Highlight the matching subtab in whichever group is currently visible
+  document.querySelectorAll('.subtab').forEach(function(t){
+    t.classList.toggle('active', t.getAttribute('data-page')===id);
+  });
+  document.querySelectorAll('.mob-subtab').forEach(function(t){
+    t.classList.toggle('active', t.getAttribute('data-page')===id);
+  });
+  // Data refresh
   if (id==='dashboard') refreshDashboard();
-renderCalendarMonth();
+  renderCalendarMonth();
   if (id==='sessions') { loadBankrollForm(); renderSessionTable(); }
   if (id==='calendar') { renderCalendar(); }
   if (id==='strategy') renderStrategy();
-  if (id==='hands') renderHands();
+  if (id==='hands') { populateSessionDropdowns(); renderHands(); }
+  if (id==='satellite') renderSatellites();
+  if (id==='opponents') renderOpponents();
+  if (id==='heatmap') renderHeatmap();
 }
 
 // ── BANKROLL ──
@@ -1375,7 +1436,7 @@ function renderSessionTable() {
   if (!sessions.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="11">No sessions logged yet — add your first tournament above.</td></tr>'; return; }
   tbody.innerHTML = sessions.map(function(s) {
     var pnlCls = s.pnl>0?'profit-pos':s.pnl<0?'profit-neg':'profit-zero';
-    return '<tr><td>'+s.date+'</td><td>'+s.name+'</td><td>'+s.venue+'</td><td>₱'+s.total.toLocaleString()+'</td><td>'+(s.field||'—')+'</td><td>'+(s.position||'—')+'</td><td>'+(s.prize?'₱'+s.prize.toLocaleString():'—')+'</td><td class="'+pnlCls+'">'+fmtCur(s.pnl)+'</td><td>'+(s.hours||'—')+'h</td><td>'+resultBadge(s.result)+'</td><td><button class="del-btn" onclick="deleteSession('+s.id+')">✕</button></td></tr>';
+    return '<tr style="cursor:pointer" onclick="viewSessionDetail('+s.id+')"><td>'+s.date+'</td><td>'+s.name+'</td><td>'+s.venue+'</td><td>₱'+s.total.toLocaleString()+'</td><td>'+(s.field||'—')+'</td><td>'+(s.position||'—')+'</td><td>'+(s.prize?'₱'+s.prize.toLocaleString():'—')+'</td><td class="'+pnlCls+'">'+fmtCur(s.pnl)+'</td><td>'+(s.hours||'—')+'h</td><td>'+resultBadge(s.result)+'</td><td><button class="del-btn" onclick="event.stopPropagation();deleteSession('+s.id+')">✕</button></td></tr>';
   }).join('');
 }
 
@@ -1423,7 +1484,7 @@ function refreshDashboard() {
   if (!recent.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="7">No sessions yet. Log your first tournament.</td></tr>'; }
   else tbody.innerHTML = recent.map(function(s){
     var pnlCls = s.pnl>0?'profit-pos':s.pnl<0?'profit-neg':'profit-zero';
-    return '<tr><td>'+s.date+'</td><td>'+s.name+'</td><td>₱'+s.total.toLocaleString()+'</td><td>'+(s.position||'—')+'</td><td>'+(s.prize?'₱'+s.prize.toLocaleString():'—')+'</td><td class="'+pnlCls+'">'+fmtCur(s.pnl)+'</td><td>'+resultBadge(s.result)+'</td></tr>';
+    return '<tr style="cursor:pointer" onclick="viewSessionDetail('+s.id+')"><td>'+s.date+'</td><td>'+s.name+'</td><td>₱'+s.total.toLocaleString()+'</td><td>'+(s.position||'—')+'</td><td>'+(s.prize?'₱'+s.prize.toLocaleString():'—')+'</td><td class="'+pnlCls+'">'+fmtCur(s.pnl)+'</td><td>'+resultBadge(s.result)+'</td></tr>';
   }).join('');
 
   // P&L chart
@@ -2022,69 +2083,43 @@ function parseGeminiJSON() {
   alert(msg);
 }
 
-function renderGeminiNews(news, spotlight, watch, data) {
-  // News cards
-  var newsEl = document.getElementById('gemini-news-list');
-  var newsSec = document.getElementById('gemini-news-section');
-  if (news && news.length) {
-    newsSec.style.display = 'block';
-    newsEl.innerHTML = news.map(function(st) {
-      var rel = st.relevant !== false && st.relevance;
-      return '<div class="hand-card" style="border-left:4px solid var(--blue);border-radius:0 12px 12px 0;border-top:1px solid var(--rim);border-right:1px solid var(--rim);border-bottom:1px solid var(--rim)">'
-        +'<div class="hand-title">'+esc(st.headline)+'</div>'
-        +'<div class="hand-body" style="margin-top:.4rem">'+esc(st.body)+'</div>'
-        +(st.source?'<div style="margin-top:.5rem;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.3)">📍 '+esc(st.source)+'</div>':'')
-        +(rel?'<div style="margin-top:.5rem;font-size:11px;color:var(--gold);font-family:var(--mono)">→ Bob: '+esc(st.relevance)+'</div>':'')
-        +'</div>';
-    }).join('');
-  }
-
-  // Spotlight
-  var spotEl = document.getElementById('gemini-spotlight-card');
-  var spotSec = document.getElementById('gemini-spotlight-section');
-  if (spotlight && spotlight.content) {
-    spotSec.style.display = 'block';
-    spotEl.innerHTML = '<div class="strategy-card" style="border-left-color:var(--gold)">'
-      +'<p>'+esc(spotlight.content)+'</p>'
-      +(spotlight.source?'<div style="margin-top:.5rem;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.3)">📍 '+esc(spotlight.source)+'</div>':'')
-      +'</div>';
-  }
-
-  // Watch banner
-  if (watch && watch.text) {
-    var existing = document.getElementById('gemini-watch-banner');
-    if (existing) existing.remove();
-    var banner = document.createElement('div');
-    banner.id = 'gemini-watch-banner';
-    banner.className = 'strategy-card';
-    banner.style.cssText = 'border-left-color:var(--red);margin-bottom:1rem';
-    banner.innerHTML = '<div class="strategy-week">🔭 ONE THING TO WATCH</div><p>'+esc(watch.text)+'</p>'
-      +(watch.source?'<div style="margin-top:.5rem;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.3)">📍 '+esc(watch.source)+'</div>':'');
-    document.getElementById('strategy-list').parentNode.insertBefore(banner, document.getElementById('strategy-list'));
-  }
-}
 
 function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-// ── MOBILE TAB SWITCHING ──
-function switchTabMobile(id, el) {
-  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
-  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+// ── GROUP SWITCHING — top-level nav; HOME is standalone, others expand sub-tab row ──
+function switchGroup(group) {
+  // Desktop group tab highlights
+  document.querySelectorAll('.group-tab').forEach(function(t){ t.classList.remove('active'); });
+  var gtab = document.getElementById('gtab-'+group);
+  if (gtab) gtab.classList.add('active');
+  // Mobile bottom nav highlights
   document.querySelectorAll('.mobile-tab').forEach(function(t){ t.classList.remove('active'); });
-  document.getElementById('page-'+id).classList.add('active');
-  if (el) el.classList.add('active');
-  // Also sync desktop tabs
-  document.querySelectorAll('.tab').forEach(function(t){
-    if (t.getAttribute('onclick') && t.getAttribute('onclick').includes("'"+id+"'")) t.classList.add('active');
-  });
-  if (id==='dashboard') refreshDashboard();
-  if (id==='sessions') { loadBankrollForm(); renderSessionTable(); }
-  if (id==='calendar') { renderCalendar(); }
-  if (id==='strategy') renderStrategy();
-  if (id==='hands') { populateSessionDropdowns(); renderHands(); }
-  if (id==='satellite') renderSatellites();
-  if (id==='opponents') renderOpponents();
-  if (id==='heatmap') renderHeatmap();
+  var mobtab = document.getElementById('mob-'+group);
+  if (mobtab) mobtab.classList.add('active');
+
+  if (group === 'home') {
+    document.getElementById('subtab-bar').classList.remove('open');
+    document.getElementById('mobile-subtab-strip').classList.remove('open');
+    switchTab('dashboard');
+    window.scrollTo(0,0);
+    return;
+  }
+
+  // Show desktop sub-tab bar and activate this group's sub-tabs
+  document.getElementById('subtab-bar').classList.add('open');
+  document.querySelectorAll('.subtab-group').forEach(function(g){ g.classList.remove('active'); });
+  var stgrp = document.getElementById('subtabs-'+group);
+  if (stgrp) stgrp.classList.add('active');
+
+  // Show mobile strip and activate this group's mob-subtabs
+  document.getElementById('mobile-subtab-strip').classList.add('open');
+  document.querySelectorAll('.mob-subtab-group').forEach(function(g){ g.classList.remove('active'); });
+  var mstgrp = document.getElementById('mob-subtabs-'+group);
+  if (mstgrp) mstgrp.classList.add('active');
+
+  // Navigate to the default first page for this group
+  var defaults = {plan:'calendar', play:'sessions', review:'sessions', improve:'strategy'};
+  switchTab(defaults[group]);
   window.scrollTo(0,0);
 }
 
@@ -2180,7 +2215,7 @@ async function structureHand() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 1000,
         messages: [{
           role: 'user',
@@ -2492,6 +2527,7 @@ function startTimer() {
   document.getElementById('timer-start-btn').style.display = 'none';
   document.getElementById('timer-stop-btn').style.display = 'inline-block';
   document.getElementById('timer-log-btn').style.display = 'none';
+  save('timer', {running:true, startedAt:_timerStart, elapsed:0});
 }
 
 function stopTimer() {
@@ -2503,6 +2539,7 @@ function stopTimer() {
   document.getElementById('timer-stop-btn').style.display = 'none';
   document.getElementById('timer-log-btn').style.display = 'inline-block';
   document.getElementById('timer-start-btn').textContent = 'RESUME';
+  save('timer', {running:false, startedAt:null, elapsed:_timerElapsed});
 }
 
 function updateTimerDisplay() {
@@ -2521,7 +2558,7 @@ function logTimerToSession() {
   var hoursField = document.getElementById('s-hours');
   if (hoursField) hoursField.value = hours.toFixed(1);
   // Switch to sessions tab
-  switchTab('sessions');
+  switchGroup('play');
   alert('Timer logged: '+hours.toFixed(1)+'h. Fill in the rest of the session details and click LOG SESSION.');
   // Reset timer
   _timerElapsed = 0;
@@ -2532,7 +2569,37 @@ function logTimerToSession() {
   document.getElementById('timer-start-btn').textContent = 'START';
   document.getElementById('timer-stop-btn').style.display = 'none';
   document.getElementById('timer-log-btn').style.display = 'none';
+  save('timer', {running:false, startedAt:null, elapsed:0});
 }
+
+// ── RESTORE TIMER STATE (called by Firebase sync on load / cross-device update) ──
+function restoreTimerState(state) {
+  if (!state) return;
+  if (state.running && state.startedAt) {
+    // Timer running on another device — resume here
+    if (_timerInterval) return; // already running locally, don't override
+    _timerStart = state.startedAt;
+    _timerElapsed = 0;
+    _timerInterval = setInterval(updateTimerDisplay, 1000);
+    document.getElementById('timer-start-btn').style.display = 'none';
+    document.getElementById('timer-stop-btn').style.display = 'inline-block';
+    document.getElementById('timer-log-btn').style.display = 'none';
+    updateTimerDisplay();
+  } else if (state.elapsed > 0) {
+    // Timer was stopped with elapsed time — show paused state
+    if (_timerInterval) return; // running locally, don't override
+    _timerElapsed = state.elapsed;
+    var e = state.elapsed;
+    var h = Math.floor(e/3600000), m = Math.floor((e%3600000)/60000), s = Math.floor((e%60000)/1000);
+    var dispEl = document.getElementById('timer-display');
+    if (dispEl) dispEl.textContent = pad(h)+':'+pad(m)+':'+pad(s);
+    document.getElementById('timer-start-btn').style.display = 'inline-block';
+    document.getElementById('timer-start-btn').textContent = 'RESUME';
+    document.getElementById('timer-stop-btn').style.display = 'none';
+    document.getElementById('timer-log-btn').style.display = 'inline-block';
+  }
+}
+window.restoreTimerState = restoreTimerState;
 
 // ── CSV EXPORT ──
 function exportCSV() {
@@ -2640,8 +2707,8 @@ function clearRatings() {
 function startSessionFromTourney(tid) {
   var t = tourneys.find(function(x){ return x.id===tid; });
   if (!t) return;
-  // Switch to sessions tab and pre-fill the form
-  switchTab('sessions');
+  // Open PLAY group → sessions, then pre-fill the form
+  switchGroup('play');
   setTimeout(function(){
     document.getElementById('s-name').value  = t.name || '';
     document.getElementById('s-venue').value = t.venue || '';
@@ -2704,6 +2771,8 @@ if (savedTheme === 'light') {
   document.getElementById('theme-toggle').textContent = '☀️';
 }
 refreshDashboard();
+// Restore timer state from localStorage (Firebase will re-sync shortly after)
+restoreTimerState(load('timer', null));
 </script>
 
 <!-- Satellite Modal -->
@@ -2848,23 +2917,43 @@ refreshDashboard();
 </div>
 
 
-<!-- MOBILE BOTTOM NAV -->
+<!-- MOBILE BOTTOM NAV — 5 group tabs -->
 <div class="mobile-nav">
-  <button class="mobile-tab active" id="mob-dashboard" onclick="switchTabMobile('dashboard',this)">
-    <span class="mobile-tab-icon">♠</span>DASH
+  <button class="mobile-tab active" id="mob-home" onclick="switchGroup('home')">
+    <span class="mobile-tab-icon">♠</span>HOME
   </button>
-  <button class="mobile-tab" id="mob-sessions" onclick="switchTabMobile('sessions',this)">
-    <span class="mobile-tab-icon">♦</span>LOG
+  <button class="mobile-tab" id="mob-plan" onclick="switchGroup('plan')">
+    <span class="mobile-tab-icon">📅</span>PLAN
   </button>
-  <button class="mobile-tab" id="mob-hands" onclick="switchTabMobile('hands',this)">
-    <span class="mobile-tab-icon">🃏</span>HANDS
+  <button class="mobile-tab" id="mob-play" onclick="switchGroup('play')">
+    <span class="mobile-tab-icon">▶</span>PLAY
   </button>
-  <button class="mobile-tab" id="mob-satellite" onclick="switchTabMobile('satellite',this)">
-    <span class="mobile-tab-icon">🛰</span>SAT
+  <button class="mobile-tab" id="mob-review" onclick="switchGroup('review')">
+    <span class="mobile-tab-icon">📊</span>REVIEW
   </button>
-  <button class="mobile-tab" id="mob-opponents" onclick="switchTabMobile('opponents',this)">
-    <span class="mobile-tab-icon">👤</span>VILLAINS
+  <button class="mobile-tab" id="mob-improve" onclick="switchGroup('improve')">
+    <span class="mobile-tab-icon">🧠</span>IMPROVE
   </button>
+</div>
+
+<!-- MOBILE SUB-TAB STRIP (fixed above bottom nav) -->
+<div class="mobile-subtab-strip" id="mobile-subtab-strip">
+  <div class="mob-subtab-group" id="mob-subtabs-plan">
+    <button class="mob-subtab" data-page="calendar" onclick="switchTab('calendar')">📅 Calendar</button>
+    <button class="mob-subtab" data-page="satellite" onclick="switchTab('satellite')">🛰 Satellites</button>
+  </div>
+  <div class="mob-subtab-group" id="mob-subtabs-play">
+    <button class="mob-subtab" data-page="sessions" onclick="switchTab('sessions')">♦ Log Session</button>
+    <button class="mob-subtab" data-page="hands" onclick="switchTab('hands')">🃏 Hands</button>
+  </div>
+  <div class="mob-subtab-group" id="mob-subtabs-review">
+    <button class="mob-subtab" data-page="sessions" onclick="switchTab('sessions')">♦ History</button>
+    <button class="mob-subtab" data-page="heatmap" onclick="switchTab('heatmap')">🔥 Heatmap</button>
+  </div>
+  <div class="mob-subtab-group" id="mob-subtabs-improve">
+    <button class="mob-subtab" data-page="strategy" onclick="switchTab('strategy')">♥ Strategy</button>
+    <button class="mob-subtab" data-page="opponents" onclick="switchTab('opponents')">👤 Opponents</button>
+  </div>
 </div>
 
 </body>
