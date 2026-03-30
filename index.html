@@ -733,6 +733,38 @@ body.light .calc-pushfold-row.active .pfrow-desc{color:rgba(0,0,0,.7)}
 body.light .calc-payout-total{color:rgba(0,0,0,.4)}
 @media(max-width:768px){.calc-result-grid{grid-template-columns:repeat(2,1fr)}.calc-advisor-grid{grid-template-columns:1fr 1fr}.pfrow-desc{display:none}}
 
+/* ── STUDY LOOP ── */
+.study-loop-card{background:var(--bg2);border-left:3px solid #9B59B6;border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.25rem}
+.study-loop-title{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:.85rem}
+.study-loop-items{display:grid;grid-template-columns:repeat(4,1fr);gap:.65rem}
+.study-loop-item{background:var(--bg3);border-radius:8px;padding:.75rem .8rem;display:flex;flex-direction:column;gap:.3rem}
+.sli-status{font-size:16px;line-height:1}
+.sli-label{font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:rgba(255,255,255,.4);text-transform:uppercase}
+.sli-action{font-family:var(--mono);font-size:9px;color:var(--gold);cursor:pointer;text-decoration:underline;margin-top:.2rem}
+.sli-action:hover{color:var(--gold2)}
+.strategy-nudge{background:rgba(155,89,182,0.08);border:1px solid rgba(155,89,182,0.2);border-radius:12px;padding:.9rem 1.2rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.strategy-nudge-text{font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.55)}
+.strategy-nudge-link{font-family:var(--mono);font-size:11px;color:#9B59B6;cursor:pointer;white-space:nowrap}
+.strategy-nudge-link:hover{color:#B87FD4}
+body.light .strategy-nudge-text{color:rgba(0,0,0,.5)}
+.session-lesson-card{background:rgba(155,89,182,0.08);border:1px solid rgba(155,89,182,0.2);border-radius:10px;padding:.9rem 1rem;margin-top:1rem}
+.session-lesson-title{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(155,89,182,.7);margin-bottom:.65rem}
+.session-lesson-btns{display:flex;gap:.65rem;flex-wrap:wrap}
+.onboarding-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+.onboarding-card{background:var(--bg2);border:1px solid var(--gold-dim);border-radius:18px;padding:2.25rem;max-width:480px;width:100%;position:relative}
+.onboarding-title{font-family:var(--serif);font-size:22px;letter-spacing:.03em;color:var(--gold);margin-bottom:.35rem}
+.onboarding-sub{font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.4);margin-bottom:1.5rem}
+body.light .onboarding-sub{color:rgba(0,0,0,.4)}
+.onboarding-steps{display:flex;flex-direction:column;gap:.6rem;margin-bottom:1.5rem}
+.onboarding-step{display:flex;align-items:center;gap:.85rem;background:var(--bg3);border-radius:10px;padding:.75rem .9rem}
+.onboarding-step-icon{font-size:20px;flex-shrink:0;width:28px;text-align:center}
+.onboarding-step-name{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin-bottom:.2rem}
+.onboarding-step-desc{font-size:12px;color:rgba(255,255,255,.45);line-height:1.5}
+body.light .onboarding-step-desc{color:rgba(0,0,0,.45)}
+.onboarding-actions{display:flex;gap:.75rem;flex-wrap:wrap}
+@media(max-width:768px){.study-loop-items{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:500px){.onboarding-card{padding:1.5rem}.onboarding-title{font-size:18px}}
+
 /* ── DEMO MODE ── */
 .demo-banner{background:linear-gradient(135deg,rgba(212,175,55,0.08),rgba(212,175,55,0.04));border:1px solid rgba(212,175,55,0.25);border-radius:14px;padding:1.1rem 1.4rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1.25rem;flex-wrap:wrap}
 .demo-banner-left{display:flex;align-items:center;gap:.9rem}
@@ -1080,6 +1112,8 @@ body.light .btn-demo-clear{color:rgba(0,0,0,.45)}
     </div>
   </div>
 
+  <div id="study-loop-wrap"></div>
+
   <!-- Full Session Table -->
   <div class="table-wrap">
     <table class="tbl">
@@ -1137,6 +1171,8 @@ body.light .btn-demo-clear{color:rgba(0,0,0,.45)}
   <div class="sec-hdr">
     <div class="sec-title"><span>♥</span>Intelligence & Strategy</div>
   </div>
+
+  <div id="strategy-nudge-wrap"></div>
 
   <div class="strategy-paste">
     <div class="form-label" style="margin-bottom:.65rem">IMPORT WEEKLY INTELLIGENCE BRIEFING</div>
@@ -1696,6 +1732,7 @@ function resultBadge(r) {
 }
 
 function renderSessionTable() {
+  renderStudyLoop();
   var tbody = document.getElementById('session-tbody');
   if (!sessions.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="11">No sessions logged yet — add your first tournament above.</td></tr>'; return; }
   tbody.innerHTML = sessions.map(function(s) {
@@ -2048,6 +2085,7 @@ function deleteSpotlight(id) {
 }
 
 function renderStrategy() {
+  renderStrategyNudge();
   // Render saved news
   var newsEl = document.getElementById('gemini-news-list');
   var newsSec = document.getElementById('gemini-news-section');
@@ -2709,6 +2747,7 @@ function viewSessionDetail(sid) {
     });
   }
   html += '<button class="sec-action" style="margin-top:.5rem" onclick="closeModal(\'modal-session-detail\');openHandModalForSession('+sid+')">+ ADD HAND TO THIS SESSION</button>';
+  html += '<div class="session-lesson-card"><div class="session-lesson-title">Turn this session into a lesson</div><div class="session-lesson-btns"><button class="sec-action" onclick="closeModal(\'modal-session-detail\');openHandModalForSession('+sid+')">🃏 LOG A HAND</button><button class="sec-action" onclick="closeModal(\'modal-session-detail\');switchGroup(\'improve\',\'strategy\');setTimeout(function(){var el=document.getElementById(\'strat-topic\');if(el){el.focus();el.scrollIntoView({behavior:\'smooth\',block:\'center\'});}},250)">📝 ADD NOTE</button></div></div>';
 
   document.getElementById('sd-title').textContent = s.name + ' — ' + s.date;
   document.getElementById('sd-body').innerHTML = html;
@@ -3446,6 +3485,111 @@ function clearDemoMode() {
   loadBankrollForm();
 }
 
+// ── STUDY LOOP ──
+function getStudyLoopStatus() {
+  var now = new Date(), weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - now.getDay());
+  weekStart.setHours(0,0,0,0);
+  var thisWeekSessions = sessions.filter(function(s){ return new Date(s.date) >= weekStart; });
+  var thisWeekHands = hands.filter(function(h){ return thisWeekSessions.some(function(s){ return s.id === h.sessionId; }); });
+  var thisWeekNotes = strategies.filter(function(s){ return new Date(s.id) >= weekStart.getTime(); });
+  var thisWeekBriefing = newsItems.filter(function(n){ return new Date(n.id) >= weekStart.getTime(); });
+  return {
+    sessions: thisWeekSessions.length,
+    hands: thisWeekHands.length,
+    notes: thisWeekNotes.length,
+    briefing: thisWeekBriefing.length > 0
+  };
+}
+
+function renderStudyLoop() {
+  var wrap = document.getElementById('study-loop-wrap');
+  if (!wrap) return;
+  if (!sessions.length) { wrap.innerHTML = ''; return; }
+  var st = getStudyLoopStatus();
+  var items = [
+    {
+      done: st.sessions > 0,
+      label: 'Sessions<br>logged',
+      count: st.sessions,
+      actionLabel: 'LOG SESSION',
+      action: 'document.getElementById(\'s-date\').scrollIntoView({behavior:\'smooth\',block:\'center\'})'
+    },
+    {
+      done: st.hands > 0,
+      label: 'Hands<br>reviewed',
+      count: st.hands,
+      actionLabel: 'LOG HAND',
+      action: 'openModal(\'modal-hand\')'
+    },
+    {
+      done: st.notes > 0,
+      label: 'Study note<br>added',
+      count: st.notes,
+      actionLabel: 'ADD NOTE',
+      action: 'switchGroup(\'improve\',\'strategy\');setTimeout(function(){var el=document.getElementById(\'strat-topic\');if(el){el.focus();el.scrollIntoView({behavior:\'smooth\',block:\'center\'});}},250)'
+    },
+    {
+      done: st.briefing,
+      label: 'Briefing<br>imported',
+      count: st.briefing ? 1 : 0,
+      actionLabel: 'IMPORT',
+      action: 'switchGroup(\'improve\',\'strategy\');setTimeout(function(){var el=document.getElementById(\'strategy-raw\');if(el){el.focus();el.scrollIntoView({behavior:\'smooth\',block:\'center\'});}},250)'
+    }
+  ];
+  var html = '<div class="study-loop-card">';
+  html += '<div class="study-loop-title">This week\'s study loop</div>';
+  html += '<div class="study-loop-items">';
+  items.forEach(function(item) {
+    html += '<div class="study-loop-item">';
+    html += '<div class="sli-status">'+(item.done ? '✅' : '⭕')+'</div>';
+    html += '<div class="sli-label">'+item.label+'</div>';
+    if (!item.done) {
+      html += '<div class="sli-action" onclick="'+item.action+'">'+item.actionLabel+' →</div>';
+    } else {
+      html += '<div style="font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.5)">'+item.count+(item.count===1?' time':' times')+'</div>';
+    }
+    html += '</div>';
+  });
+  html += '</div></div>';
+  wrap.innerHTML = html;
+}
+
+function renderStrategyNudge() {
+  var wrap = document.getElementById('strategy-nudge-wrap');
+  if (!wrap) return;
+  var st = getStudyLoopStatus();
+  if (st.sessions === 0 || st.notes > 0) { wrap.innerHTML = ''; return; }
+  var handsText = st.hands === 1 ? '1 hand' : st.hands + ' hands';
+  var sessionsText = st.sessions === 1 ? '1 session' : st.sessions + ' sessions';
+  wrap.innerHTML = '<div class="strategy-nudge">'
+    + '<div class="strategy-nudge-text">This week: '+sessionsText+' · '+handsText+' logged · 0 study notes</div>'
+    + '<div class="strategy-nudge-link" onclick="document.getElementById(\'strat-topic\').focus();document.getElementById(\'strat-topic\').scrollIntoView({behavior:\'smooth\',block:\'center\'})">Complete your loop →</div>'
+    + '</div>';
+}
+
+// ── ONBOARDING ──
+function showOnboarding() {
+  if (localStorage.getItem('pokerhq_onboarded') || sessions.length > 0 || window._demoMode) return;
+  var el = document.getElementById('onboarding-overlay');
+  if (el) el.style.display = 'flex';
+}
+
+function dismissOnboarding() {
+  localStorage.setItem('pokerhq_onboarded', 'true');
+  var el = document.getElementById('onboarding-overlay');
+  if (el) el.style.display = 'none';
+}
+
+function onboardingOverlayClick(e) {
+  if (e.target === document.getElementById('onboarding-overlay')) dismissOnboarding();
+}
+
+function onboardingLoadDemo() {
+  loadDemoMode();
+  dismissOnboarding();
+}
+
 function refreshDemoBanner() {
   var banner = document.getElementById('demo-banner');
   if (!banner) return;
@@ -3470,6 +3614,7 @@ if (savedTheme === 'light') {
 }
 refreshDashboard();
 refreshDemoBanner();
+showOnboarding();
 // Restore timer state from localStorage (Firebase will re-sync shortly after)
 restoreTimerState(load('timer', null));
 </script>
@@ -3653,6 +3798,48 @@ restoreTimerState(load('timer', null));
   <div class="mob-subtab-group" id="mob-subtabs-improve">
     <button class="mob-subtab" data-page="strategy" onclick="switchTab('strategy')">♥ Strategy</button>
     <button class="mob-subtab" data-page="opponents" onclick="switchTab('opponents')">👤 Opponents</button>
+  </div>
+</div>
+
+<!-- ONBOARDING OVERLAY -->
+<div class="onboarding-overlay" id="onboarding-overlay" style="display:none" onclick="onboardingOverlayClick(event)">
+  <div class="onboarding-card">
+    <div class="onboarding-title">Welcome to PokerHQ</div>
+    <div class="onboarding-sub">Your MTT command center. Here's how it works:</div>
+    <div class="onboarding-steps">
+      <div class="onboarding-step">
+        <div class="onboarding-step-icon">📅</div>
+        <div>
+          <div class="onboarding-step-name">PLAN</div>
+          <div class="onboarding-step-desc">Schedule tournaments, track satellites, manage your bankroll rule.</div>
+        </div>
+      </div>
+      <div class="onboarding-step">
+        <div class="onboarding-step-icon">▶</div>
+        <div>
+          <div class="onboarding-step-name">PLAY</div>
+          <div class="onboarding-step-desc">Log sessions, track hands, use the payout & stack calculator.</div>
+        </div>
+      </div>
+      <div class="onboarding-step">
+        <div class="onboarding-step-icon">📊</div>
+        <div>
+          <div class="onboarding-step-name">REVIEW</div>
+          <div class="onboarding-step-desc">See your P&L history and performance heatmap over time.</div>
+        </div>
+      </div>
+      <div class="onboarding-step">
+        <div class="onboarding-step-icon">🧠</div>
+        <div>
+          <div class="onboarding-step-name">IMPROVE</div>
+          <div class="onboarding-step-desc">Import weekly briefings, log strategy notes, track opponents.</div>
+        </div>
+      </div>
+    </div>
+    <div class="onboarding-actions">
+      <button class="btn-demo-load" onclick="onboardingLoadDemo()">👁 LOAD DEMO DATA</button>
+      <button class="sec-action primary" onclick="dismissOnboarding()">GET STARTED →</button>
+    </div>
   </div>
 </div>
 
