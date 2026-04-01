@@ -1820,6 +1820,33 @@ function exportPDF() {
 }
 
 // ── GEMINI JSON PARSER ──
+function normalizeImportToken(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function getImportedTourneyFingerprint(t) {
+  return [
+    normalizeImportToken(t.date),
+    normalizeImportToken(t.day),
+    normalizeImportToken(t.month),
+    normalizeImportToken(t.series),
+    normalizeImportToken(t.name),
+    normalizeImportToken(t.venue),
+    normalizeImportToken(t.type),
+    String(Math.round((parseFloat(t.buyin) || 0) * 100))
+  ].join('|');
+}
+
+function getImportedStrategyFingerprint(s) {
+  return [
+    normalizeImportToken(s.week),
+    normalizeImportToken(s.topic),
+    normalizeImportToken(s.note),
+    normalizeImportToken(s.source),
+    normalizeImportToken(s.type)
+  ].join('|');
+}
+
 function parseGeminiJSON() {
   var raw = document.getElementById('strategy-raw').value.trim();
   if (!raw) return;
@@ -1861,8 +1888,8 @@ function parseGeminiJSON() {
           source: ev.source||'',
           status: status
         };
-        // Only add if not already exists (match by name+date)
-        var exists = tourneys.some(function(x){ return x.name===t.name && x.date===t.date; });
+        var tfp = getImportedTourneyFingerprint(t);
+        var exists = tourneys.some(function(x){ return getImportedTourneyFingerprint(x) === tfp; });
         if (!exists) { tourneys.push(t); imported.calendars.push(t); }
       });
     }
@@ -1896,8 +1923,12 @@ function parseGeminiJSON() {
           source: ins.source||'',
           type: 'gemini'
         };
-        strategies.unshift(s);
-        imported.strategies.push(s);
+        var sfp = getImportedStrategyFingerprint(s);
+        var exists = strategies.some(function(x){ return getImportedStrategyFingerprint(x) === sfp; });
+        if (!exists) {
+          strategies.unshift(s);
+          imported.strategies.push(s);
+        }
       });
     }
 
@@ -1915,9 +1946,11 @@ function parseGeminiJSON() {
 
   // Save everything
   if (imported.calendars.length) {
+    window.tourneys = tourneys;
     tourneys.sort(function(a,b){ return (a.date||'').localeCompare(b.date||''); });
     save('tourneys', tourneys);
   }
+  window.strategies = strategies;
   save('strategies', strategies);
 
   // Render news inline on strategy page
