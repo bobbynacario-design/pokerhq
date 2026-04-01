@@ -25,6 +25,7 @@ body.light {
 body.light { color:#1A1A1A; }
 body.light .nav { background:#FFFFFF; }
 body.light .nav-brand { color:var(--gold); }
+body.light .build-badge{background:rgba(52,152,219,.08);color:#1A5FA0;border-color:rgba(26,95,160,.2)}
 body.light .group-tab { color:rgba(0,0,0,0.45); }
 body.light .group-tab:hover { color:#1A1A1A; background:var(--bg3); }
 body.light .group-tab.active { color:var(--gold); background:var(--gold-dim); }
@@ -110,6 +111,7 @@ html,body{background:var(--bg);color:#fff;font-family:var(--sans);min-height:100
 .group-tab:hover{color:#fff;background:var(--bg3)}
 .group-tab.active{color:var(--gold);background:var(--gold-dim);border-color:rgba(212,175,55,.25)}
 .nav-right{display:flex;align-items:center;gap:.75rem}
+.build-badge{font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:.38rem .6rem;border-radius:999px;border:1px solid rgba(52,152,219,.22);background:rgba(52,152,219,.08);color:#8fc7f3;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .clock-nav{font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.3);letter-spacing:.06em}
 .btn-pdf{font-family:var(--mono);font-size:11px;padding:.4rem .9rem;border-radius:6px;border:1px solid var(--rim2);background:transparent;color:rgba(255,255,255,.5);cursor:pointer;transition:all .15s;text-transform:uppercase;letter-spacing:.06em}
 .btn-pdf:hover{border-color:var(--gold);color:var(--gold);background:var(--gold-dim)}
@@ -258,6 +260,7 @@ html,body{background:var(--bg);color:#fff;font-family:var(--sans);min-height:100
   .nav-groups{display:none} /* group tabs handled by mobile bottom nav */
   .subtab-bar,.subtab-bar.open{display:none !important} /* use mobile strip instead */
   .nav-right{gap:.5rem}
+  .build-badge{max-width:145px;font-size:9px;padding:.34rem .52rem}
   .clock-nav{display:none}
   .btn-pdf{font-size:10px;padding:.35rem .7rem}
 

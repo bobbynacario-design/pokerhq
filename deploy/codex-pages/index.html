@@ -32,6 +32,7 @@
       </div>
     </div>
     <div class="nav-right">
+      <div class="build-badge" id="build-badge" title="Build info loading...">BUILD</div>
       <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">🌙</button>
       <div class="clock-nav" id="clock">--:--</div>
       <div class="clock-nav" id="sync-status" style="letter-spacing:.04em">○ Loading...</div>
@@ -1100,6 +1101,23 @@ window.syncGlobalAliases = function() {
   if (typeof opponents !== 'undefined') opponents = window.opponents || [];
 };
 // ── CLOCK ──
+function renderBuildBadge() {
+  var el = document.getElementById('build-badge');
+  if (!el) return;
+  var build = window.PokerHQBuild || {};
+  var cfg = window.PokerHQConfig || {};
+  var profile = cfg.resolveProfileConfig ? cfg.resolveProfileConfig() : (window.__pokerhqResolvedProfile || {});
+  var label = build.label || 'BUILD';
+  var version = build.version || '';
+  var profileId = profile && profile.id ? profile.id : 'legacy-default';
+  el.textContent = label + (version ? ' ' + version : '') + ' · ' + profileId;
+  el.title = 'Build: ' + label + (version ? ' ' + version : '')
+    + '\nChannel: ' + (build.channel || 'default')
+    + '\nProfile: ' + profileId
+    + '\nFirestore: ' + ((profile && profile.firestorePath) || 'n/a')
+    + '\nDoc prefix: ' + ((profile && profile.firestoreDocPrefix) || '(none)')
+    + '\nLocal prefix: ' + ((profile && profile.localPrefix) || 'n/a');
+}
 function tickClock() {
   var t = new Date().toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit',hour12:false});
   document.getElementById('clock').textContent = 'PHT '+t;
@@ -2446,6 +2464,7 @@ restoreTimerState(load('timer', null));
 hydrateSessionFormFromDraft(false);
 renderActiveSessionSurface();
 renderReliability();
+renderBuildBadge();
 </script>
 
 <!-- Satellite Modal -->
