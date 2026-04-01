@@ -1,0 +1,2698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PokerHQ">
+<meta name="theme-color" content="%23080A0E">
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiUG9rZXJIUSIsInNob3J0X25hbWUiOiJQb2tlckhRIiwic3RhcnRfdXJsIjoiLiIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiUyMzA4MEEwRSIsInRoZW1lX2NvbG9yIjoiJTIzMDgwQTBFIiwiaWNvbnMiOlt7InNyYyI6ImRhdGE6aW1hZ2Uvc3ZnK3htbCw8c3ZnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zycgdmlld0JveD0nMCAwIDEwMCAxMDAnPjxyZWN0IHdpZHRoPScxMDAnIGhlaWdodD0nMTAwJyBmaWxsPSclMjMwODBBMEUnLz48dGV4dCB5PScuOWVtJyBmb250LXNpemU9Jzg1JyB4PSc1MCUnIHRleHQtYW5jaG9yPSdtaWRkbGUnPvCfg488L3RleHQ+PC9zdmc+Iiwic2l6ZXMiOiI1MTJ4NTEyIiwidHlwZSI6ImltYWdlL3N2Zyt4bWwifV19">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23080A0E'/><text y='.9em' font-size='75' x='50%' text-anchor='middle'>🃏</text></svg>">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PokerHQ — Bob's Tournament Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="./profile-override.js"></script>
+<script type="module" src="./js/app.js"></script>
+<link rel="stylesheet" href="./styles/app.css">
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-row">
+    <div style="display:flex;align-items:center;gap:1.5rem">
+      <div class="nav-brand">PokerHQ <span>// BOB</span></div>
+      <div class="nav-groups">
+        <button class="group-tab active" id="gtab-home" onclick="switchGroup('home')">♠ HOME</button>
+        <button class="group-tab" id="gtab-plan" onclick="switchGroup('plan')">PLAN</button>
+        <button class="group-tab" id="gtab-play" onclick="switchGroup('play')">PLAY</button>
+        <button class="group-tab" id="gtab-review" onclick="switchGroup('review')">REVIEW</button>
+        <button class="group-tab" id="gtab-improve" onclick="switchGroup('improve')">IMPROVE</button>
+      </div>
+    </div>
+    <div class="nav-right">
+      <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">🌙</button>
+      <div class="clock-nav" id="clock">--:--</div>
+      <div class="clock-nav" id="sync-status" style="letter-spacing:.04em">○ Loading...</div>
+      <div class="demo-badge" id="demo-badge">👁 DEMO</div>
+      <button class="btn-demo-clear" id="demo-clear-btn" onclick="clearDemoMode()">✕ CLEAR DEMO</button>
+      <button class="btn-pdf" onclick="exportPDF()">⬇ WEEKLY REPORT</button>
+    </div>
+  </div>
+  <!-- Sub-tab row — hidden for HOME, revealed for other groups -->
+  <div class="subtab-bar" id="subtab-bar">
+    <div class="subtab-group" id="subtabs-plan">
+      <button class="subtab" data-page="calendar" onclick="switchTab('calendar')">📅 Calendar</button>
+      <button class="subtab" data-page="satellite" onclick="switchTab('satellite')">🛰 Satellites</button>
+    </div>
+    <div class="subtab-group" id="subtabs-play">
+      <button class="subtab" data-page="sessions" onclick="switchTab('sessions')">♦ Log Session</button>
+      <button class="subtab" data-page="hands" onclick="switchTab('hands')">🃏 Hands</button>
+      <button class="subtab" data-page="calculator" onclick="switchTab('calculator')">🧮 Calc</button>
+    </div>
+    <div class="subtab-group" id="subtabs-review">
+      <button class="subtab" data-page="sessions" onclick="switchTab('sessions')">♦ History</button>
+      <button class="subtab" data-page="heatmap" onclick="switchTab('heatmap')">🔥 Heatmap</button>
+    </div>
+    <div class="subtab-group" id="subtabs-improve">
+      <button class="subtab" data-page="strategy" onclick="switchTab('strategy')">♥ Strategy</button>
+      <button class="subtab" data-page="opponents" onclick="switchTab('opponents')">👤 Opponents</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ════════════════════ DASHBOARD ════════════════════ -->
+<div class="page active" id="page-dashboard">
+
+  <div class="surface-hero">
+    <div>
+      <div class="surface-kicker">Home</div>
+      <div class="surface-title">Your live tournament command center</div>
+      <div class="surface-sub">Plan the next target, launch active play from the calendar, capture key hands during the run, and close the loop with review.</div>
+    </div>
+    <div class="surface-badge">Proof Fast</div>
+  </div>
+
+  <div class="status-grid">
+    <div class="status-card">
+      <div class="status-label">Next Move</div>
+      <div class="status-value" id="home-command-title">Start with demo mode or your first event.</div>
+      <div class="status-sub" id="home-command-sub">Load sample data to inspect the full workflow, or open your calendar and start from the next scheduled tournament.</div>
+      <div class="surface-actions" style="margin-top:.9rem">
+        <button class="sec-action primary" onclick="loadDemoMode()">LOAD DEMO DATA ↗</button>
+        <button class="sec-action" onclick="switchGroup('plan','calendar')">OPEN CALENDAR</button>
+        <button class="sec-action" onclick="startSessionFromHome()">MANUAL SESSION</button>
+      </div>
+    </div>
+    <div class="status-card">
+      <div class="status-label">System State</div>
+      <div class="status-value">Ready for real sessions or demo proof.</div>
+      <div class="status-sub">Track sync state, current mode, and whether a live session is already active before you move deeper into the app.</div>
+      <div class="status-chip-row" style="margin-top:.85rem">
+        <div class="status-chip">
+          <div class="status-chip-title">Sync</div>
+          <div class="status-chip-value" id="home-sync-chip">Loading...</div>
+        </div>
+        <div class="status-chip">
+          <div class="status-chip-title">Mode</div>
+          <div class="status-chip-value" id="home-demo-chip">Real data</div>
+        </div>
+        <div class="status-chip">
+          <div class="status-chip-title">Active Play</div>
+          <div class="status-chip-value" id="home-active-chip">Not running</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="dashboard-active-session-wrap"></div>
+  <div id="dashboard-reliability-wrap"></div>
+
+  <div class="demo-banner" id="demo-banner">
+    <div class="demo-banner-left">
+      <div class="demo-banner-icon">👁</div>
+      <div>
+        <div class="demo-banner-title">Proof Fast</div>
+        <div class="demo-banner-sub">Load realistic Philippine MTT sample data and walk the complete PokerHQ loop before entering your own sessions.</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:.6rem;flex-shrink:0">
+      <button class="btn-demo-load" onclick="loadDemoMode()">LOAD DEMO DATA ↗</button>
+      <button onclick="dismissDemoBanner()" title="Dismiss" style="background:transparent;border:none;color:rgba(255,255,255,.3);font-size:18px;cursor:pointer;line-height:1;padding:0 2px;flex-shrink:0">✕</button>
+    </div>
+  </div>
+
+  <div class="flow-grid">
+    <div class="flow-card" onclick="switchGroup('plan','calendar')">
+      <div class="flow-step">Plan</div>
+      <div class="flow-title">Build the slate</div>
+      <div class="flow-copy">Use the BRM-tagged calendar and satellites to decide what deserves your bankroll and time.</div>
+    </div>
+    <div class="flow-card" onclick="switchGroup('play','sessions')">
+      <div class="flow-step">Play</div>
+      <div class="flow-title">Run the session</div>
+      <div class="flow-copy">Start from Calendar List when an event is live, keep the timer running, and capture hands while context is fresh.</div>
+    </div>
+    <div class="flow-card" onclick="switchGroup('review','sessions')">
+      <div class="flow-step">Review</div>
+      <div class="flow-title">See what happened</div>
+      <div class="flow-copy">Open session detail, linked hands, and heatmaps to connect decisions, result, and mental state.</div>
+    </div>
+    <div class="flow-card" onclick="switchGroup('improve','strategy')">
+      <div class="flow-step">Improve</div>
+      <div class="flow-title">Lock the lesson</div>
+      <div class="flow-copy">Turn debriefs, opponent notes, and weekly briefings into the next clear adjustment.</div>
+    </div>
+  </div>
+
+  <div class="bankroll-hero">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+      <div>
+        <div class="bankroll-label">Current Bankroll</div>
+        <div class="bankroll-amount" id="dash-bankroll">₱0</div>
+      </div>
+      <div id="timer-widget" style="background:rgba(0,0,0,.25);border:1px solid var(--rim2);border-radius:12px;padding:.85rem 1.25rem;text-align:center;min-width:160px">
+        <div style="font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:rgba(255,255,255,.35);text-transform:uppercase;margin-bottom:.3rem">Session Timer</div>
+        <div id="timer-display" style="font-family:var(--mono);font-size:26px;font-weight:500;color:#fff;letter-spacing:.08em">00:00:00</div>
+        <div style="display:flex;gap:.4rem;margin-top:.6rem;justify-content:center">
+          <button id="timer-start-btn" onclick="startTimer()" style="font-family:var(--mono);font-size:10px;padding:.3rem .8rem;background:var(--green);color:#fff;border:none;border-radius:6px;cursor:pointer;transition:background .15s">START</button>
+          <button id="timer-stop-btn" onclick="stopTimer()" style="font-family:var(--mono);font-size:10px;padding:.3rem .8rem;background:var(--red-dim);color:var(--red);border:1px solid rgba(232,92,92,.3);border-radius:6px;cursor:pointer;display:none">STOP</button>
+          <button id="timer-log-btn" onclick="logTimerToSession()" style="font-family:var(--mono);font-size:10px;padding:.3rem .8rem;background:var(--gold-dim);color:var(--gold);border:1px solid rgba(201,168,76,.3);border-radius:6px;cursor:pointer;display:none">LOG ↗</button>
+        </div>
+      </div>
+    </div>
+    <div class="bankroll-grid" style="margin-top:1.25rem">
+      <div class="bk-item"><div class="bk-item-label">Recommended Buy-in</div><div class="bk-item-val" id="dash-rec-buyin">—</div></div>
+      <div class="bk-item"><div class="bk-item-label">Stretch Buy-in</div><div class="bk-item-val" id="dash-stretch-buyin">—</div></div>
+      <div class="bk-item"><div class="bk-item-label">Shots Available</div><div class="bk-item-val" id="dash-shots">—</div></div>
+    </div>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat-card" style="--accent:var(--green)">
+      <div class="stat-label">Total Profit / Loss</div>
+      <div class="stat-val" id="dash-pnl">₱0</div>
+      <div class="stat-sub" id="dash-pnl-sub">All sessions</div>
+    </div>
+    <div class="stat-card" style="--accent:var(--gold)">
+      <div class="stat-label">ROI</div>
+      <div class="stat-val" id="dash-roi">0%</div>
+      <div class="stat-sub" id="dash-roi-sub">Return on investment</div>
+    </div>
+    <div class="stat-card" style="--accent:var(--blue)">
+      <div class="stat-label">ITM Rate</div>
+      <div class="stat-val" id="dash-itm">0%</div>
+      <div class="stat-sub" id="dash-itm-sub">In the money</div>
+    </div>
+    <div class="stat-card" style="--accent:var(--purple)">
+      <div class="stat-label">Tournaments</div>
+      <div class="stat-val" id="dash-total">0</div>
+      <div class="stat-sub" id="dash-cashes">0 cashes</div>
+    </div>
+    <div class="stat-card" style="--accent:var(--red)">
+      <div class="stat-label">Avg Buy-in</div>
+      <div class="stat-val" id="dash-avg-buyin">₱0</div>
+      <div class="stat-sub">Per tournament</div>
+    </div>
+    <div class="stat-card" style="--accent:rgba(255,255,255,.2)">
+      <div class="stat-label">Biggest Cash</div>
+      <div class="stat-val" id="dash-biggest">₱0</div>
+      <div class="stat-sub" id="dash-biggest-sub">—</div>
+    </div>
+  </div>
+
+  <div class="chart-wrap">
+    <div class="chart-title">Cumulative P&amp;L — Last 10 Sessions</div>
+    <div class="bar-chart" id="pnl-chart"></div>
+  </div>
+
+  <div class="sec-hdr">
+    <div class="sec-title"><span>♠</span>Recent Sessions</div>
+    <button class="sec-action primary" onclick="switchGroup('play')">LOG SESSION ↗</button>
+  </div>
+  <div class="table-wrap">
+    <table class="tbl">
+      <thead><tr><th>Date</th><th>Tournament</th><th>Buy-in</th><th>Position</th><th>Prize</th><th>P&amp;L</th><th>Result</th></tr></thead>
+      <tbody id="dash-session-tbody"></tbody>
+    </table>
+  </div>
+</div>
+<div class="page" id="page-sessions">
+
+  <div class="surface-hero">
+    <div>
+      <div class="surface-kicker">Play</div>
+      <div class="surface-title">Run the session with context intact</div>
+      <div class="surface-sub">Start from Calendar List when an event is live, keep the active session state visible, and log the result with hands, timer, and mental notes still attached.</div>
+    </div>
+    <div class="surface-actions">
+      <button class="sec-action" onclick="switchGroup('plan','calendar')">OPEN CALENDAR</button>
+      <button class="sec-action" onclick="exportCSV()" style="display:flex;align-items:center;gap:.4rem;padding:.45rem 1.1rem;border-color:var(--green);color:var(--green)">
+        <span style="font-size:14px">⬇</span> EXPORT CSV
+      </button>
+    </div>
+  </div>
+
+  <div id="play-active-session-wrap"></div>
+  <div id="play-reliability-wrap"></div>
+  <div id="play-empty-wrap"></div>
+
+  <div class="section-shell">
+  <div class="csv-banner">
+    <div class="csv-banner-left">
+      <div class="csv-banner-icon">📊</div>
+      <div>
+        <div class="csv-banner-title">Export Your Data</div>
+        <div class="csv-banner-sub">Downloads all sessions as a CSV file — open in Excel, Numbers, or Google Sheets for deeper analysis. Includes all mental tracking data.</div>
+      </div>
+    </div>
+    <button class="btn-primary-lg" onclick="exportCSV()">⬇ DOWNLOAD CSV</button>
+  </div>
+  </div>
+
+  <div class="section-shell">
+    <div style="display:flex;gap:.55rem;flex-wrap:wrap;margin-top:-.35rem;margin-bottom:1.15rem">
+      <button class="sec-action" onclick="exportBackupJSON()">JSON BACKUP</button>
+      <button class="sec-action" onclick="openBackupRestorePicker()">RESTORE JSON</button>
+    </div>
+    <input type="file" id="backup-restore-input" accept=".json,application/json" style="display:none" onchange="handleBackupRestoreFile(event)">
+  </div>
+
+  <!-- Bankroll Setup -->
+  <div class="form-card">
+    <div class="sec-hdr" style="margin-bottom:1rem">
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:rgba(255,255,255,.4);text-transform:uppercase">Bankroll Setup</div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Current Bankroll (₱)</label>
+        <input class="form-input" type="number" id="br-input" placeholder="e.g. 50000" oninput="saveBankroll()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">BRM Rule</label>
+        <select class="form-input" id="br-rule" onchange="saveBankroll()">
+          <option value="20">Conservative — 20 buy-ins</option>
+          <option value="15" selected>Standard — 15 buy-ins</option>
+          <option value="10">Aggressive — 10 buy-ins</option>
+        </select>
+      </div>
+    </div>
+    <div class="tip" id="brm-tip">Set your bankroll above to see stake recommendations.</div>
+  </div>
+
+  <!-- Log Session Form -->
+  <div class="form-card">
+    <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:1rem">Log New Session</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input class="form-input" type="date" id="s-date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tournament Name</label>
+        <input class="form-input" type="text" id="s-name" placeholder="e.g. Solaire Sunday Main">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Venue</label>
+        <input class="form-input" type="text" id="s-venue" placeholder="e.g. Solaire Resort">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Buy-in (₱)</label>
+        <input class="form-input" type="number" id="s-buyin" placeholder="e.g. 5500">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Rebuys / Add-ons (₱)</label>
+        <input class="form-input" type="number" id="s-rebuy" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Field Size (players)</label>
+        <input class="form-input" type="number" id="s-field" placeholder="e.g. 120">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Finish Position</label>
+        <input class="form-input" type="number" id="s-position" placeholder="e.g. 12">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Prize Won (₱)</label>
+        <input class="form-input" type="number" id="s-prize" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Hours Played</label>
+        <input class="form-input" type="number" id="s-hours" placeholder="e.g. 6" step="0.5">
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:.75rem">
+      <label class="form-label">Notes</label>
+      <input class="form-input" type="text" id="s-notes" placeholder="e.g. Deep run, busted KK vs AA on bubble">
+    </div>
+    <div class="form-grid" style="margin-bottom:.75rem">
+      <div class="form-group">
+        <label class="form-label">Package / Festival</label>
+        <input class="form-input" type="text" id="s-package" placeholder="e.g. APT Manila Series" oninput="renderStakingInputSummary()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Player Share (%)</label>
+        <input class="form-input" type="number" id="s-player-share" min="0" max="100" step="1" placeholder="e.g. 60" oninput="renderStakingInputSummary()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Markup</label>
+        <input class="form-input" type="number" id="s-markup" min="0.5" step="0.01" placeholder="e.g. 1.10" oninput="renderStakingInputSummary()">
+      </div>
+    </div>
+    <div class="tip" id="staking-tip" style="margin-bottom:1rem">Optional: track sold action and package economics without changing your core session log.</div>
+
+    <!-- Mental & Physical — prominent card -->
+    <div class="mental-card">
+      <div class="mental-card-header">
+        <span class="mental-icon">🧠</span>
+        <div>
+          <div class="mental-title">Mental & Physical State</div>
+          <div class="mental-sub">Rate your condition before playing — reveals performance patterns over time</div>
+        </div>
+      </div>
+      <div class="mental-ratings">
+        <div class="mental-rating-row">
+          <div class="mental-rating-label">🎯 Focus</div>
+          <div class="mental-rating-btns" id="focus-btns">
+            <button class="rating-btn" onclick="setRating('s-focus','focus-btns',1,this)">1</button>
+            <button class="rating-btn" onclick="setRating('s-focus','focus-btns',2,this)">2</button>
+            <button class="rating-btn" onclick="setRating('s-focus','focus-btns',3,this)">3</button>
+            <button class="rating-btn" onclick="setRating('s-focus','focus-btns',4,this)">4</button>
+            <button class="rating-btn" onclick="setRating('s-focus','focus-btns',5,this)">5</button>
+            <button class="rating-btn" onclick="setRating('s-focus','focus-btns',6,this)">6</button>
+            <button class="rating-btn" onclick="setRating('s-focus','focus-btns',7,this)">7</button>
+            <button class="rating-btn" onclick="setRating('s-focus','focus-btns',8,this)">8</button>
+            <button class="rating-btn" onclick="setRating('s-focus','focus-btns',9,this)">9</button>
+            <button class="rating-btn" onclick="setRating('s-focus','focus-btns',10,this)">10</button>
+          </div>
+          <input type="hidden" id="s-focus" value="">
+        </div>
+        <div class="mental-rating-row">
+          <div class="mental-rating-label">⚡ Energy</div>
+          <div class="mental-rating-btns" id="energy-btns">
+            <button class="rating-btn" onclick="setRating('s-energy','energy-btns',1,this)">1</button>
+            <button class="rating-btn" onclick="setRating('s-energy','energy-btns',2,this)">2</button>
+            <button class="rating-btn" onclick="setRating('s-energy','energy-btns',3,this)">3</button>
+            <button class="rating-btn" onclick="setRating('s-energy','energy-btns',4,this)">4</button>
+            <button class="rating-btn" onclick="setRating('s-energy','energy-btns',5,this)">5</button>
+            <button class="rating-btn" onclick="setRating('s-energy','energy-btns',6,this)">6</button>
+            <button class="rating-btn" onclick="setRating('s-energy','energy-btns',7,this)">7</button>
+            <button class="rating-btn" onclick="setRating('s-energy','energy-btns',8,this)">8</button>
+            <button class="rating-btn" onclick="setRating('s-energy','energy-btns',9,this)">9</button>
+            <button class="rating-btn" onclick="setRating('s-energy','energy-btns',10,this)">10</button>
+          </div>
+          <input type="hidden" id="s-energy" value="">
+        </div>
+        <div class="mental-rating-row">
+          <div class="mental-rating-label">😴 Sleep</div>
+          <div class="mental-rating-btns" id="sleep-btns">
+            <button class="rating-btn" onclick="setRating('s-sleep','sleep-btns',1,this)">1</button>
+            <button class="rating-btn" onclick="setRating('s-sleep','sleep-btns',2,this)">2</button>
+            <button class="rating-btn" onclick="setRating('s-sleep','sleep-btns',3,this)">3</button>
+            <button class="rating-btn" onclick="setRating('s-sleep','sleep-btns',4,this)">4</button>
+            <button class="rating-btn" onclick="setRating('s-sleep','sleep-btns',5,this)">5</button>
+            <button class="rating-btn" onclick="setRating('s-sleep','sleep-btns',6,this)">6</button>
+            <button class="rating-btn" onclick="setRating('s-sleep','sleep-btns',7,this)">7</button>
+            <button class="rating-btn" onclick="setRating('s-sleep','sleep-btns',8,this)">8</button>
+            <button class="rating-btn" onclick="setRating('s-sleep','sleep-btns',9,this)">9</button>
+            <button class="rating-btn" onclick="setRating('s-sleep','sleep-btns',10,this)">10</button>
+          </div>
+          <input type="hidden" id="s-sleep" value="">
+        </div>
+        <div class="mental-rating-row">
+          <div class="mental-rating-label">🍽 Fasting</div>
+          <div class="mental-rating-btns">
+            <button class="rating-btn fast-btn" id="fast-yes" onclick="setFasting('yes',this)">YES</button>
+            <button class="rating-btn fast-btn" id="fast-no"  onclick="setFasting('no',this)">NO</button>
+            <button class="rating-btn fast-btn" id="fast-partial" onclick="setFasting('partial',this)">PARTIAL</button>
+          </div>
+          <input type="hidden" id="s-fasting" value="">
+        </div>
+      </div>
+    </div>
+    <div class="form-row">
+      <button class="sec-action primary" onclick="addSession()">LOG SESSION ↗</button>
+      <button class="sec-action" onclick="clearSessionForm()">CLEAR</button>
+    </div>
+  </div>
+
+  <div id="study-loop-wrap"></div>
+
+  <div class="form-card">
+    <div class="sec-hdr" style="margin-bottom:1rem">
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:rgba(255,255,255,.4);text-transform:uppercase">Staking & Package Tracking</div>
+      <button class="sec-action" onclick="exportStakingCSV()">⬇ STAKING REPORT</button>
+    </div>
+    <div id="staking-summary-wrap">
+      <div class="tip">Log player share or a package name above to track staking results without changing your session flow.</div>
+    </div>
+  </div>
+
+  <!-- Full Session Table -->
+  <div class="table-wrap">
+    <table class="tbl">
+      <thead><tr><th>Date</th><th>Tournament</th><th>Venue</th><th>Buy-in</th><th>Field</th><th>Position</th><th>Prize</th><th>P&L</th><th>Hours</th><th>Result</th><th></th></tr></thead>
+      <tbody id="session-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ════════════════════ CALENDAR ════════════════════ -->
+<div class="page" id="page-calendar">
+  <div class="sec-hdr">
+    <div class="sec-title"><span>♣</span>Tournament Calendar</div>
+    <button class="sec-action primary" onclick="openModal('modal-tourney')">+ ADD TOURNAMENT</button>
+  </div>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;margin-bottom:1rem">
+    <div class="view-toggle">
+      <button class="view-btn active" id="vbtn-month" onclick="setView('month')">📅 MONTH</button>
+      <button class="view-btn" id="vbtn-list" onclick="setView('list')">☰ LIST</button>
+    </div>
+    <div class="cal-legend">
+      <div class="cal-legend-item"><div class="cal-legend-dot" style="background:rgba(46,204,113,.4)"></div>TARGET</div>
+      <div class="cal-legend-item"><div class="cal-legend-dot" style="background:rgba(212,175,55,.35)"></div>STRETCH</div>
+      <div class="cal-legend-item"><div class="cal-legend-dot" style="background:rgba(255,255,255,.12)"></div>SKIP</div>
+    </div>
+  </div>
+
+  <!-- Month calendar -->
+  <div id="cal-month-view">
+    <div class="cal-nav">
+      <button class="cal-nav-btn" onclick="changeMonth(-1)">◀</button>
+      <div class="cal-month-title" id="cal-month-title">—</div>
+      <button class="cal-nav-btn" onclick="changeMonth(1)">▶</button>
+    </div>
+    <div class="cal-grid-wrap">
+      <div class="cal-dow-row">
+        <div class="cal-dow">SUN</div><div class="cal-dow">MON</div><div class="cal-dow">TUE</div>
+        <div class="cal-dow">WED</div><div class="cal-dow">THU</div><div class="cal-dow">FRI</div>
+        <div class="cal-dow">SAT</div>
+      </div>
+      <div class="cal-days" id="cal-days-grid"></div>
+    </div>
+  </div>
+
+  <!-- List view -->
+  <div id="cal-list-view" style="display:none">
+    <div class="tip" style="margin-bottom:1.25rem">Tournaments are auto-tagged based on your BRM rule. GREEN = target stake, GOLD = stretch, GREY = skip.</div>
+    <div id="calendar-list"></div>
+  </div>
+</div>
+
+<!-- ════════════════════ STRATEGY ════════════════════ -->
+<div class="page" id="page-strategy">
+  <div class="sec-hdr">
+    <div class="sec-title"><span>♥</span>Intelligence & Strategy</div>
+  </div>
+
+  <div id="strategy-nudge-wrap"></div>
+
+  <div class="strategy-paste">
+    <div class="form-label" style="margin-bottom:.65rem">IMPORT WEEKLY INTELLIGENCE BRIEFING</div>
+    <textarea id="strategy-raw" placeholder="Paste your weekly briefing here — calendar, news, and strategy update automatically..."></textarea>
+    <div class="form-row" style="margin-top:.75rem">
+      <button class="sec-action primary" onclick="parseGeminiJSON()">LOAD BRIEFING ↗</button>
+      <button class="sec-action" onclick="document.getElementById('strategy-raw').value=''">CLEAR</button>
+    </div>
+  </div>
+
+  <!-- Manual Strategy Form -->
+  <div class="form-card">
+    <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:1rem">Add Study Note</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Week / Date</label>
+        <input class="form-input" type="text" id="strat-week" placeholder="e.g. Week of March 28">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Topic</label>
+        <input class="form-input" type="text" id="strat-topic" placeholder="e.g. Bubble Play, 3-bet sizing">
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:1rem">
+      <label class="form-label">Note</label>
+      <textarea class="form-input" id="strat-note" rows="3" placeholder="Your strategy note, GTO concept, or solver insight..."></textarea>
+    </div>
+    <button class="sec-action primary" onclick="addManualStrategy()">SAVE NOTE ↗</button>
+  </div>
+
+  <div id="gemini-news-section" style="display:none;margin-bottom:1.5rem">
+    <div class="sec-hdr"><div class="sec-title"><span>📰</span>Poker World News</div></div>
+    <div id="gemini-news-list"></div>
+  </div>
+  <div id="gemini-spotlight-section" style="display:none;margin-bottom:1.5rem">
+    <div class="sec-hdr"><div class="sec-title"><span>🔦</span>Weekly Spotlight</div></div>
+    <div id="gemini-spotlight-card"></div>
+  </div>
+  <div class="sec-hdr" style="margin-top:1rem"><div class="sec-title"><span>♥</span>Strategy Notes</div></div>
+  <div id="strategy-list"></div>
+</div>
+
+<!-- ════════════════════ HANDS ════════════════════ -->
+<div class="page" id="page-hands">
+  <div class="sec-hdr">
+    <div class="sec-title"><span>♠</span>Hand History</div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+      <button class="sec-action" onclick="openModal('modal-voice')">🎙 VOICE TO HAND</button>
+      <button class="sec-action primary" onclick="openNewHandModal()">+ LOG HAND</button>
+    </div>
+  </div>
+  <div style="background:var(--blue-dim);border:1px solid rgba(52,152,219,.2);border-radius:10px;padding:.75rem 1rem;margin-bottom:1.25rem;font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.5);display:flex;align-items:center;gap:.6rem">
+    <span style="font-size:16px">💡</span>
+    <span>Link hands to sessions using the session dropdown — view them together on the <strong style="color:var(--blue)">Session detail</strong> page.</span>
+  </div>
+
+  <!-- Session filter -->
+  <div style="margin-bottom:1rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+    <div class="form-label" style="margin:0">Filter by session:</div>
+    <select class="form-input" id="hand-session-filter" onchange="renderHands()" style="max-width:260px;padding:.4rem .8rem;font-size:12px">
+      <option value="">All sessions</option>
+    </select>
+    <span id="hand-count" style="font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.3)"></span>
+  </div>
+
+  <div id="hand-list"></div>
+</div>
+
+<!-- ════════════════════ SATELLITE PAGE ════════════════════ -->
+<div class="page" id="page-satellite">
+  <div class="sat-hero">
+    <div class="sat-goal-label">Current Satellite Target</div>
+    <div class="sat-goal-name" id="sat-target-name">No target set</div>
+    <div style="font-family:var(--mono);font-size:12px;color:rgba(155,111,232,.6)" id="sat-target-buyin"></div>
+    <div class="sat-progress-wrap"><div class="sat-progress-bar" id="sat-progress-bar" style="width:0%"></div></div>
+    <div class="sat-stats">
+      <div class="sat-stat"><div class="sat-stat-label">Sats Played</div><div class="sat-stat-val" id="sat-played">0</div></div>
+      <div class="sat-stat"><div class="sat-stat-label">Seats Won</div><div class="sat-stat-val" id="sat-won">0</div></div>
+      <div class="sat-stat"><div class="sat-stat-label">Total Invested</div><div class="sat-stat-val" id="sat-invested">₱0</div></div>
+      <div class="sat-stat"><div class="sat-stat-label">vs Direct Buy-in</div><div class="sat-stat-val" id="sat-saved">₱0</div></div>
+    </div>
+  </div>
+
+  <div class="sec-hdr">
+    <div class="sec-title"><span>🛰</span>Satellite Log</div>
+    <button class="sec-action primary" onclick="openModal('modal-satellite')">+ LOG SATELLITE</button>
+  </div>
+
+  <!-- Set target form -->
+  <div class="form-card" style="margin-bottom:1.5rem">
+    <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:1rem">Set Target Tournament</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Target Event</label>
+        <input class="form-input" type="text" id="sat-target-input" placeholder="e.g. Okada Manila Millions Main Event">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Direct Buy-in (₱)</label>
+        <input class="form-input" type="number" id="sat-target-buyin-input" placeholder="e.g. 7500">
+      </div>
+    </div>
+    <button class="sec-action primary" onclick="setSatTarget()" style="margin-top:.5rem">SET TARGET ↗</button>
+  </div>
+
+  <div id="satellite-list"></div>
+</div>
+
+<!-- ════════════════════ OPPONENTS PAGE ════════════════════ -->
+<div class="page" id="page-opponents">
+  <div class="sec-hdr">
+    <div class="sec-title"><span>👤</span>Villain Database</div>
+    <button class="sec-action primary" onclick="openModal('modal-opponent')">+ ADD VILLAIN</button>
+  </div>
+  <div class="form-card" style="margin-bottom:1.25rem;padding:.75rem 1rem">
+    <input class="form-input" type="text" id="opp-search" placeholder="🔍  Search by name or venue..." oninput="renderOpponents()" style="border:none;background:transparent;padding:0;font-size:14px;width:100%">
+  </div>
+  <div id="opponent-list"></div>
+</div>
+
+<!-- ════════════════════ HEATMAP PAGE ════════════════════ -->
+<div class="page" id="page-heatmap">
+  <div class="surface-hero">
+    <div>
+      <div class="surface-kicker">Review</div>
+      <div class="surface-title">See patterns, not just results</div>
+      <div class="surface-sub">Use venue, buy-in, ROI, monthly, and mental-state heatmaps to turn session history into the next clear adjustment.</div>
+    </div>
+    <div class="surface-actions">
+      <button class="sec-action" onclick="switchGroup('review','sessions')">OPEN HISTORY</button>
+      <button class="sec-action" onclick="switchGroup('improve','strategy')">LOCK A LESSON</button>
+    </div>
+  </div>
+  <div class="heatmap-grid">
+    <div class="heatmap-card">
+      <div class="heatmap-title">P&L by Venue</div>
+      <div id="hmap-venue"></div>
+    </div>
+    <div class="heatmap-card">
+      <div class="heatmap-title">P&L by Buy-in Range</div>
+      <div id="hmap-buyin"></div>
+    </div>
+    <div class="heatmap-card">
+      <div class="heatmap-title">ITM Rate by Venue</div>
+      <div id="hmap-itm"></div>
+    </div>
+    <div class="heatmap-card">
+      <div class="heatmap-title">ROI by Tournament</div>
+      <div id="hmap-roi"></div>
+    </div>
+  </div>
+  <div class="heatmap-card" style="margin-bottom:1rem">
+    <div class="heatmap-title">🧠 Mental & Physical vs P&L</div>
+    <div id="hmap-mental"></div>
+  </div>
+  <div class="heatmap-card" style="margin-bottom:1rem">
+    <div class="heatmap-title">Monthly P&L — Last 12 Months</div>
+    <div class="month-grid" id="hmap-monthly"></div>
+    <div style="display:flex;gap:1rem;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:.4rem;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.35)"><div style="width:12px;height:12px;background:rgba(45,184,122,.5);border-radius:2px"></div>Profitable</div>
+      <div style="display:flex;align-items:center;gap:.4rem;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.35)"><div style="width:12px;height:12px;background:rgba(232,92,92,.5);border-radius:2px"></div>Loss</div>
+      <div style="display:flex;align-items:center;gap:.4rem;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.35)"><div style="width:12px;height:12px;background:rgba(255,255,255,.08);border-radius:2px"></div>No data</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════ CALCULATOR ════════════════════ -->
+<div class="page" id="page-calculator">
+
+  <div style="font-family:var(--serif);font-size:22px;letter-spacing:.04em;margin-bottom:1rem;color:#fff">🧮 Tournament Calculator</div>
+
+  <!-- Mode Toggle -->
+  <div class="calc-toggle">
+    <button class="calc-mode-btn active" id="calc-btn-payout" onclick="calcSwitchMode('payout')">💰 Prize Pool Breakdown</button>
+    <button class="calc-mode-btn" id="calc-btn-icm" onclick="calcSwitchMode('icm')">📊 Stack &amp; Bubble Advisor</button>
+    <button class="calc-mode-btn" id="calc-btn-risk" onclick="calcSwitchMode('risk')">🛡 Bankroll Risk</button>
+  </div>
+
+  <!-- ── MODE 1: PRIZE POOL BREAKDOWN ── -->
+  <div class="calc-panel active" id="calc-panel-payout">
+    <div class="form-card">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Total Prize Pool (₱)</label>
+          <input class="form-input" id="calc-pool" type="number" min="0" placeholder="e.g. 500000" oninput="calcPayouts()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Places Paid</label>
+          <select class="form-input" id="calc-places" onchange="calcPlacesChanged()">
+            <option value="">— Select —</option>
+            <option value="1">1</option>
+            <option value="3">3</option>
+            <option value="5">5</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+            <option value="18">18</option>
+            <option value="27">27</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+      </div>
+      <div id="calc-custom-places-wrap" style="display:none;margin-top:.5rem">
+        <label class="form-label">Custom number of places</label>
+        <input class="form-input" id="calc-custom-places" type="number" min="1" max="100" placeholder="e.g. 15" oninput="calcCustomPlacesDebounced()">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--gold);opacity:.75;margin-top:.35rem">Auto-generated structure — edit any % to customize. Others adjust automatically.</div>
+      </div>
+      <div style="margin-top:.9rem">
+        <div class="form-label" style="margin-bottom:.5rem">Structure Presets</div>
+        <div class="calc-preset">
+          <button class="calc-preset-btn" onclick="calcApplyPreset(3)">3-HANDED</button>
+          <button class="calc-preset-btn" onclick="calcApplyPreset(5)">5-HANDED</button>
+          <button class="calc-preset-btn" onclick="calcApplyPreset(9)">9-HANDED</button>
+          <button class="calc-preset-btn" onclick="calcApplyPreset(10)">FINAL TABLE</button>
+        </div>
+      </div>
+      <div id="calc-pct-editor" style="margin-top:.85rem"></div>
+      <div id="calc-payout-results" class="calc-result-grid"></div>
+      <div id="calc-payout-total" class="calc-payout-total"></div>
+    </div>
+  </div>
+
+  <!-- ── MODE 2: STACK & BUBBLE ADVISOR ── -->
+  <div class="calc-panel" id="calc-panel-icm">
+    <div class="form-card">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Your Current Stack (chips)</label>
+          <input class="form-input" id="calc-stack" type="number" min="0" placeholder="e.g. 24000" oninput="calcStackAdvisor()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Current Big Blind</label>
+          <input class="form-input" id="calc-bb" type="number" min="0" placeholder="e.g. 1000" oninput="calcStackAdvisor()">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Players Remaining</label>
+          <input class="form-input" id="calc-players" type="number" min="2" placeholder="e.g. 45" oninput="calcStackAdvisor()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Players Paid (money bubble)</label>
+          <input class="form-input" id="calc-paid" type="number" min="1" placeholder="e.g. 9" oninput="calcStackAdvisor()">
+        </div>
+      </div>
+
+      <!-- Empty state -->
+      <div id="calc-advisor-empty" style="text-align:center;padding:2.5rem 0;font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.22)">Enter values above to see calculations</div>
+
+      <!-- Results (hidden until inputs present) -->
+      <div id="calc-advisor-results" style="display:none">
+
+        <!-- 2-card row: Stack + Bubble -->
+        <div class="calc-advisor-grid">
+          <div class="calc-advisor-card">
+            <div class="calc-advisor-label">Your Stack</div>
+            <div class="calc-advisor-val" id="adv-bb-val">— BB</div>
+            <div class="calc-advisor-sub" id="adv-m-val">M-ratio: —</div>
+          </div>
+          <div class="calc-advisor-card">
+            <div class="calc-advisor-label">Bubble Status</div>
+            <div class="calc-advisor-val" id="adv-bubble-val" style="font-size:16px;line-height:1.3">—</div>
+            <div class="calc-advisor-sub" id="adv-pct-paid">—% of field paid</div>
+          </div>
+        </div>
+
+        <!-- Recommendation banner -->
+        <div id="adv-rec-banner" class="calc-rec-banner" style="margin-top:.85rem"></div>
+
+        <!-- Push/Fold Guide -->
+        <div class="calc-pushfold-guide">
+          <div class="calc-pushfold-title">Push / Fold Guide</div>
+          <div class="calc-pushfold-row" id="pfrow-10">
+            <span class="pfrow-range">Under 10BB</span>
+            <span class="pfrow-desc">Shove any two cards</span>
+          </div>
+          <div class="calc-pushfold-row" id="pfrow-13">
+            <span class="pfrow-range">10 – 13BB</span>
+            <span class="pfrow-desc">Shove top 40% — any pair, Ax, KJ+, QJ</span>
+          </div>
+          <div class="calc-pushfold-row" id="pfrow-17">
+            <span class="pfrow-range">13 – 17BB</span>
+            <span class="pfrow-desc">Shove top 25% — 66+, AJ+, KQ</span>
+          </div>
+          <div class="calc-pushfold-row" id="pfrow-20">
+            <span class="pfrow-range">17 – 20BB</span>
+            <span class="pfrow-desc">Shove top 15% — 88+, AQ+</span>
+          </div>
+          <div class="calc-pushfold-row" id="pfrow-deep">
+            <span class="pfrow-range">Over 20BB</span>
+            <span class="pfrow-desc">Normal raise / fold strategy</span>
+          </div>
+        </div>
+
+      </div><!-- /calc-advisor-results -->
+    </div>
+  </div>
+
+  <!-- ── MODE 3: BANKROLL RISK ENGINE ── -->
+  <div class="calc-panel" id="calc-panel-risk">
+    <div class="form-card">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Current Bankroll (₱)</label>
+          <input class="form-input" id="calc-risk-bankroll" type="number" min="0" placeholder="e.g. 75000" oninput="calcRiskEngine()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Average Buy-in (₱)</label>
+          <input class="form-input" id="calc-risk-buyin" type="number" min="0" placeholder="e.g. 3500" oninput="calcRiskEngine()">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">ROI (%)</label>
+          <input class="form-input" id="calc-risk-roi" type="number" step="0.1" placeholder="e.g. 20" oninput="calcRiskEngine()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Variance Assumption</label>
+          <select class="form-input" id="calc-risk-variance" onchange="calcRiskEngine()">
+            <option value="low">Low variance field</option>
+            <option value="standard" selected>Standard tournament variance</option>
+            <option value="high">High variance / tough field</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="calc-risk-empty" style="text-align:center;padding:2.5rem 0;font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.22)">Enter bankroll, average buy-in, ROI, and variance to see bankroll pressure.</div>
+
+      <div id="calc-risk-results" style="display:none">
+        <div class="calc-advisor-grid">
+          <div class="calc-advisor-card">
+            <div class="calc-advisor-label">Bust Risk</div>
+            <div class="calc-advisor-val" id="risk-bust-val">—</div>
+            <div class="calc-advisor-sub" id="risk-depth-val">— buy-ins available</div>
+          </div>
+          <div class="calc-advisor-card">
+            <div class="calc-advisor-label">Recommended Band</div>
+            <div class="calc-advisor-val" id="risk-band-val" style="font-size:16px;line-height:1.3">—</div>
+            <div class="calc-advisor-sub" id="risk-band-sub">—</div>
+          </div>
+        </div>
+
+        <div id="risk-shot-banner" class="calc-rec-banner" style="margin-top:.85rem"></div>
+
+        <div class="calc-risk-band-grid">
+          <div class="calc-risk-band-card">
+            <div class="calc-risk-band-label">Aggressive</div>
+            <div class="calc-risk-band-buyins" id="risk-aggressive-buyins">—</div>
+            <div class="calc-risk-band-currency" id="risk-aggressive-bankroll">—</div>
+          </div>
+          <div class="calc-risk-band-card">
+            <div class="calc-risk-band-label">Balanced</div>
+            <div class="calc-risk-band-buyins" id="risk-balanced-buyins">—</div>
+            <div class="calc-risk-band-currency" id="risk-balanced-bankroll">—</div>
+          </div>
+          <div class="calc-risk-band-card">
+            <div class="calc-risk-band-label">Conservative</div>
+            <div class="calc-risk-band-buyins" id="risk-conservative-buyins">—</div>
+            <div class="calc-risk-band-currency" id="risk-conservative-bankroll">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ════════════════════ MODALS ════════════════════ -->
+
+
+<!-- Tournament Modal -->
+<div class="modal-overlay" id="modal-tourney">
+  <div class="modal">
+    <div class="modal-title">Add Tournament</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input class="form-input" type="date" id="t-date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tournament Name</label>
+        <input class="form-input" type="text" id="t-name" placeholder="e.g. APPT Manila Main Event">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Venue / Casino</label>
+        <input class="form-input" type="text" id="t-venue" placeholder="e.g. Solaire Resort">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Buy-in (₱)</label>
+        <input class="form-input" type="number" id="t-buyin" placeholder="e.g. 10000">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Guarantee (₱)</label>
+        <input class="form-input" type="text" id="t-gtd" placeholder="e.g. 500,000">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Structure</label>
+        <select class="form-input" id="t-structure">
+          <option>Deep Stack</option>
+          <option>Turbo</option>
+          <option>Regular</option>
+          <option>Hyper Turbo</option>
+          <option>Bounty / PKO</option>
+          <option>Short Deck</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:1rem">
+      <label class="form-label">Notes</label>
+      <input class="form-input" type="text" id="t-notes" placeholder="e.g. 2-day event, strong field expected">
+    </div>
+    <div class="modal-actions">
+      <button class="sec-action" onclick="closeModal('modal-tourney')">CANCEL</button>
+      <button class="sec-action primary" onclick="addTourney()">ADD ↗</button>
+    </div>
+  </div>
+</div>
+
+<!-- Hand Modal -->
+<div class="modal-overlay" id="modal-hand">
+  <div class="modal">
+    <div class="modal-title">Log Notable Hand</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Link to Session</label>
+        <select class="form-input" id="h-session-link">
+          <option value="">Select session (optional)...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Date / Label</label>
+        <input class="form-input" type="text" id="h-session" placeholder="e.g. Solaire Sunday, March 28">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Result</label>
+        <select class="form-input" id="h-result">
+          <option value="won">Won</option>
+          <option value="lost">Lost</option>
+          <option value="fold">Folded / Hero fold</option>
+        </select>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label class="form-label">Hand Title / Situation</label>
+        <input class="form-input" type="text" id="h-title" placeholder="e.g. KK vs shove on A-high board, 20BB deep">
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label class="form-label">Hand Description</label>
+        <textarea class="form-input" id="h-desc" rows="4" placeholder="Describe the hand, positions, action, and your reasoning..."></textarea>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label class="form-label">Lesson / Review Note</label>
+        <input class="form-input" type="text" id="h-lesson" placeholder="e.g. Should have folded given tight opponent's range at this stack depth">
+      </div>
+      <input type="hidden" id="h-pending-session-key" value="">
+      <div style="grid-column:1/-1;background:rgba(255,255,255,.03);border:1px solid var(--rim);border-radius:10px;padding:1rem">
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:.85rem">Replay Details (Optional)</div>
+        <div class="form-grid" style="margin-bottom:0">
+          <div class="form-group">
+            <label class="form-label">Hero Position</label>
+            <input class="form-input" type="text" id="h-hero-pos" placeholder="e.g. BTN">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Key Opponent Position</label>
+            <input class="form-input" type="text" id="h-villain-pos" placeholder="e.g. BB">
+          </div>
+          <div class="form-group" style="grid-column:1/-1">
+            <label class="form-label">Stacks / Blinds</label>
+            <input class="form-input" type="text" id="h-stacks" placeholder="e.g. 24BB effective at 2k/4k/4k">
+          </div>
+          <div class="form-group" style="grid-column:1/-1">
+            <label class="form-label">Board Runout</label>
+            <input class="form-input" type="text" id="h-board" placeholder="e.g. Ah 9c 4d | turn 2s | river Kc">
+          </div>
+          <div class="form-group" style="grid-column:1/-1">
+            <label class="form-label">Preflop Action</label>
+            <textarea class="form-input" id="h-preflop" rows="2" placeholder="e.g. CO opened 2.2x, Hero 3-bet BTN, BB called..."></textarea>
+          </div>
+          <div class="form-group" style="grid-column:1/-1">
+            <label class="form-label">Flop Action</label>
+            <textarea class="form-input" id="h-flop" rows="2" placeholder="Optional"></textarea>
+          </div>
+          <div class="form-group" style="grid-column:1/-1">
+            <label class="form-label">Turn Action</label>
+            <textarea class="form-input" id="h-turn" rows="2" placeholder="Optional"></textarea>
+          </div>
+          <div class="form-group" style="grid-column:1/-1">
+            <label class="form-label">River Action</label>
+            <textarea class="form-input" id="h-river" rows="2" placeholder="Optional"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="sec-action" onclick="closeModal('modal-hand')">CANCEL</button>
+      <button class="sec-action primary" onclick="addHand()">SAVE HAND ↗</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-hand-replay">
+  <div class="modal" style="max-width:760px">
+    <div class="modal-title" id="hr-title">Hand Replay</div>
+    <div id="hr-body"></div>
+    <div class="modal-actions">
+      <button class="sec-action" onclick="closeModal('modal-hand-replay')">CLOSE</button>
+    </div>
+  </div>
+</div>
+
+<script src="./js/data/config-runtime.js"></script>
+<script src="./js/features/active-session.js"></script>
+<script src="./js/features/demo-mode.js"></script>
+<script src="./js/features/calculator.js"></script>
+<script src="./js/features/staking.js"></script>
+<script src="./js/features/review.js"></script>
+<script src="./js/features/calendar.js"></script>
+<script src="./js/features/study-loop.js"></script>
+<script src="./js/features/strategy.js"></script>
+<script src="./js/features/hands.js"></script>
+<script src="./js/features/library.js"></script>
+<script src="./js/features/onboarding.js"></script>
+<script>
+// ── STORAGE — with offline queue ──
+function getProfileConfigApi() { return window.PokerHQConfig || {}; }
+function resolveScopedLocalKey(key) {
+  var cfg = getProfileConfigApi();
+  if (cfg.resolveLocalStorageKey) return cfg.resolveLocalStorageKey(key);
+  return 'pokerhq_'+key;
+}
+function resolveReadableLocalKeys(key) {
+  var cfg = getProfileConfigApi();
+  if (cfg.resolveLocalReadKeys) return cfg.resolveLocalReadKeys(key);
+  return ['pokerhq_'+key];
+}
+function readJSONFromKeys(keys, def) {
+  try {
+    for (var i = 0; i < keys.length; i++) {
+      var raw = localStorage.getItem(keys[i]);
+      if (!raw) continue;
+      return JSON.parse(raw);
+    }
+  } catch(e) {}
+  return def;
+}
+function load(key, def) { return readJSONFromKeys(resolveReadableLocalKeys(key), def); }
+function loadLocalOnly(key, def) { try { var v = localStorage.getItem(key); return v ? JSON.parse(v) : def; } catch(e) { return def; } }
+function saveLocalOnly(key, val) { try { if (val === null || typeof val === 'undefined') localStorage.removeItem(key); else localStorage.setItem(key, JSON.stringify(val)); } catch(e) {} }
+
+var _offlineQueueKey = resolveScopedLocalKey('offline_queue');
+var _offlineQueue = readJSONFromKeys(resolveReadableLocalKeys('offline_queue'), {});
+var _isOnline = navigator.onLine;
+
+window.addEventListener('online',  function(){ _isOnline=true;  flushOfflineQueue(); updateOnlineStatus(); });
+window.addEventListener('offline', function(){ _isOnline=false; updateOnlineStatus(); });
+
+function updateOnlineStatus() {
+  var el = document.getElementById('sync-status');
+  if (!el) return;
+  if (!_isOnline) { el.textContent='○ Offline — changes saved locally'; el.style.color='#F0A832'; }
+  renderReliability();
+}
+
+function flushOfflineQueue() {
+  var keys = Object.keys(_offlineQueue);
+  if (!keys.length || !window.fbSave) return;
+  keys.forEach(function(k) {
+    if (window.fbSave) window.fbSave(k, _offlineQueue[k]);
+  });
+  _offlineQueue = {};
+  localStorage.setItem(_offlineQueueKey, '{}');
+  renderReliability();
+}
+
+function save(key, val) {
+  if (window._demoMode) return; // Never persist demo data
+  localStorage.setItem(resolveScopedLocalKey(key), JSON.stringify(val));
+  if (_isOnline && window.fbSave) {
+    window.fbSave(key, val);
+  } else {
+    // Queue for later sync
+    _offlineQueue[key] = val;
+    localStorage.setItem(_offlineQueueKey, JSON.stringify(_offlineQueue));
+  }
+  renderReliability();
+}
+
+window.sessions   = load('sessions', []);
+window.tourneys   = load('tourneys', []);
+window.hands      = load('hands', []);
+window.strategies = load('strategies', []);
+window.newsItems  = load('news', []);
+window.spotlights = load('spotlights', []);
+window.bankroll   = load('bankroll', {amount:0, rule:15});
+// Shorthand aliases
+var sessions   = window.sessions;
+var tourneys   = window.tourneys;
+var hands      = window.hands;
+var strategies = window.strategies;
+var newsItems  = window.newsItems;
+var spotlights = window.spotlights;
+var bankroll   = window.bankroll;
+// ── CLOCK ──
+function tickClock() {
+  var t = new Date().toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit',hour12:false});
+  document.getElementById('clock').textContent = 'PHT '+t;
+}
+tickClock(); setInterval(tickClock,1000);
+
+// ── TAB SWITCHING — activates a page and syncs subtab highlights ──
+function switchTab(id) {
+  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+  var pg = document.getElementById('page-'+id);
+  if (pg) pg.classList.add('active');
+  // Highlight the matching subtab in whichever group is currently visible
+  document.querySelectorAll('.subtab').forEach(function(t){
+    t.classList.toggle('active', t.getAttribute('data-page')===id);
+  });
+  document.querySelectorAll('.mob-subtab').forEach(function(t){
+    t.classList.toggle('active', t.getAttribute('data-page')===id);
+  });
+  // Data refresh
+  if (id==='dashboard') refreshDashboard();
+  renderCalendarMonth();
+  if (id==='sessions') { loadBankrollForm(); hydrateSessionFormFromDraft(false); renderSessionTable(); renderActiveSessionSurface(); if (window.renderStakingInputSummary) renderStakingInputSummary(); }
+  if (id==='calendar') { renderCalendar(); }
+  if (id==='strategy') renderStrategy();
+  if (id==='hands') { populateSessionDropdowns(); renderHands(); }
+  if (id==='satellite') renderSatellites();
+  if (id==='opponents') renderOpponents();
+  if (id==='heatmap') renderHeatmap();
+  renderReliability();
+}
+
+// ── BANKROLL ──
+function saveBankroll() {
+  bankroll.amount = parseFloat(document.getElementById('br-input').value)||0;
+  bankroll.rule   = parseInt(document.getElementById('br-rule').value)||15;
+  save('bankroll', bankroll);
+  updateBRMTip();
+  refreshDashboard();
+}
+function loadBankrollForm() {
+  document.getElementById('br-input').value = bankroll.amount||'';
+  document.getElementById('br-rule').value  = bankroll.rule||15;
+  updateBRMTip();
+}
+function updateBRMTip() {
+  var br = bankroll.amount, rule = bankroll.rule;
+  if (!br) { document.getElementById('brm-tip').textContent = 'Set your bankroll above to see stake recommendations.'; return; }
+  var rec = br/rule, stretch = br/(rule*0.6);
+  document.getElementById('brm-tip').textContent =
+    'Recommended buy-in: up to ₱'+fmt(rec)+' | Stretch (shot-taking): up to ₱'+fmt(stretch)+' | Shots available at rec stake: '+Math.floor(br/rec);
+}
+function fmt(n) { return Math.round(n).toLocaleString(); }
+function fmtCur(n) { var v=Math.round(n); return (v>=0?'₱':'−₱')+Math.abs(v).toLocaleString(); }
+['s-date','s-name','s-venue','s-buyin','s-focus','s-energy','s-sleep','s-fasting'].forEach(function(id) {
+  var el = document.getElementById(id);
+  if (el) el.addEventListener('input', syncActiveDraftFromForm);
+  if (el) el.addEventListener('change', syncActiveDraftFromForm);
+});
+
+// ── SESSION CRUD ──
+function addSession() {
+  var buyin  = parseFloat(document.getElementById('s-buyin').value)||0;
+  var rebuy  = parseFloat(document.getElementById('s-rebuy').value)||0;
+  var prize  = parseFloat(document.getElementById('s-prize').value)||0;
+  var total  = buyin+rebuy;
+  var pnl    = prize-total;
+  var pos    = parseInt(document.getElementById('s-position').value)||0;
+  var field  = parseInt(document.getElementById('s-field').value)||0;
+  var itm    = field>0 ? Math.ceil(field*0.15) : 0;
+  var stakingData = window.collectSessionStakingData ? collectSessionStakingData() : {};
+
+  var s = {
+    id: Date.now(),
+    date: document.getElementById('s-date').value || new Date().toISOString().split('T')[0],
+    name: document.getElementById('s-name').value || 'Tournament',
+    venue: document.getElementById('s-venue').value || '',
+    buyin: buyin, rebuy: rebuy, total: total,
+    field: field, position: pos,
+    prize: prize, pnl: pnl,
+    hours: parseFloat(document.getElementById('s-hours').value)||0,
+    notes: document.getElementById('s-notes').value || '',
+    result: prize>0 ? (pos<=3?'final':'itm') : 'bust',
+    focus:   parseFloat(document.getElementById('s-focus').value)||0,
+    energy:  parseFloat(document.getElementById('s-energy').value)||0,
+    sleep:   parseFloat(document.getElementById('s-sleep').value)||0,
+    fasting: document.getElementById('s-fasting').value||'',
+    bullets: _activeSessionDraft && _activeSessionDraft.bullets ? _activeSessionDraft.bullets : 1
+  };
+  Object.keys(stakingData).forEach(function(key) {
+    s[key] = stakingData[key];
+  });
+  if (_activeSessionDraft && _activeSessionDraft.readiness) {
+    s.readiness = Object.assign({}, _activeSessionDraft.readiness);
+  }
+  window.sessions.unshift(s); sessions = window.sessions;
+  save('sessions', sessions);
+
+  if (_activeSessionDraft && _activeSessionDraft.key) {
+    var sessionLabel = s.name + ' — ' + s.date;
+    hands = hands.map(function(h) {
+      if (h.pendingSessionKey === _activeSessionDraft.key && !h.sessionId) {
+        h.sessionId = s.id;
+        h.session = sessionLabel;
+        delete h.pendingSessionKey;
+      }
+      return h;
+    });
+    window.hands = hands;
+    save('hands', hands);
+  }
+
+  // Update bankroll
+  bankroll.amount = Math.max(0, bankroll.amount + pnl);
+  save('bankroll', bankroll);
+
+  clearSessionForm();
+  renderSessionTable();
+  refreshDashboard();
+  endActiveSession();
+  // Show gentle toast — not a blocking dialog
+  showSessionToast(fmtCur(pnl), s.id);
+  switchGroup('review','sessions');
+  setTimeout(function(){ viewSessionDetail(s.id, true); }, 140);
+}
+
+function clearSessionForm() {
+  clearRatings();
+  ['s-date','s-name','s-venue','s-buyin','s-rebuy','s-field','s-position','s-prize','s-hours','s-notes','s-package','s-player-share','s-markup'].forEach(function(id){
+    document.getElementById(id).value='';
+  });
+  document.getElementById('s-date').value = new Date().toISOString().split('T')[0];
+var satDateEl = document.getElementById('sat-date'); if (satDateEl) satDateEl.value = new Date().toISOString().split('T')[0];
+  if (window.renderStakingInputSummary) renderStakingInputSummary();
+  populateSessionDropdowns();
+}
+
+function deleteSession(id) {
+  if (!confirm('Delete this session?')) return;
+  var s = sessions.find(function(x){ return x.id===id; });
+  if (s) { bankroll.amount -= s.pnl; save('bankroll', bankroll); }
+  sessions = sessions.filter(function(x){ return x.id!==id; });
+  save('sessions', sessions);
+  renderSessionTable();
+  refreshDashboard();
+}
+
+function resultBadge(r) {
+  if (r==='final') return '<span class="badge badge-final">Final Table</span>';
+  if (r==='itm')   return '<span class="badge badge-itm">ITM</span>';
+  return '<span class="badge badge-bust">Bust</span>';
+}
+
+function renderSessionTable() {
+  renderStudyLoop();
+  if (window.renderStakingSummary) renderStakingSummary();
+  var tbody = document.getElementById('session-tbody');
+  if (!sessions.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="11">No sessions logged yet — add your first tournament above.</td></tr>'; return; }
+  tbody.innerHTML = sessions.map(function(s) {
+    var pnlCls = s.pnl>0?'profit-pos':s.pnl<0?'profit-neg':'profit-zero';
+    return '<tr style="cursor:pointer" onclick="viewSessionDetail('+s.id+')"><td>'+s.date+'</td><td>'+s.name+'</td><td>'+s.venue+'</td><td>₱'+s.total.toLocaleString()+'</td><td>'+(s.field||'—')+'</td><td>'+(s.position||'—')+'</td><td>'+(s.prize?'₱'+s.prize.toLocaleString():'—')+'</td><td class="'+pnlCls+'">'+fmtCur(s.pnl)+'</td><td>'+(s.hours||'—')+'h</td><td>'+resultBadge(s.result)+'</td><td><button class="del-btn" onclick="event.stopPropagation();deleteSession('+s.id+')">✕</button></td></tr>';
+  }).join('');
+}
+
+// ── DASHBOARD ──
+function refreshDashboard() {
+  var br = bankroll.amount, rule = bankroll.rule||15;
+  var rec = br/rule, stretch = br/(rule*0.6);
+
+  var _dbr=document.getElementById('dash-bankroll'); if(_dbr) _dbr.textContent = '₱'+fmt(br);
+  var _drb=document.getElementById('dash-rec-buyin'); if(_drb) _drb.textContent = '₱'+fmt(rec);
+  var _dsb=document.getElementById('dash-stretch-buyin'); if(_dsb) _dsb.textContent = '₱'+fmt(stretch);
+  var _dsh=document.getElementById('dash-shots'); if(_dsh) _dsh.textContent = rec>0?Math.floor(br/rec)+'x':'—';
+
+  var totalIn=0, totalOut=0, cashes=0, itm=0, biggest=0, biggestName='';
+  sessions.forEach(function(s){
+    totalIn  += s.total||0;
+    totalOut += s.prize||0;
+    if (s.prize>0) cashes++;
+    if (s.result==='itm'||s.result==='final') itm++;
+    if (s.prize>biggest){ biggest=s.prize; biggestName=s.name; }
+  });
+  var pnl = totalOut-totalIn;
+  var roi = totalIn>0 ? ((pnl/totalIn)*100).toFixed(1) : 0;
+  var itmPct = sessions.length>0 ? ((itm/sessions.length)*100).toFixed(0) : 0;
+
+  var pnlEl = document.getElementById('dash-pnl');
+  pnlEl.textContent = fmtCur(pnl);
+  pnlEl.className = 'stat-val '+(pnl>0?'stat-up':pnl<0?'stat-down':'');
+
+  var _dps=document.getElementById('dash-pnl-sub'); if(_dps) _dps.textContent = sessions.length+' tournaments';
+  var _dri=document.getElementById('dash-roi'); if(_dri) _dri.textContent = roi+'%';
+  var _drs=document.getElementById('dash-roi-sub'); if(_drs) _drs.textContent = totalIn>0?'₱'+fmt(totalIn)+' invested':'No investment yet';
+  var _dit=document.getElementById('dash-itm'); if(_dit) _dit.textContent = itmPct+'%';
+  var _dis=document.getElementById('dash-itm-sub'); if(_dis) _dis.textContent = itm+' cashes from '+sessions.length;
+  var _dtl=document.getElementById('dash-total'); if(_dtl) _dtl.textContent = sessions.length;
+  var _dca=document.getElementById('dash-cashes'); if(_dca) _dca.textContent = cashes+' cashes';
+  var avgBuyin = sessions.length>0 ? totalIn/sessions.length : 0;
+  var _dab=document.getElementById('dash-avg-buyin'); if(_dab) _dab.textContent = '₱'+fmt(avgBuyin);
+  var _dbg=document.getElementById('dash-biggest'); if(_dbg) _dbg.textContent = '₱'+fmt(biggest);
+  var _dbs=document.getElementById('dash-biggest-sub'); if(_dbs) _dbs.textContent = biggestName||'—';
+
+  // Recent 5 in dash table
+  var tbody = document.getElementById('dash-session-tbody');
+  var recent = sessions.slice(0,5);
+  if (!recent.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="7">No sessions yet. Log your first tournament.</td></tr>'; }
+  else tbody.innerHTML = recent.map(function(s){
+    var pnlCls = s.pnl>0?'profit-pos':s.pnl<0?'profit-neg':'profit-zero';
+    return '<tr style="cursor:pointer" onclick="viewSessionDetail('+s.id+')"><td>'+s.date+'</td><td>'+s.name+'</td><td>₱'+s.total.toLocaleString()+'</td><td>'+(s.position||'—')+'</td><td>'+(s.prize?'₱'+s.prize.toLocaleString():'—')+'</td><td class="'+pnlCls+'">'+fmtCur(s.pnl)+'</td><td>'+resultBadge(s.result)+'</td></tr>';
+  }).join('');
+
+  // P&L chart
+  var chart = document.getElementById('pnl-chart');
+  var last10 = sessions.slice(0,10).reverse();
+  if (!last10.length) {
+    if (chart) chart.innerHTML='<div style="color:rgba(255,255,255,.2);font-family:var(--mono);font-size:11px;width:100%;text-align:center;padding:2rem 0">No sessions to chart yet</div>';
+    refreshDemoBanner();
+    renderActiveSessionSurface();
+    renderReliability();
+    return;
+  }
+  var maxAbs = Math.max.apply(null, last10.map(function(s){ return Math.abs(s.pnl); }))||1;
+  if (chart) chart.innerHTML = last10.map(function(s){
+    var h = Math.max(4, Math.round((Math.abs(s.pnl)/maxAbs)*90));
+    var pos = s.pnl>=0;
+    var name = s.name.length>8?s.name.substring(0,8)+'…':s.name;
+    return '<div class="bar-col"><div class="bar '+(pos?'bar-pos':'bar-neg')+'" style="height:'+h+'px;width:100%"></div><div class="bar-label">'+name+'</div></div>';
+  }).join('');
+  refreshDemoBanner();
+  renderActiveSessionSurface();
+  renderReliability();
+}
+
+// ── CALENDAR ──
+function addTourney() {
+  var br = bankroll.amount, rule = bankroll.rule||15;
+  var rec = br/rule, stretch = br/(rule*0.6);
+  var buyin = parseFloat(document.getElementById('t-buyin').value)||0;
+  var status = buyin<=rec?'target': buyin<=stretch?'stretch':'skip';
+
+  var t = {
+    id: Date.now(),
+    date: document.getElementById('t-date').value,
+    name: document.getElementById('t-name').value||'Tournament',
+    venue: document.getElementById('t-venue').value||'',
+    buyin: buyin,
+    gtd: document.getElementById('t-gtd').value||'',
+    structure: document.getElementById('t-structure').value,
+    notes: document.getElementById('t-notes').value||'',
+    status: status
+  };
+  window.tourneys.push(t); tourneys = window.tourneys;
+  tourneys.sort(function(a,b){ return a.date.localeCompare(b.date); });
+  save('tourneys', tourneys);
+  closeModal('modal-tourney');
+  renderCalendar();
+}
+
+function deleteTourney(id) {
+  tourneys = tourneys.filter(function(x){ return x.id!==id; });
+  save('tourneys', tourneys);
+  renderCalendar();
+}
+
+function renderCalendar() {
+  renderCalendarMonth();
+  renderCalendarList();
+}
+
+var calView = 'month';
+var calYear = new Date().getFullYear();
+var calMonth = new Date().getMonth(); // 0-indexed
+
+function setView(v) {
+  calView = v;
+  document.getElementById('cal-month-view').style.display = v==='month'?'block':'none';
+  document.getElementById('cal-list-view').style.display  = v==='list'?'block':'none';
+  document.getElementById('vbtn-month').classList.toggle('active', v==='month');
+  document.getElementById('vbtn-list').classList.toggle('active', v==='list');
+}
+
+function changeMonth(dir) {
+  calMonth += dir;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  if (calMonth < 0)  { calMonth = 11; calYear--; }
+  renderCalendarMonth();
+}
+
+function parseTourneyDateRange(t) {
+  // Returns {start: Date, end: Date} for a tourney
+  // Handles "April 22, 2026" and "April 29 - May 10, 2026"
+  var dateStr = t.date || '';
+  var MONTHS = {january:0,february:1,march:2,april:3,may:4,june:5,july:6,august:7,september:8,october:9,november:10,december:11,
+                jan:0,feb:1,mar:2,apr:3,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+  // Try range: "Month D - Month D, YYYY" or "Month D - D, YYYY"
+  var rangeMatch = dateStr.match(/(\w+)\s+(\d{1,2})\s*[-–]\s*(?:(\w+)\s+)?(\d{1,2}),?\s*(\d{4})/i);
+  if (rangeMatch) {
+    var startMon = MONTHS[rangeMatch[1].toLowerCase()];
+    var startDay = parseInt(rangeMatch[2]);
+    var endMon   = rangeMatch[3] ? MONTHS[rangeMatch[3].toLowerCase()] : startMon;
+    var endDay   = parseInt(rangeMatch[4]);
+    var yr       = parseInt(rangeMatch[5]);
+    if (startMon !== undefined && endMon !== undefined) {
+      return { start: new Date(yr, startMon, startDay), end: new Date(yr, endMon, endDay) };
+    }
+  }
+  // Try single date: "Month D, YYYY" or "Month D YYYY"
+  var singleMatch = dateStr.match(/(\w+)\s+(\d{1,2}),?\s*(\d{4})/i);
+  if (singleMatch) {
+    var mon = MONTHS[singleMatch[1].toLowerCase()];
+    if (mon !== undefined) {
+      var d = new Date(parseInt(singleMatch[3]), mon, parseInt(singleMatch[2]));
+      return { start: d, end: d };
+    }
+  }
+  // Use stored day/month as fallback — assume current year
+  if (t.day && t.month) {
+    var MMAP = {JAN:0,FEB:1,MAR:2,APR:3,MAY:4,JUN:5,JUL:6,AUG:7,SEP:8,OCT:9,NOV:10,DEC:11};
+    var m = MMAP[t.month.toUpperCase()];
+    if (m !== undefined) {
+      var d2 = new Date(new Date().getFullYear(), m, parseInt(t.day));
+      return { start: d2, end: d2 };
+    }
+  }
+  return null;
+}
+
+function renderCalendarMonth() {
+  var titleEl = document.getElementById('cal-month-title');
+  var gridEl  = document.getElementById('cal-days-grid');
+  if (!titleEl || !gridEl) return;
+
+  var monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  titleEl.textContent = monthNames[calMonth] + ' ' + calYear;
+
+  var today = new Date();
+  var firstDay = new Date(calYear, calMonth, 1).getDay(); // 0=Sun
+  var daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  var daysInPrev  = new Date(calYear, calMonth, 0).getDate();
+
+  // Parse all tourney date ranges
+  var tourneyRanges = tourneys.map(function(t) {
+    var range = parseTourneyDateRange(t);
+    return range ? {t:t, start:range.start, end:range.end} : null;
+  }).filter(Boolean);
+
+  var cells = [];
+  // Prev month days
+  for (var i = firstDay-1; i >= 0; i--) {
+    cells.push({day: daysInPrev-i, month: calMonth-1, year: calYear, other: true});
+  }
+  // Current month days
+  for (var d = 1; d <= daysInMonth; d++) {
+    cells.push({day: d, month: calMonth, year: calYear, other: false});
+  }
+  // Next month days to fill grid
+  var remaining = 42 - cells.length;
+  for (var n = 1; n <= remaining; n++) {
+    cells.push({day: n, month: calMonth+1, year: calYear, other: true});
+  }
+
+  var html = '';
+  cells.forEach(function(cell) {
+    var cellDate = new Date(cell.year, cell.month, cell.day);
+    var isToday = !cell.other && cell.day===today.getDate() && calMonth===today.getMonth() && calYear===today.getFullYear();
+    var cls = 'cal-day' + (cell.other?' other-month':'') + (isToday?' today':'');
+
+    // Find events on this cell
+    var events = tourneyRanges.filter(function(r) {
+      return cellDate >= r.start && cellDate <= r.end;
+    });
+
+    html += '<div class="'+cls+'">';
+    html += '<div class="cal-day-num">'+cell.day+'</div>';
+
+    events.forEach(function(r) {
+      var isStart = cellDate.getTime()===r.start.getTime();
+      var isEnd   = cellDate.getTime()===r.end.getTime();
+      var isSolo  = isStart && isEnd;
+      var pos     = isSolo?'solo':isStart?'start':isEnd?'end':'mid';
+      var sc      = r.t.status||'skip';
+      var typeBar = r.t.type==='main'?'main-event-bar':'side-event-bar';
+      var name    = isStart||isSolo ? r.t.name.substring(0,14)+(r.t.name.length>14?'…':'') : '';
+      html += '<div class="cal-event-bar '+sc+' '+pos+' '+typeBar+'" title="'+r.t.name+' ('+r.t.series+') — ₱'+r.t.buyin.toLocaleString()+'">'+name+'</div>';
+    });
+
+    html += '</div>';
+  });
+
+  gridEl.innerHTML = html;
+}
+
+function renderCalendarList() {
+  var el = document.getElementById('calendar-list');
+  if (!el) return;
+  if (!tourneys.length) {
+    el.innerHTML = '<div style="padding:3rem;text-align:center;color:rgba(255,255,255,.2);font-family:var(--mono);font-size:13px">No tournaments added. Click + ADD TOURNAMENT to start.</div>';
+    return;
+  }
+
+  // Group by series
+  var seriesMap = {};
+  var seriesOrder = [];
+  tourneys.forEach(function(t) {
+    var key = t.series || t.name;
+    if (!seriesMap[key]) {
+      seriesMap[key] = [];
+      seriesOrder.push(key);
+    }
+    seriesMap[key].push(t);
+  });
+
+  var html = '';
+  seriesOrder.forEach(function(key) {
+    var events = seriesMap[key];
+    var venue = events[0].venue || '';
+    var hasMain = events.some(function(e){ return e.type === 'main'; });
+    var icon = hasMain ? '🏆' : '♠';
+    var count = events.length;
+
+    html += '<div class="series-group">';
+    html += '<div class="series-header">';
+    html += '<span class="series-icon">'+icon+'</span>';
+    html += '<span class="series-name">'+key+'</span>';
+    html += '<span class="series-count">'+count+' EVENT'+(count>1?'S':'')+'</span>';
+    html += '</div>';
+    html += '<div class="series-events">';
+
+    events.forEach(function(t) {
+      var day = t.day || '';
+      var mon = t.month || '';
+      if (!day || !mon) {
+        var dm = (t.date||'').match(/(\w+)\s+(\d{1,2})/);
+        if (dm) {
+          var mmap = {january:'JAN',february:'FEB',march:'MAR',april:'APR',may:'MAY',june:'JUN',july:'JUL',august:'AUG',september:'SEP',october:'OCT',november:'NOV',december:'DEC'};
+          mon = mmap[dm[1].toLowerCase()] || dm[1].substring(0,3).toUpperCase();
+          day = dm[2];
+        }
+      }
+      if (!day) day = '?';
+      if (!mon) mon = '?';
+
+      var isMain = t.type === 'main';
+      var rowCls = isMain ? 'event-row main-event' : 'event-row side-event';
+      var badgeCls = isMain ? 'event-type-badge main' : 'event-type-badge side';
+      var badgeTxt = isMain ? 'MAIN' : 'SIDE';
+
+      var sc = {target:'ts-target',stretch:'ts-stretch',skip:'ts-skip'}[t.status]||'ts-skip';
+      var sl = {target:'TARGET',stretch:'STRETCH',skip:'SKIP'}[t.status]||'SKIP';
+
+      html += '<div class="'+rowCls+'">';
+      html += '<div class="event-date-box"><div class="event-date-day">'+day+'</div><div class="event-date-mon">'+mon+'</div></div>';
+      html += '<div class="event-info">';
+      html += '<div class="event-name">'+t.name+'</div>';
+      html += '<div class="event-meta">';
+      html += '<span>'+t.structure+'</span>';
+      if (t.gtd) html += '<span>GTD: '+t.gtd+'</span>';
+      if (t.notes) html += '<span>'+t.notes+'</span>';
+      html += '</div></div>';
+      html += '<div class="event-right">';
+      html += '<div class="event-buyin">₱'+t.buyin.toLocaleString()+'</div>';
+      html += '<span class="'+badgeCls+'">'+badgeTxt+'</span>';
+      html += '<span class="tourney-status '+sc+'">'+sl+'</span>';
+      html += '<button class="sec-action" style="font-size:10px;padding:3px 9px;margin-top:2px;border-color:var(--green);color:var(--green)" onclick="startSessionFromTourney('+t.id+')">▶ START SESSION</button>';
+      html += '<button class="del-btn" onclick="deleteTourney('+t.id+')">✕</button>';
+      html += '</div></div>';
+    });
+
+    html += '</div></div>';
+  });
+
+  el.innerHTML = html;
+}
+
+// ── STRATEGY ──
+function addStrategy() {
+  var raw = document.getElementById('strategy-raw').value.trim();
+  if (!raw) return;
+  var s = { id:Date.now(), week: new Date().toLocaleDateString('en-PH',{month:'long',day:'numeric',year:'numeric'}), topic:'Weekly Intelligence Update', note:raw, type:'gemini' };
+  strategies.unshift(s);
+  save('strategies', strategies);
+  save('news', newsItems.slice(0,100));
+  save('spotlights', spotlights.slice(0,20));
+  document.getElementById('strategy-raw').value='';
+  renderStrategy();
+}
+
+function addManualStrategy() {
+  var note = document.getElementById('strat-note').value.trim();
+  if (!note) return;
+  var s = { id:Date.now(), week:document.getElementById('strat-week').value||new Date().toLocaleDateString(), topic:document.getElementById('strat-topic').value||'Strategy Note', note:note, type:'manual' };
+  strategies.unshift(s);
+  save('strategies', strategies);
+  ['strat-week','strat-topic','strat-note'].forEach(function(id){ document.getElementById(id).value=''; });
+  renderStrategy();
+}
+
+function deleteStrategy(id) {
+  strategies = strategies.filter(function(x){ return x.id!==id; });
+  save('strategies', strategies);
+  renderStrategy();
+}
+
+function deleteNews(id) {
+  newsItems = newsItems.filter(function(x){ return x.id!==id; });
+  save('news', newsItems);
+  renderStrategy();
+}
+
+function deleteSpotlight(id) {
+  spotlights = spotlights.filter(function(x){ return x.id!==id; });
+  save('spotlights', spotlights);
+  renderStrategy();
+}
+
+function renderStrategy() {
+  renderStrategyNudge();
+  // Render saved news
+  var newsEl = document.getElementById('gemini-news-list');
+  var newsSec = document.getElementById('gemini-news-section');
+  if (newsEl && newsItems.length) {
+    newsSec.style.display = 'block';
+    newsEl.innerHTML = newsItems.map(function(st) {
+      var rel = st.relevant !== false && st.relevance;
+      return '<div class="hand-card" style="border-left:4px solid var(--blue);border-radius:0 12px 12px 0;border-top:1px solid var(--rim);border-right:1px solid var(--rim);border-bottom:1px solid var(--rim);margin-bottom:.6rem">'
+        +'<div style="font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:rgba(255,255,255,.3);margin-bottom:.35rem">'+esc(st.week||'')+'</div>'
+        +'<div class="hand-title">'+esc(st.headline)+'</div>'
+        +'<div class="hand-body" style="margin-top:.4rem">'+esc(st.body)+'</div>'
+        +(st.source?'<div style="margin-top:.5rem;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.3)">📍 '+esc(st.source)+'</div>':'')
+        +(rel?'<div style="margin-top:.5rem;font-size:11px;color:var(--gold);font-family:var(--mono)">→ Bob: '+esc(st.relevance)+'</div>':'')
+        +'<button class="del-btn" style="margin-top:.4rem" onclick="deleteNews('+st.id+')">✕ remove</button>'
+        +'</div>';
+    }).join('');
+  }
+
+  // Render saved spotlights
+  var spotEl = document.getElementById('gemini-spotlight-card');
+  var spotSec = document.getElementById('gemini-spotlight-section');
+  if (spotEl && spotlights.length) {
+    spotSec.style.display = 'block';
+    spotEl.innerHTML = spotlights.map(function(sp) {
+      return '<div class="strategy-card" style="border-left-color:var(--gold);margin-bottom:.6rem">'
+        +'<div style="font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:rgba(255,255,255,.3);margin-bottom:.35rem">'+esc(sp.week||'')+'</div>'
+        +'<p>'+esc(sp.content)+'</p>'
+        +(sp.source?'<div style="margin-top:.5rem;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.3)">📍 '+esc(sp.source)+'</div>':'')
+        +'<button class="del-btn" style="margin-top:.4rem" onclick="deleteSpotlight('+sp.id+')">✕ remove</button>'
+        +'</div>';
+    }).join('');
+  }
+
+  // Render strategy notes
+  var el = document.getElementById('strategy-list');
+  if (!el) return;
+  if (!strategies.length) {
+    el.innerHTML='<div style="padding:2rem;text-align:center;color:rgba(255,255,255,.2);font-family:var(--mono);font-size:13px">No strategy notes yet. Import a weekly briefing or add a manual note.</div>';
+    return;
+  }
+  el.innerHTML = strategies.map(function(s) {
+    return '<div class="strategy-card"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem"><div><div class="strategy-week">'+(s.type==='gemini'?'♠ WEEKLY BRIEFING':'♦ MANUAL NOTE')+' · '+esc(s.week)+'</div><h4>'+esc(s.topic)+'</h4></div><button class="del-btn" onclick="deleteStrategy('+s.id+')">✕</button></div><p style="margin-top:.5rem">'+esc(s.note)+'</p></div>';
+  }).join('');
+}
+
+// ── HANDS ──
+function addHand() {
+  var sessionLink = document.getElementById('h-session-link');
+  var sessionId = sessionLink ? parseInt(sessionLink.value)||0 : 0;
+  var pendingKeyEl = document.getElementById('h-pending-session-key');
+  var pendingKey = pendingKeyEl ? pendingKeyEl.value || '' : '';
+  var sessionLabel = '';
+  if (sessionId) {
+    var linked = sessions.find(function(s){ return s.id===sessionId; });
+    if (linked) sessionLabel = linked.name + ' — ' + linked.date;
+  }
+  var h = {
+    id: Date.now(),
+    sessionId: sessionId,
+    session: sessionLabel || document.getElementById('h-session').value||new Date().toLocaleDateString(),
+    title: document.getElementById('h-title').value||'Hand',
+    desc: document.getElementById('h-desc').value||'',
+    lesson: document.getElementById('h-lesson').value||'',
+    result: document.getElementById('h-result').value,
+    pendingSessionKey: sessionId ? '' : pendingKey
+  };
+  window.hands.unshift(h); hands = window.hands;
+  save('hands', hands);
+  closeModal('modal-hand');
+  if (pendingKeyEl) pendingKeyEl.value = '';
+  populateSessionDropdowns();
+  renderHands();
+  renderActiveSessionSurface();
+}
+
+function deleteHand(id) {
+  hands = hands.filter(function(x){ return x.id!==id; });
+  save('hands', hands);
+  renderHands();
+}
+
+function renderHands() {
+  var el = document.getElementById('hand-list');
+  if (!el) return;
+  var filterEl = document.getElementById('hand-session-filter');
+  var filterVal = filterEl ? parseInt(filterEl.value)||0 : 0;
+  var filtered = filterVal ? hands.filter(function(h){ return h.sessionId===filterVal; }) : hands;
+  var countEl = document.getElementById('hand-count');
+  if (countEl) countEl.textContent = filtered.length+' hand'+(filtered.length!==1?'s':'');
+  if (!filtered.length) {
+    el.innerHTML='<div style="padding:3rem;text-align:center;color:rgba(255,255,255,.2);font-family:var(--mono);font-size:13px">'+(filterVal?'No hands linked to this session yet.':'No hands logged yet. Capture a hand manually or turn a voice memo into a structured review.')+'</div>';
+    return;
+  }
+  el.innerHTML = filtered.map(function(h) {
+    var rc = {won:'hand-won',lost:'hand-lost',fold:'hand-fold'}[h.result]||'hand-fold';
+    var rl = {won:'WON',lost:'LOST',fold:'FOLD'}[h.result]||'FOLD';
+    var linkedSession = h.sessionId ? sessions.find(function(s){ return s.id===h.sessionId; }) : null;
+    var sessionBadge = linkedSession ? '<span style="font-family:var(--mono);font-size:9px;background:var(--gold-dim);color:var(--gold);border:1px solid rgba(201,168,76,.25);border-radius:20px;padding:2px 7px;margin-left:.4rem">'+linkedSession.name+'</span>' : '';
+    return '<div class="hand-card"><div class="hand-top"><div style="flex:1"><div class="hand-meta">'+h.session+sessionBadge+'</div><div class="hand-title">'+h.title+'</div></div><div style="display:flex;align-items:center;gap:.5rem"><span class="hand-result '+rc+'">'+rl+'</span><button class="del-btn" onclick="deleteHand('+h.id+')">✕</button></div></div>'+(h.desc?'<div class="hand-body">'+h.desc+'</div>':'')+(h.lesson?'<div style="margin-top:.6rem;font-size:11px;color:var(--gold);font-family:var(--mono)">💡 '+h.lesson+'</div>':'')+'</div>';
+  }).join('');
+}
+
+// ── MODAL ──
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(function(o){
+  o.addEventListener('click', function(e){ if(e.target===o) o.classList.remove('open'); });
+});
+
+// ── PDF WEEKLY REPORT ──
+function exportPDF() {
+  try {
+    var doc = new window.jspdf.jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
+    var ML=15,MR=15,MT=16,PW=210,CW=PW-ML-MR;
+    var y=MT;
+    function chk(h){ if(y+h>282){doc.addPage();y=MT;} }
+
+    // Header
+    doc.setFillColor(212,175,55); doc.rect(ML,y,CW,0.6,'F'); y+=4;
+    doc.setFont('helvetica','bold'); doc.setFontSize(22); doc.setTextColor(212,175,55);
+    doc.text('POKERHQ — WEEKLY REPORT', ML, y); y+=9;
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(140,140,140);
+    doc.text('Bob · '+new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'}), ML, y); y+=5;
+    doc.setFillColor(212,175,55); doc.rect(ML,y,CW,0.6,'F'); y+=8;
+
+    // Bankroll snapshot
+    var br=bankroll.amount, rule=bankroll.rule||15;
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(80,80,80);
+    doc.text('BANKROLL SNAPSHOT', ML, y); y+=6;
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(30,30,30);
+    doc.text('Current Bankroll: ₱'+fmt(br)+'  |  BRM Rule: '+rule+' buy-ins  |  Recommended: ₱'+fmt(br/rule), ML, y); y+=8;
+
+    // Session stats
+    var totalIn=0,totalOut=0,itm=0;
+    sessions.forEach(function(s){totalIn+=s.total||0;totalOut+=s.prize||0;if(s.result==='itm'||s.result==='final')itm++;});
+    var pnl=totalOut-totalIn, roi=totalIn>0?((pnl/totalIn)*100).toFixed(1):0;
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(80,80,80);
+    doc.text('CAREER STATS', ML, y); y+=6;
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(30,30,30);
+    doc.text('Tournaments: '+sessions.length+'  |  Total P&L: ₱'+fmt(pnl)+'  |  ROI: '+roi+'%  |  ITM: '+itm+'/'+sessions.length, ML, y); y+=10;
+
+    // Sessions table
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(80,80,80);
+    doc.text('SESSION LOG', ML, y); y+=6;
+    var cols=['Date','Tournament','Buy-in','Position','Prize','P&L','Result'];
+    var cws=[22,55,20,18,22,20,18];
+    doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(120,120,120);
+    var cx=ML; cols.forEach(function(c,i){doc.text(c,cx,y);cx+=cws[i];}); y+=2;
+    doc.setDrawColor(220,220,220); doc.line(ML,y,ML+CW,y); y+=4;
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+    sessions.slice(0,20).forEach(function(s){
+      chk(7);
+      var isPos=s.pnl>=0;
+      doc.setTextColor(isPos?[26,122,74]:[192,57,43]);
+      var cx2=ML; var vals=[s.date, s.name.substring(0,28), '₱'+s.total.toLocaleString(), s.position||'—', s.prize?'₱'+s.prize.toLocaleString():'—', (s.pnl>=0?'+':'')+'₱'+fmt(s.pnl), {itm:'ITM',final:'Final',bust:'Bust'}[s.result]||''];
+      doc.setTextColor(40,40,40);
+      vals.forEach(function(v,i){
+        if(i===5) doc.setTextColor(isPos?26:192, isPos?122:57, isPos?74:43);
+        doc.text(String(v), cx2, y); cx2+=cws[i];
+        doc.setTextColor(40,40,40);
+      });
+      y+=5;
+    });
+    y+=6;
+
+    if (window.getStakingPackageRows) {
+      var stakingRows = getStakingPackageRows();
+      if (stakingRows.length) {
+        chk(20);
+        doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(80,80,80);
+        doc.text('STAKING SUMMARY', ML, y); y+=6;
+        doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(50,50,50);
+        stakingRows.slice(0,4).forEach(function(row) {
+          chk(8);
+          doc.text(row.packageLabel.substring(0,40), ML, y);
+          doc.text('Events: '+row.sessionCount, ML+72, y);
+          doc.text('Value: ₱'+fmt(row.packageValue), ML+102, y);
+          doc.text('Player Net: '+fmtCur(row.playerNet), ML+145, y);
+          y += 5;
+        });
+        y += 4;
+      }
+    }
+
+    // Strategy notes
+    if (strategies.length) {
+      chk(14);
+      doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(80,80,80);
+      doc.text('STRATEGY NOTES', ML, y); y+=6;
+      strategies.slice(0,3).forEach(function(s){
+        chk(20);
+        doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(100,60,150);
+        doc.text(s.topic+' · '+s.week, ML, y); y+=4;
+        doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(60,60,60);
+        var noteLines=doc.splitTextToSize(s.note.substring(0,300), CW);
+        noteLines.slice(0,6).forEach(function(l){chk(5);doc.text(l,ML,y);y+=4;});
+        y+=3;
+      });
+    }
+
+    doc.save('PokerHQ_Weekly_'+new Date().toISOString().split('T')[0]+'.pdf');
+  } catch(err){ alert('PDF error: '+err.message); }
+}
+
+// ── GEMINI JSON PARSER ──
+function parseGeminiJSON() {
+  var raw = document.getElementById('strategy-raw').value.trim();
+  if (!raw) return;
+
+  var data = null;
+  try {
+    var js = raw.indexOf('{'), je = raw.lastIndexOf('}');
+    if (js !== -1 && je !== -1) data = JSON.parse(raw.substring(js, je+1));
+  } catch(e) {}
+
+  if (!data || !data.sections) {
+    alert('Could not parse JSON. Check your Gemini output and try again.');
+    return;
+  }
+
+  var imported = {calendars:[], news:[], strategies:[], spotlight:null, watch:null};
+
+  data.sections.forEach(function(sec) {
+    // Calendar sections
+    if (sec.id === 'ph_calendar' || sec.id === 'apac_calendar') {
+      (sec.events||[]).forEach(function(ev) {
+        var br = bankroll.amount||0, rule = bankroll.rule||15;
+        var rec = br/rule, stretch = br/(rule*0.6);
+        var bi = parseFloat(ev.buyin)||0;
+        var status = bi<=rec?'target':bi<=stretch?'stretch':'skip';
+        var t = {
+          id: Date.now()+Math.random(),
+          date: ev.date||'',
+          day: ev.day||'',
+          month: ev.month||'',
+          series: ev.series||ev.name||'Tournament',
+          name: ev.name||'Tournament',
+          type: ev.type||'side',
+          venue: ev.venue||'',
+          buyin: bi,
+          gtd: ev.guarantee||'',
+          structure: ev.structure||'Regular',
+          notes: ev.notes||'',
+          source: ev.source||'',
+          status: status
+        };
+        // Only add if not already exists (match by name+date)
+        var exists = tourneys.some(function(x){ return x.name===t.name && x.date===t.date; });
+        if (!exists) { tourneys.push(t); imported.calendars.push(t); }
+      });
+    }
+
+    // News section
+    if (sec.id === 'news') {
+      (sec.stories||[]).forEach(function(st) {
+        // Add week tag and dedup by headline
+        var tagged = {
+          id: Date.now()+Math.random(),
+          week: data.week||new Date().toLocaleDateString(),
+          headline: st.headline||'',
+          body: st.body||'',
+          source: st.source||'',
+          relevant: st.relevant,
+          relevance: st.relevance||''
+        };
+        var exists = newsItems.some(function(x){ return x.headline===tagged.headline; });
+        if (!exists) { newsItems.unshift(tagged); imported.news.push(tagged); }
+      });
+    }
+
+    // Strategy section
+    if (sec.id === 'strategy') {
+      (sec.insights||[]).forEach(function(ins) {
+        var s = {
+          id: Date.now()+Math.random(),
+          week: data.week || new Date().toLocaleDateString(),
+          topic: ins.topic||'Strategy Insight',
+          note: (ins.concept||'') + (ins.application?' In practice: '+ins.application:''),
+          source: ins.source||'',
+          type: 'gemini'
+        };
+        strategies.unshift(s);
+        imported.strategies.push(s);
+      });
+    }
+
+    // Spotlight
+    if (sec.id === 'spotlight') {
+      var sp = {id:Date.now()+Math.random(), week:data.week||'', content:sec.content||'', source:sec.source||''};
+      var spExists = spotlights.some(function(x){ return x.content===sp.content; });
+      if (!spExists) { spotlights.unshift(sp); }
+      imported.spotlight = sp;
+    }
+  });
+
+  // Watch
+  if (data.watch) imported.watch = {text: data.watch, source: data.watch_source||''};
+
+  // Save everything
+  if (imported.calendars.length) {
+    tourneys.sort(function(a,b){ return (a.date||'').localeCompare(b.date||''); });
+    save('tourneys', tourneys);
+  }
+  save('strategies', strategies);
+
+  // Render news inline on strategy page
+  // news and spotlight now rendered via renderStrategy()
+
+  // Clear paste box
+  document.getElementById('strategy-raw').value = '';
+
+  // Refresh all views
+  renderStrategy();
+  renderCalendar();
+
+  // Summary
+  var msg = 'Gemini briefing imported:\n';
+  if (imported.calendars.length) msg += '• '+imported.calendars.length+' tournament(s) added to Calendar\n';
+  if (imported.strategies.length) msg += '• '+imported.strategies.length+' strategy insight(s) added\n';
+  if (imported.news.length) msg += '• '+imported.news.length+' news stories rendered\n';
+  if (imported.spotlight) msg += '• Weekly spotlight captured\n';
+  alert(msg);
+}
+
+
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── GROUP SWITCHING — top-level nav; HOME is standalone, others expand sub-tab row ──
+function switchGroup(group, page) {
+  // Desktop group tab highlights
+  document.querySelectorAll('.group-tab').forEach(function(t){ t.classList.remove('active'); });
+  var gtab = document.getElementById('gtab-'+group);
+  if (gtab) gtab.classList.add('active');
+  // Mobile bottom nav highlights
+  document.querySelectorAll('.mobile-tab').forEach(function(t){ t.classList.remove('active'); });
+  var mobtab = document.getElementById('mob-'+group);
+  if (mobtab) mobtab.classList.add('active');
+
+  if (group === 'home') {
+    document.getElementById('subtab-bar').classList.remove('open');
+    document.getElementById('mobile-subtab-strip').classList.remove('open');
+    switchTab('dashboard');
+    window.scrollTo(0,0);
+    return;
+  }
+
+  // Show desktop sub-tab bar and activate this group's sub-tabs
+  document.getElementById('subtab-bar').classList.add('open');
+  document.querySelectorAll('.subtab-group').forEach(function(g){ g.classList.remove('active'); });
+  var stgrp = document.getElementById('subtabs-'+group);
+  if (stgrp) stgrp.classList.add('active');
+
+  // Show mobile strip and activate this group's mob-subtabs
+  document.getElementById('mobile-subtab-strip').classList.add('open');
+  document.querySelectorAll('.mob-subtab-group').forEach(function(g){ g.classList.remove('active'); });
+  var mstgrp = document.getElementById('mob-subtabs-'+group);
+  if (mstgrp) mstgrp.classList.add('active');
+
+  // Navigate to the default first page for this group (or override)
+  var defaults = {plan:'calendar', play:'sessions', review:'sessions', improve:'strategy'};
+  switchTab(page || defaults[group]);
+  window.scrollTo(0,0);
+}
+// ── THEME TOGGLE ──
+function toggleTheme() {
+  var isLight = document.body.classList.toggle('light');
+  document.getElementById('theme-toggle').textContent = isLight ? '☀️' : '🌙';
+  localStorage.setItem('pokerhq_theme', isLight ? 'light' : 'dark');
+}
+
+// ── POPULATE SESSION DROPDOWNS ──
+function populateSessionDropdowns() {
+  var opts = '<option value="">Select session (optional)...</option>';
+  sessions.forEach(function(s) {
+    opts += '<option value="'+s.id+'">'+s.date+' — '+s.name+'</option>';
+  });
+  ['h-session-link','voice-session-link','hand-session-filter'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var isFilter = id==='hand-session-filter';
+    el.innerHTML = isFilter ? '<option value="">All sessions</option>'+sessions.map(function(s){return '<option value="'+s.id+'">'+s.date+' — '+s.name+'</option>';}).join('') : opts;
+  });
+}
+// ── VOICE TO HAND ──
+function clearVoiceModal() {
+  document.getElementById('voice-transcript').value='';
+  document.getElementById('voice-result').style.display='none';
+  document.getElementById('voice-save-btn').style.display='none';
+  document.getElementById('voice-structure-btn').style.display='inline-flex';
+  document.getElementById('voice-error').style.display='none';
+  document.getElementById('voice-loading').style.display='none';
+}
+
+async function structureHand() {
+  var transcript = document.getElementById('voice-transcript').value.trim();
+  if (!transcript) { alert('Paste a voice transcript first.'); return; }
+
+  document.getElementById('voice-loading').style.display='block';
+  document.getElementById('voice-structure-btn').style.display='none';
+  document.getElementById('voice-error').style.display='none';
+  document.getElementById('voice-result').style.display='none';
+
+  try {
+    var response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: 'You are a poker hand log structurer. Convert this voice transcript into a structured poker hand log. Respond ONLY with valid JSON, no other text. Use this exact format: {"result":"won|lost|fold","title":"concise 8-10 word hand situation","desc":"full hand description with positions actions board and reasoning","lesson":"one specific lesson from this hand"} Transcript: '+transcript
+        }]
+      })
+    });
+    var data = await response.json();
+    var text = (data.content||[]).map(function(c){ return c.text||''; }).join('');
+    var js = text.indexOf('{'), je = text.lastIndexOf('}');
+    var parsed = JSON.parse(text.substring(js,je+1));
+
+    document.getElementById('vr-result').value = parsed.result||'lost';
+    document.getElementById('vr-title').value  = parsed.title||'';
+    document.getElementById('vr-desc').value   = parsed.desc||'';
+    document.getElementById('vr-lesson').value = parsed.lesson||'';
+
+    document.getElementById('voice-result').style.display='block';
+    document.getElementById('voice-save-btn').style.display='inline-flex';
+  } catch(e) {
+    document.getElementById('voice-error').textContent = 'Could not structure hand: '+e.message+'. Try again or log manually.';
+    document.getElementById('voice-error').style.display='block';
+    document.getElementById('voice-structure-btn').style.display='inline-flex';
+  }
+  document.getElementById('voice-loading').style.display='none';
+}
+
+function saveVoiceHand() {
+  var sessionLink = document.getElementById('voice-session-link');
+  var sessionId = sessionLink ? parseInt(sessionLink.value)||0 : 0;
+  var sessionLabel = '';
+  var pendingKey = '';
+  if (sessionId) {
+    var linked = sessions.find(function(s){ return s.id===sessionId; });
+    if (linked) sessionLabel = linked.name + ' — ' + linked.date;
+  } else if (_activeSessionDraft && _activeSessionDraft.key) {
+    pendingKey = _activeSessionDraft.key;
+    sessionLabel = getActiveSessionLabel() || new Date().toLocaleDateString('en-PH');
+  }
+  var h = {
+    id: Date.now(),
+    sessionId: sessionId,
+    session: sessionLabel || new Date().toLocaleDateString('en-PH'),
+    title: document.getElementById('vr-title').value||'Hand',
+    desc: document.getElementById('vr-desc').value||'',
+    lesson: document.getElementById('vr-lesson').value||'',
+    result: document.getElementById('vr-result').value,
+    source: 'voice',
+    pendingSessionKey: sessionId ? '' : pendingKey
+  };
+  window.hands.unshift(h); hands = window.hands;
+  save('hands', hands);
+  closeModal('modal-voice');
+  clearVoiceModal();
+  populateSessionDropdowns();
+  renderHands();
+  renderActiveSessionSurface();
+}
+
+// ── SATELLITE TRACKER ──
+var satellites = load('satellites', []);
+var satTarget  = load('satTarget', {name:'',buyin:0});
+
+function setSatTarget() {
+  var name  = document.getElementById('sat-target-input').value.trim();
+  var buyin = parseFloat(document.getElementById('sat-target-buyin-input').value)||0;
+  if (!name) return;
+  satTarget = {name:name, buyin:buyin};
+  save('satTarget', satTarget);
+  renderSatellites();
+}
+
+function addSatellite() {
+  var s = {
+    id: Date.now(),
+    date:   document.getElementById('sat-date').value || new Date().toISOString().split('T')[0],
+    name:   document.getElementById('sat-name').value || 'Satellite',
+    venue:  document.getElementById('sat-venue').value || '',
+    buyin:  parseFloat(document.getElementById('sat-buyin').value)||0,
+    result: document.getElementById('sat-result').value,
+    forEvent: document.getElementById('sat-for').value || satTarget.name || '',
+    notes:  document.getElementById('sat-notes').value || ''
+  };
+  satellites.unshift(s);
+  save('satellites', satellites);
+  closeModal('modal-satellite');
+  ['sat-name','sat-venue','sat-buyin','sat-for','sat-notes'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('sat-result').value='won';
+  renderSatellites();
+}
+
+function deleteSatellite(id) {
+  satellites = satellites.filter(function(x){ return x.id!==id; });
+  save('satellites', satellites);
+  renderSatellites();
+}
+
+function renderSatellites() {
+  // Update hero stats
+  var played   = satellites.length;
+  var won      = satellites.filter(function(s){ return s.result==='won'; }).length;
+  var invested = satellites.reduce(function(a,s){ return a+s.buyin; },0);
+  var saved    = won * (satTarget.buyin||0) - invested;
+
+  var nameEl = document.getElementById('sat-target-name');
+  var buyinEl = document.getElementById('sat-target-buyin');
+  if (nameEl) nameEl.textContent = satTarget.name || 'No target set';
+  if (buyinEl) buyinEl.textContent = satTarget.buyin ? 'Direct buy-in: ₱'+satTarget.buyin.toLocaleString() : '';
+
+  var pct = satTarget.buyin && invested > 0 ? Math.min(100, Math.round((invested/satTarget.buyin)*100)) : 0;
+  var pb = document.getElementById('sat-progress-bar');
+  if (pb) pb.style.width = pct+'%';
+
+  var els = {
+    'sat-played':   played,
+    'sat-won':      won,
+    'sat-invested': '₱'+invested.toLocaleString(),
+    'sat-saved':    (saved>=0?'+':'')+'₱'+Math.abs(Math.round(saved)).toLocaleString()
+  };
+  Object.keys(els).forEach(function(id){ var e=document.getElementById(id); if(e) e.textContent=els[id]; });
+
+  // Prefill target input if set
+  var ti = document.getElementById('sat-target-input');
+  var tb = document.getElementById('sat-target-buyin-input');
+  if (ti && satTarget.name) ti.value = satTarget.name;
+  if (tb && satTarget.buyin) tb.value = satTarget.buyin;
+
+  // List
+  var el = document.getElementById('satellite-list');
+  if (!el) return;
+  if (!satellites.length) {
+    el.innerHTML='<div style="padding:3rem;text-align:center;color:rgba(255,255,255,.2);font-family:var(--mono);font-size:13px">No satellites logged yet. Set a target and start logging your satellite attempts.</div>';
+    return;
+  }
+  el.innerHTML = satellites.map(function(s) {
+    var rc = {won:'sat-won',lost:'sat-lost',pending:'sat-pending'}[s.result]||'sat-lost';
+    var rl = {won:'🎟 SEAT WON',lost:'DID NOT WIN',pending:'PENDING'}[s.result]||'DID NOT WIN';
+    return '<div class="sat-card"><div class="sat-card-left"><div class="sat-card-name">'+s.name+'</div><div class="sat-card-meta"><span>'+s.date+'</span><span>'+s.venue+'</span>'+(s.forEvent?'<span>→ '+s.forEvent+'</span>':'')+(s.notes?'<span>'+s.notes+'</span>':'')+'</div></div><div class="sat-card-right"><div class="sat-buyin">₱'+s.buyin.toLocaleString()+'</div><span class="sat-result-badge '+rc+'">'+rl+'</span><button class="del-btn" onclick="deleteSatellite('+s.id+')">✕</button></div></div>';
+  }).join('');
+}
+
+// ── OPPONENT NOTES ──
+var opponents = load('opponents', []);
+var _selectedOppTags = [];
+
+function toggleOppTag(btn) {
+  btn.classList.toggle('selected');
+  var tag = btn.dataset.tag;
+  if (_selectedOppTags.includes(tag)) {
+    _selectedOppTags = _selectedOppTags.filter(function(t){ return t!==tag; });
+  } else {
+    _selectedOppTags.push(tag);
+  }
+}
+
+function addOpponent() {
+  var name = document.getElementById('opp-name').value.trim();
+  if (!name) return;
+  var o = {
+    id: Date.now(),
+    name: name,
+    venue: document.getElementById('opp-venue').value||'',
+    tags: _selectedOppTags.slice(),
+    notes: document.getElementById('opp-notes').value||'',
+    added: new Date().toLocaleDateString('en-PH')
+  };
+  opponents.unshift(o);
+  save('opponents', opponents);
+  // Reset modal
+  document.getElementById('opp-name').value='';
+  document.getElementById('opp-venue').value='';
+  document.getElementById('opp-notes').value='';
+  _selectedOppTags=[];
+  document.querySelectorAll('.tag-toggle').forEach(function(b){ b.classList.remove('selected'); });
+  closeModal('modal-opponent');
+  renderOpponents();
+}
+
+function deleteOpponent(id) {
+  opponents = opponents.filter(function(x){ return x.id!==id; });
+  save('opponents', opponents);
+  renderOpponents();
+}
+
+function renderOpponents() {
+  var el = document.getElementById('opponent-list');
+  if (!el) return;
+  var q = (document.getElementById('opp-search')||{}).value||'';
+  var filtered = q ? opponents.filter(function(o){
+    return o.name.toLowerCase().includes(q.toLowerCase()) || o.venue.toLowerCase().includes(q.toLowerCase()) || (o.notes||'').toLowerCase().includes(q.toLowerCase());
+  }) : opponents;
+
+  if (!filtered.length) {
+    el.innerHTML='<div style="padding:3rem;text-align:center;color:rgba(255,255,255,.2);font-family:var(--mono);font-size:13px">'+(q?'No villains matching "'+q+'"':'No villains logged yet. Add a player you want to remember.')+'</div>';
+    return;
+  }
+  el.innerHTML = filtered.map(function(o) {
+    var tagHTML = (o.tags||[]).map(function(t){
+      return '<span class="opp-tag '+t+'">'+t+'</span>';
+    }).join('');
+    return '<div class="opp-card"><div class="opp-top"><div><div class="opp-name">'+o.name+'</div><div class="opp-venue">'+o.venue+(o.added?' · Added '+o.added:'')+'</div></div><button class="del-btn" onclick="deleteOpponent('+o.id+')">✕</button></div>'+(tagHTML?'<div class="opp-tags">'+tagHTML+'</div>':'')+(o.notes?'<div class="opp-notes">'+o.notes+'</div>':'')+'</div>';
+  }).join('');
+}
+// ── CSV EXPORT ──
+function exportCSV() {
+  if (!sessions.length) { alert('No sessions to export.'); return; }
+  var headers = ['Date','Tournament','Venue','Buy-in','Rebuys','Total Invested','Field','Position','Prize','P&L','Hours','Result','Notes','Focus','Energy','Sleep','Fasting'];
+  var rows = sessions.map(function(s) {
+    return [
+      s.date||'', s.name||'', s.venue||'',
+      s.buyin||0, s.rebuy||0, s.total||0,
+      s.field||'', s.position||'', s.prize||0, s.pnl||0,
+      s.hours||0, s.result||'', '"'+(s.notes||'').replace(/"/g,"''")+'"',
+      s.focus||'', s.energy||'', s.sleep||'', s.fasting||''
+    ].join(',');
+  });
+  var csv = [headers.join(',')].concat(rows).join('\n');
+  var blob = new Blob([csv], {type:'text/csv'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'PokerHQ_Sessions_'+new Date().toISOString().split('T')[0]+'.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+// ── RATING BUTTONS ──
+function setRating(inputId, btnGroupId, val, btn) {
+  document.getElementById(inputId).value = val;
+  document.querySelectorAll('#'+btnGroupId+' .rating-btn').forEach(function(b){ b.classList.remove('selected'); });
+  btn.classList.add('selected');
+  // Color low numbers red, high green
+  document.querySelectorAll('#'+btnGroupId+' .rating-btn').forEach(function(b, i) {
+    if (i < val) {
+      var hue = Math.round(i * (120/9));
+      b.style.background = 'hsla('+hue+',60%,40%,0.4)';
+      b.style.borderColor = 'hsla('+hue+',60%,40%,0.6)';
+      b.style.color = 'hsla('+hue+',80%,75%,1)';
+    } else {
+      b.style.background = '';
+      b.style.borderColor = '';
+      b.style.color = '';
+      b.classList.remove('selected');
+    }
+  });
+  btn.style.background = '';
+  btn.classList.add('selected');
+  syncActiveDraftFromForm();
+}
+
+function setFasting(val, btn) {
+  document.getElementById('s-fasting').value = val;
+  document.querySelectorAll('.fast-btn').forEach(function(b){ b.classList.remove('selected'); });
+  btn.classList.add('selected');
+  syncActiveDraftFromForm();
+}
+
+function clearRatings() {
+  ['focus-btns','energy-btns','sleep-btns'].forEach(function(gid) {
+    document.querySelectorAll('#'+gid+' .rating-btn').forEach(function(b){
+      b.classList.remove('selected');
+      b.style.background=''; b.style.borderColor=''; b.style.color='';
+    });
+  });
+  document.querySelectorAll('.fast-btn').forEach(function(b){ b.classList.remove('selected'); });
+  ['s-focus','s-energy','s-sleep','s-fasting'].forEach(function(id){
+    var e = document.getElementById(id); if(e) e.value='';
+  });
+}
+// ── STUDY LOOP ──
+function getStudyLoopStatus() {
+  var now = new Date(), weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - now.getDay());
+  weekStart.setHours(0,0,0,0);
+  var thisWeekSessions = sessions.filter(function(s){ return new Date(s.date) >= weekStart; });
+  var thisWeekHands = hands.filter(function(h){ return thisWeekSessions.some(function(s){ return s.id === h.sessionId; }); });
+  var thisWeekNotes = strategies.filter(function(s){ return new Date(s.id) >= weekStart.getTime(); });
+  var thisWeekBriefing = newsItems.filter(function(n){ return new Date(n.id) >= weekStart.getTime(); });
+  return {
+    sessions: thisWeekSessions.length,
+    hands: thisWeekHands.length,
+    notes: thisWeekNotes.length,
+    briefing: thisWeekBriefing.length > 0
+  };
+}
+
+function renderStudyLoop() {
+  var wrap = document.getElementById('study-loop-wrap');
+  if (!wrap) return;
+  if (!sessions.length) { wrap.innerHTML = ''; return; }
+  var st = getStudyLoopStatus();
+  var items = [
+    {
+      done: st.sessions > 0,
+      label: 'Sessions<br>logged',
+      count: st.sessions,
+      actionLabel: 'LOG SESSION',
+      action: 'document.getElementById(\'s-date\').scrollIntoView({behavior:\'smooth\',block:\'center\'})'
+    },
+    {
+      done: st.hands > 0,
+      label: 'Hands<br>reviewed',
+      count: st.hands,
+      actionLabel: 'LOG HAND',
+      action: 'openModal(\'modal-hand\')'
+    },
+    {
+      done: st.notes > 0,
+      label: 'Study note<br>added',
+      count: st.notes,
+      actionLabel: 'ADD NOTE',
+      action: 'switchGroup(\'improve\',\'strategy\');setTimeout(function(){var el=document.getElementById(\'strat-topic\');if(el){el.focus();el.scrollIntoView({behavior:\'smooth\',block:\'center\'});}},250)'
+    },
+    {
+      done: st.briefing,
+      label: 'Briefing<br>imported',
+      count: st.briefing ? 1 : 0,
+      actionLabel: 'IMPORT',
+      action: 'switchGroup(\'improve\',\'strategy\');setTimeout(function(){var el=document.getElementById(\'strategy-raw\');if(el){el.focus();el.scrollIntoView({behavior:\'smooth\',block:\'center\'});}},250)'
+    }
+  ];
+  var html = '<div class="study-loop-card">';
+  html += '<div class="study-loop-title">This week\'s study loop</div>';
+  html += '<div class="study-loop-items">';
+  items.forEach(function(item) {
+    html += '<div class="study-loop-item">';
+    html += '<div class="sli-status">'+(item.done ? '✅' : '⭕')+'</div>';
+    html += '<div class="sli-label">'+item.label+'</div>';
+    if (!item.done) {
+      html += '<div class="sli-action" onclick="'+item.action+'">'+item.actionLabel+' →</div>';
+    } else {
+      html += '<div style="font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.5)">'+item.count+(item.count===1?' time':' times')+'</div>';
+    }
+    html += '</div>';
+  });
+  html += '</div></div>';
+  wrap.innerHTML = html;
+}
+
+function renderStrategyNudge() {
+  var wrap = document.getElementById('strategy-nudge-wrap');
+  if (!wrap) return;
+  var st = getStudyLoopStatus();
+  if (st.sessions === 0 || st.notes > 0) { wrap.innerHTML = ''; return; }
+  var handsText = st.hands === 1 ? '1 hand' : st.hands + ' hands';
+  var sessionsText = st.sessions === 1 ? '1 session' : st.sessions + ' sessions';
+  wrap.innerHTML = '<div class="strategy-nudge">'
+    + '<div class="strategy-nudge-text">This week: '+sessionsText+' · '+handsText+' logged · 0 study notes</div>'
+    + '<div class="strategy-nudge-link" onclick="document.getElementById(\'strat-topic\').focus();document.getElementById(\'strat-topic\').scrollIntoView({behavior:\'smooth\',block:\'center\'})">Complete your loop →</div>'
+    + '</div>';
+}
+
+// ── ONBOARDING ──
+function showOnboarding() {
+  if (localStorage.getItem('pokerhq_onboarded') || sessions.length > 0 || window._demoMode) return;
+  var el = document.getElementById('onboarding-overlay');
+  if (el) el.style.display = 'flex';
+}
+
+function dismissOnboarding() {
+  localStorage.setItem('pokerhq_onboarded', 'true');
+  var el = document.getElementById('onboarding-overlay');
+  if (el) el.style.display = 'none';
+}
+
+function onboardingOverlayClick(e) {
+  if (e.target === document.getElementById('onboarding-overlay')) dismissOnboarding();
+}
+
+// ── INIT ──
+document.getElementById('s-date').value = new Date().toISOString().split('T')[0];
+var satDateEl = document.getElementById('sat-date'); if (satDateEl) satDateEl.value = new Date().toISOString().split('T')[0];
+populateSessionDropdowns();
+var savedTheme = localStorage.getItem('pokerhq_theme');
+if (savedTheme === 'light') {
+  document.body.classList.add('light');
+  document.getElementById('theme-toggle').textContent = '☀️';
+}
+initActiveSessionFeature();
+initDemoModeFeature();
+refreshDashboard();
+refreshDemoBanner();
+showOnboarding();
+// Restore timer state from localStorage (Firebase will re-sync shortly after)
+restoreTimerState(load('timer', null));
+hydrateSessionFormFromDraft(false);
+renderActiveSessionSurface();
+renderReliability();
+</script>
+
+<!-- Satellite Modal -->
+<div class="modal-overlay" id="modal-satellite">
+  <div class="modal">
+    <div class="modal-title">Log Satellite</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input class="form-input" type="date" id="sat-date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Satellite Name</label>
+        <input class="form-input" type="text" id="sat-name" placeholder="e.g. Okada Daily Satellite">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Venue</label>
+        <input class="form-input" type="text" id="sat-venue" placeholder="e.g. Okada Manila">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Buy-in (₱)</label>
+        <input class="form-input" type="number" id="sat-buyin" placeholder="e.g. 1100">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Result</label>
+        <select class="form-input" id="sat-result">
+          <option value="won">Won Seat 🎟</option>
+          <option value="lost">Did Not Win</option>
+          <option value="pending">Pending / Upcoming</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Target Event</label>
+        <input class="form-input" type="text" id="sat-for" placeholder="e.g. Okada Manila Millions ME">
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:1rem;margin-top:.5rem">
+      <label class="form-label">Notes</label>
+      <input class="form-input" type="text" id="sat-notes" placeholder="e.g. Busted AK vs QQ, 3 seats given">
+    </div>
+    <div class="modal-actions">
+      <button class="sec-action" onclick="closeModal('modal-satellite')">CANCEL</button>
+      <button class="sec-action primary" onclick="addSatellite()">LOG ↗</button>
+    </div>
+  </div>
+</div>
+
+<!-- Opponent Modal -->
+<div class="modal-overlay" id="modal-opponent">
+  <div class="modal">
+    <div class="modal-title">Add Villain</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Name / Nickname</label>
+        <input class="form-input" type="text" id="opp-name" placeholder="e.g. The Limper, Table 3 Guy">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Venue Seen</label>
+        <input class="form-input" type="text" id="opp-venue" placeholder="e.g. Metro Card Club">
+      </div>
+    </div>
+    <div class="form-group" style="margin:.75rem 0 .5rem">
+      <label class="form-label">Player Type Tags</label>
+      <div class="tag-select-grid" id="opp-tag-grid">
+        <button class="tag-toggle" data-tag="loose" onclick="toggleOppTag(this)">Loose</button>
+        <button class="tag-toggle" data-tag="tight" onclick="toggleOppTag(this)">Tight</button>
+        <button class="tag-toggle" data-tag="aggressive" onclick="toggleOppTag(this)">Aggressive</button>
+        <button class="tag-toggle" data-tag="passive" onclick="toggleOppTag(this)">Passive</button>
+        <button class="tag-toggle" data-tag="fish" onclick="toggleOppTag(this)">Fish 🐟</button>
+        <button class="tag-toggle" data-tag="reg" onclick="toggleOppTag(this)">Reg ♠</button>
+        <button class="tag-toggle" data-tag="calling-station" onclick="toggleOppTag(this)">Calling Station</button>
+        <button class="tag-toggle" data-tag="bluffer" onclick="toggleOppTag(this)">Bluffer</button>
+        <button class="tag-toggle" data-tag="nit" onclick="toggleOppTag(this)">Nit</button>
+        <button class="tag-toggle" data-tag="maniac" onclick="toggleOppTag(this)">Maniac</button>
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:1rem">
+      <label class="form-label">Tendencies / Notes</label>
+      <textarea class="form-input" id="opp-notes" rows="3" placeholder="e.g. Never folds top pair, always open-limps UTG, huge river overbets with nuts..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="sec-action" onclick="closeModal('modal-opponent')">CANCEL</button>
+      <button class="sec-action primary" onclick="addOpponent()">SAVE ↗</button>
+    </div>
+  </div>
+</div>
+
+<!-- Voice to Hand Modal -->
+
+<div class="modal-overlay" id="modal-voice">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title">🎙 Voice to Hand</div>
+    <div style="font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.4);margin-bottom:1.25rem;line-height:1.7">
+      Paste your voice transcript below — from iPhone Voice Memos transcription or any speech-to-text. Claude will structure it into a hand log entry automatically.
+    </div>
+    <div class="form-group" style="margin-bottom:1rem">
+      <label class="form-label">Voice Transcript</label>
+      <textarea class="form-input" id="voice-transcript" rows="6" placeholder="e.g. UTG raised 3x I called button with pocket tens flop came ace king four he bet half pot I folded probably should have called he was loose..."></textarea>
+    </div>
+    <div class="form-group" style="margin-bottom:1rem">
+      <label class="form-label">Session (optional)</label>
+      <select class="form-input" id="voice-session-link">
+        <option value="">Select session...</option>
+      </select>
+    </div>
+    <div id="voice-result" style="display:none;background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.2);border-radius:10px;padding:1rem;margin-bottom:1rem">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--gold);margin-bottom:.75rem;text-transform:uppercase">Structured Hand — Review & Edit</div>
+      <div class="form-grid" style="gap:.75rem">
+        <div class="form-group"><label class="form-label">Result</label><select class="form-input" id="vr-result"><option value="won">Won</option><option value="lost">Lost</option><option value="fold">Fold</option></select></div>
+        <div class="form-group"><label class="form-label">Title</label><input class="form-input" type="text" id="vr-title"></div>
+        <div class="form-group" style="grid-column:1/-1"><label class="form-label">Description</label><textarea class="form-input" id="vr-desc" rows="3"></textarea></div>
+        <div class="form-group" style="grid-column:1/-1"><label class="form-label">Lesson</label><input class="form-input" type="text" id="vr-lesson"></div>
+      </div>
+    </div>
+    <div id="voice-loading" style="display:none;text-align:center;padding:1rem;font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.4)">⟳ Structuring hand with Claude...</div>
+    <div id="voice-error" style="display:none;font-family:var(--mono);font-size:11px;color:#E85C5C;margin-bottom:.75rem"></div>
+    <div class="modal-actions">
+      <button class="sec-action" onclick="closeModal('modal-voice');clearVoiceModal()">CANCEL</button>
+      <button class="sec-action" id="voice-structure-btn" onclick="structureHand()">✨ STRUCTURE WITH AI</button>
+      <button class="sec-action primary" id="voice-save-btn" style="display:none" onclick="saveVoiceHand()">SAVE HAND ↗</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pre-Session Readiness Modal -->
+<div class="modal-overlay" id="modal-readiness">
+  <div class="modal" style="max-width:620px">
+    <div class="modal-title">Pre-Session Readiness</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1rem">
+      <div style="font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.42);line-height:1.6">Fast check before you start. Use quick taps, then either start or skip.</div>
+      <div class="readiness-pill caution" id="readiness-pill">Caution</div>
+    </div>
+    <div class="readiness-result-card">
+      <div class="readiness-result-title" id="readiness-title">Caution</div>
+      <div class="readiness-result-sub" id="readiness-detail">Fill the quick checks below to see your readiness read.</div>
+    </div>
+    <div class="readiness-grid">
+      <div class="readiness-item">
+        <div class="readiness-label">Sleep</div>
+        <div class="readiness-options">
+          <button class="readiness-option" data-readiness-field="sleep" data-readiness-value="poor" onclick="setReadinessField('sleep','poor')">Poor</button>
+          <button class="readiness-option" data-readiness-field="sleep" data-readiness-value="ok" onclick="setReadinessField('sleep','ok')">OK</button>
+          <button class="readiness-option" data-readiness-field="sleep" data-readiness-value="good" onclick="setReadinessField('sleep','good')">Good</button>
+        </div>
+      </div>
+      <div class="readiness-item">
+        <div class="readiness-label">Energy</div>
+        <div class="readiness-options">
+          <button class="readiness-option" data-readiness-field="energy" data-readiness-value="low" onclick="setReadinessField('energy','low')">Low</button>
+          <button class="readiness-option" data-readiness-field="energy" data-readiness-value="ok" onclick="setReadinessField('energy','ok')">OK</button>
+          <button class="readiness-option" data-readiness-field="energy" data-readiness-value="high" onclick="setReadinessField('energy','high')">High</button>
+        </div>
+      </div>
+      <div class="readiness-item">
+        <div class="readiness-label">Fasting / Food</div>
+        <div class="readiness-options">
+          <button class="readiness-option" data-readiness-field="food" data-readiness-value="fasted" onclick="setReadinessField('food','fasted')">Fasted</button>
+          <button class="readiness-option" data-readiness-field="food" data-readiness-value="light" onclick="setReadinessField('food','light')">Light</button>
+          <button class="readiness-option" data-readiness-field="food" data-readiness-value="fed" onclick="setReadinessField('food','fed')">Fed</button>
+        </div>
+      </div>
+      <div class="readiness-item">
+        <div class="readiness-label">Bankroll Fit</div>
+        <div class="readiness-options">
+          <button class="readiness-option" data-readiness-field="bankrollFit" data-readiness-value="target" onclick="setReadinessField('bankrollFit','target')">Target</button>
+          <button class="readiness-option" data-readiness-field="bankrollFit" data-readiness-value="stretch" onclick="setReadinessField('bankrollFit','stretch')">Stretch</button>
+          <button class="readiness-option" data-readiness-field="bankrollFit" data-readiness-value="skip" onclick="setReadinessField('bankrollFit','skip')">High Risk</button>
+        </div>
+      </div>
+      <div class="readiness-item">
+        <div class="readiness-label">Strategy Reviewed</div>
+        <div class="readiness-options">
+          <button class="readiness-option" data-readiness-field="strategyReviewed" data-readiness-value="yes" onclick="setReadinessField('strategyReviewed','yes')">Yes</button>
+          <button class="readiness-option" data-readiness-field="strategyReviewed" data-readiness-value="no" onclick="setReadinessField('strategyReviewed','no')">No</button>
+        </div>
+      </div>
+      <div class="readiness-item">
+        <div class="readiness-label">Villain Notes Available</div>
+        <div class="readiness-options">
+          <button class="readiness-option" data-readiness-field="villainNotes" data-readiness-value="yes" onclick="setReadinessField('villainNotes','yes')">Yes</button>
+          <button class="readiness-option" data-readiness-field="villainNotes" data-readiness-value="no" onclick="setReadinessField('villainNotes','no')">No</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="sec-action" onclick="skipReadinessCheck()">SKIP</button>
+      <button class="sec-action primary" onclick="confirmReadinessCheck()">START SESSION</button>
+    </div>
+  </div>
+</div>
+
+<!-- Session Detail Modal -->
+<div class="modal-overlay" id="modal-session-detail">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-title" id="sd-title">Session Detail</div>
+    <div id="sd-body"></div>
+    <div class="modal-actions">
+      <button class="sec-action" onclick="closeModal('modal-session-detail')">CLOSE</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Session Toast -->
+<div id="session-toast">
+  <span class="toast-msg">Session logged &nbsp;<span class="toast-pnl" id="toast-pnl"></span></span>
+  <button class="toast-btn" id="toast-hand-btn" onclick="logHandFromToast()">🃏 LOG A HAND</button>
+  <button class="toast-close" onclick="hideSessionToast()">✕</button>
+</div>
+
+
+<!-- MOBILE BOTTOM NAV — 5 group tabs -->
+<div class="mobile-nav">
+  <button class="mobile-tab active" id="mob-home" onclick="switchGroup('home')">
+    <span class="mobile-tab-icon">♠</span>HOME
+  </button>
+  <button class="mobile-tab" id="mob-plan" onclick="switchGroup('plan')">
+    <span class="mobile-tab-icon">📅</span>PLAN
+  </button>
+  <button class="mobile-tab" id="mob-play" onclick="switchGroup('play')">
+    <span class="mobile-tab-icon">▶</span>PLAY
+  </button>
+  <button class="mobile-tab" id="mob-review" onclick="switchGroup('review')">
+    <span class="mobile-tab-icon">📊</span>REVIEW
+  </button>
+  <button class="mobile-tab" id="mob-improve" onclick="switchGroup('improve')">
+    <span class="mobile-tab-icon">🧠</span>IMPROVE
+  </button>
+</div>
+
+<!-- MOBILE SUB-TAB STRIP (fixed above bottom nav) -->
+<div class="mobile-subtab-strip" id="mobile-subtab-strip">
+  <div class="mob-subtab-group" id="mob-subtabs-plan">
+    <button class="mob-subtab" data-page="calendar" onclick="switchTab('calendar')">📅 Calendar</button>
+    <button class="mob-subtab" data-page="satellite" onclick="switchTab('satellite')">🛰 Satellites</button>
+  </div>
+  <div class="mob-subtab-group" id="mob-subtabs-play">
+    <button class="mob-subtab" data-page="sessions" onclick="switchTab('sessions')">♦ Log Session</button>
+    <button class="mob-subtab" data-page="hands" onclick="switchTab('hands')">🃏 Hands</button>
+    <button class="mob-subtab" data-page="calculator" onclick="switchTab('calculator')">🧮 Calc</button>
+  </div>
+  <div class="mob-subtab-group" id="mob-subtabs-review">
+    <button class="mob-subtab" data-page="sessions" onclick="switchTab('sessions')">♦ History</button>
+    <button class="mob-subtab" data-page="heatmap" onclick="switchTab('heatmap')">🔥 Heatmap</button>
+  </div>
+  <div class="mob-subtab-group" id="mob-subtabs-improve">
+    <button class="mob-subtab" data-page="strategy" onclick="switchTab('strategy')">♥ Strategy</button>
+    <button class="mob-subtab" data-page="opponents" onclick="switchTab('opponents')">👤 Opponents</button>
+  </div>
+</div>
+
+<!-- ONBOARDING OVERLAY -->
+<div class="onboarding-overlay" id="onboarding-overlay" style="display:none" onclick="onboardingOverlayClick(event)">
+  <div class="onboarding-card">
+    <div style="font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:.5rem">Proof Fast</div>
+    <div class="onboarding-title">Welcome to PokerHQ</div>
+    <div class="onboarding-sub">Your live tournament command center. Load demo data to see the full workflow, or start building your real schedule now.</div>
+    <div class="onboarding-steps">
+      <div class="onboarding-step">
+        <div class="onboarding-step-icon">📅</div>
+        <div>
+          <div class="onboarding-step-name">PLAN</div>
+          <div class="onboarding-step-desc">Build the slate with your calendar, BRM tags, and satellite targets before you commit capital.</div>
+        </div>
+      </div>
+      <div class="onboarding-step">
+        <div class="onboarding-step-icon">▶</div>
+        <div>
+          <div class="onboarding-step-name">PLAY</div>
+          <div class="onboarding-step-desc">Start from Calendar List, keep the active session running, and capture hands while they are still fresh.</div>
+        </div>
+      </div>
+      <div class="onboarding-step">
+        <div class="onboarding-step-icon">📊</div>
+        <div>
+          <div class="onboarding-step-name">REVIEW</div>
+          <div class="onboarding-step-desc">Open session detail, linked hands, and heatmaps to connect process, result, and mental state.</div>
+        </div>
+      </div>
+      <div class="onboarding-step">
+        <div class="onboarding-step-icon">🧠</div>
+        <div>
+          <div class="onboarding-step-name">IMPROVE</div>
+          <div class="onboarding-step-desc">Turn review into a sharper next session through strategy notes, briefings, and opponent memory.</div>
+        </div>
+      </div>
+    </div>
+    <div class="onboarding-actions">
+      <button class="btn-demo-load" onclick="onboardingLoadDemo()">👁 LOAD DEMO DATA</button>
+      <button class="sec-action primary" onclick="dismissOnboarding()">GET STARTED →</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
