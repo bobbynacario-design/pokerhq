@@ -1,0 +1,28 @@
+.build-badge{
+  font-family:var(--mono);
+  font-size:10px;
+  letter-spacing:.06em;
+  padding:.38rem .6rem;
+  border-radius:999px;
+  border:1px solid rgba(52,152,219,.22);
+  background:rgba(52,152,219,.08);
+  color:#8fc7f3;
+  max-width:220px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+body.light .build-badge{
+  background:rgba(52,152,219,.08);
+  color:#1A5FA0;
+  border-color:rgba(26,95,160,.2);
+}
+
+@media (max-width: 768px){
+  .build-badge{
+    max-width:145px;
+    font-size:9px;
+    padding:.34rem .52rem;
+  }
+}

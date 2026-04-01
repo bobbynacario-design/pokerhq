@@ -8,9 +8,24 @@ Use this when promoting changes from the Codex test deploy to the live root app.
   - Source of truth: tracked [`index.html`](C:\Users\BobbyNacario\OneDrive - Xcelerate\Desktop\Codex\pokerhq\index.html)
   - Current model: single-file inline app
 - Codex test app: `/pokerhq/deploy/codex-pages/`
-  - Source of truth: tracked files under [`deploy/codex-pages`](C:\Users\BobbyNacario\OneDrive - Xcelerate\Desktop\Codex\pokerhq\deploy\codex-pages)
+  - Source of truth:
+    - extracted source tree under [`js`](C:\Users\BobbyNacario\OneDrive - Xcelerate\Desktop\Codex\pokerhq\js) and [`styles`](C:\Users\BobbyNacario\OneDrive - Xcelerate\Desktop\Codex\pokerhq\styles)
+    - published bundle shell under [`deploy/codex-pages`](C:\Users\BobbyNacario\OneDrive - Xcelerate\Desktop\Codex\pokerhq\deploy\codex-pages)
   - Current model: extracted module bundle
   - Test identity override: [`deploy/codex-pages/profile-override.js`](C:\Users\BobbyNacario\OneDrive - Xcelerate\Desktop\Codex\pokerhq\deploy\codex-pages\profile-override.js)
+
+## Codex Test Workflow
+
+1. Edit extracted source files in:
+   - [`js`](C:\Users\BobbyNacario\OneDrive - Xcelerate\Desktop\Codex\pokerhq\js)
+   - [`styles`](C:\Users\BobbyNacario\OneDrive - Xcelerate\Desktop\Codex\pokerhq\styles)
+2. Keep test-only shell files in:
+   - [`deploy/codex-pages/index.html`](C:\Users\BobbyNacario\OneDrive - Xcelerate\Desktop\Codex\pokerhq\deploy\codex-pages\index.html)
+   - [`deploy/codex-pages/profile-override.js`](C:\Users\BobbyNacario\OneDrive - Xcelerate\Desktop\Codex\pokerhq\deploy\codex-pages\profile-override.js)
+   - [`deploy/codex-pages/styles/test-overrides.css`](C:\Users\BobbyNacario\OneDrive - Xcelerate\Desktop\Codex\pokerhq\deploy\codex-pages\styles\test-overrides.css)
+3. Sync the extracted source tree into the publish bundle with:
+   - [`scripts/sync-codex-pages.ps1`](C:\Users\BobbyNacario\OneDrive - Xcelerate\Desktop\Codex\pokerhq\scripts\sync-codex-pages.ps1)
+4. Verify `/deploy/codex-pages/` before any push
 
 ## Guardrails
 
