@@ -1087,6 +1087,18 @@ var strategies = window.strategies;
 var newsItems  = window.newsItems;
 var spotlights = window.spotlights;
 var bankroll   = window.bankroll;
+window.syncGlobalAliases = function() {
+  sessions = window.sessions;
+  tourneys = window.tourneys;
+  hands = window.hands;
+  strategies = window.strategies;
+  newsItems = window.newsItems;
+  spotlights = window.spotlights;
+  bankroll = window.bankroll;
+  if (typeof satellites !== 'undefined') satellites = window.satellites || [];
+  if (typeof satTarget !== 'undefined') satTarget = window.satTarget || { name:'', buyin:0 };
+  if (typeof opponents !== 'undefined') opponents = window.opponents || [];
+};
 // ── CLOCK ──
 function tickClock() {
   var t = new Date().toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit',hour12:false});

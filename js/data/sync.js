@@ -38,6 +38,8 @@ function applyLoadedValue(key, value) {
   if (key === "bankroll") window.bankroll = value;
   if (key === "satellites") window.satellites = value;
   if (key === "opponents") window.opponents = value;
+  if (key === "satTarget") window.satTarget = value;
+  if (window.syncGlobalAliases) window.syncGlobalAliases();
   if (key === "timer" && window.restoreTimerState) window.restoreTimerState(value);
   localStorage.setItem(getLocalStorageKey(key), JSON.stringify(value));
 }
