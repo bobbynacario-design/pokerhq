@@ -12,8 +12,776 @@
 <title>PokerHQ — Bob's Tournament Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script type="module" src="./js/app.js"></script>
-<link rel="stylesheet" href="./styles/app.css">
+<script type="module">
+// ── FIREBASE CONFIG ──
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB_6PnXWdtpR-x-jcJIuzOaROoVRplY5SM",
+  authDomain: "pokerhq-a67e4.firebaseapp.com",
+  projectId: "pokerhq-a67e4",
+  storageBucket: "pokerhq-a67e4.firebasestorage.app",
+  messagingSenderId: "91226487101",
+  appId: "1:91226487101:web:0cf1b3411ff9d17a00ad54"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+// Fixed path — all Bob's devices share the same data
+const USER_PATH = 'pokerhq-bob';
+
+// ── SYNC STATUS UI ──
+function setSyncStatus(status, msg) {
+  var el = document.getElementById('sync-status');
+  if (!el) return;
+  var colors = {syncing:'#F0A832', ok:'#2ECC71', error:'#E74C3C', offline:'rgba(255,255,255,.3)'};
+  var icons  = {syncing:'⟳', ok:'✓', error:'✗', offline:'○'};
+  el.textContent = (icons[status]||'○') + ' ' + msg;
+  el.style.color = colors[status]||'rgba(255,255,255,.3)';
+}
+
+// ── FIREBASE SAVE ──
+async function fbSave(key, data) {
+  try {
+    setSyncStatus('syncing', 'Saving...');
+    await setDoc(doc(db, USER_PATH, key), { value: JSON.stringify(data), updated: Date.now() });
+    setSyncStatus('ok', 'Synced');
+  } catch(e) {
+    setSyncStatus('error', 'Save failed');
+    console.error('fbSave error:', e);
+  }
+}
+
+// ── FIREBASE LOAD ALL ──
+async function fbLoadAll() {
+  try {
+    setSyncStatus('syncing', 'Syncing...');
+    var keys = ['sessions','tourneys','hands','strategies','news','spotlights','bankroll','satellites','opponents','timer'];
+    var loaded = false;
+    for (var i=0; i<keys.length; i++) {
+      var k = keys[i];
+      var snap = await getDoc(doc(db, USER_PATH, k));
+      if (snap.exists()) {
+        var val = JSON.parse(snap.data().value);
+        if (k==='sessions')   window.sessions   = val;
+        if (k==='tourneys')   window.tourneys   = val;
+        if (k==='hands')      window.hands      = val;
+        if (k==='strategies') window.strategies = val;
+        if (k==='news')       window.newsItems  = val;
+        if (k==='spotlights') window.spotlights = val;
+        if (k==='bankroll')   window.bankroll   = val;
+        if (k==='satellites') window.satellites = val;
+        if (k==='opponents')  window.opponents  = val;
+        if (k==='timer')      { if (window.restoreTimerState) window.restoreTimerState(val); }
+        localStorage.setItem('pokerhq_'+k, JSON.stringify(val));
+        loaded = true;
+      }
+    }
+    setSyncStatus('ok', 'Synced');
+    // Refresh all UI
+    refreshDashboard();
+    renderCalendarMonth();
+    renderCalendarList();
+    renderStrategy();
+    renderHands();
+    loadBankrollForm();
+    populateSessionDropdowns();
+    if (window.renderSatellites) window.renderSatellites();
+    if (window.renderOpponents)  window.renderOpponents();
+  } catch(e) {
+    setSyncStatus('error', 'Sync failed — using local data');
+    console.error('fbLoadAll error:', e);
+  }
+}
+
+// ── REAL-TIME LISTENER — updates UI when another device saves ──
+var keys = ['sessions','tourneys','hands','strategies','news','spotlights','bankroll','satellites','opponents','timer'];
+keys.forEach(function(k) {
+  onSnapshot(doc(db, USER_PATH, k), function(snap) {
+    if (!snap.exists()) return;
+    var val = JSON.parse(snap.data().value);
+    if (k==='sessions')   window.sessions   = val;
+    if (k==='tourneys')   window.tourneys   = val;
+    if (k==='hands')      window.hands      = val;
+    if (k==='strategies') window.strategies = val;
+    if (k==='news')       window.newsItems  = val;
+    if (k==='spotlights') window.spotlights = val;
+    if (k==='bankroll')   window.bankroll   = val;
+    if (k==='satellites') window.satellites = val;
+    if (k==='opponents')  window.opponents  = val;
+    if (k==='timer')      { if (window.restoreTimerState && !window._timerInterval) window.restoreTimerState(val); }
+    localStorage.setItem('pokerhq_'+k, JSON.stringify(val));
+    setSyncStatus('ok', 'Synced');
+    // Refresh relevant UI
+    refreshDashboard();
+    loadBankrollForm();
+    renderCalendarMonth();
+    renderCalendarList();
+    renderStrategy();
+    renderHands();
+    if (k==='satellites' && window.renderSatellites) window.renderSatellites();
+    if (k==='opponents'  && window.renderOpponents)  window.renderOpponents();
+  });
+});
+
+// ── EXPOSE TO GLOBAL SCOPE ──
+window.fbSave = fbSave;
+
+// ── INIT LOAD ──
+fbLoadAll();
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080A0E;--bg2:#0F1218;--bg3:#161B24;--bg4:#1E2430;
+  --rim:rgba(255,255,255,0.06);--rim2:rgba(255,255,255,0.12);--rim3:rgba(255,255,255,0.2);
+  --gold:#D4AF37;--gold2:#F0D060;--gold-dim:rgba(212,175,55,0.12);
+  --green:#2ECC71;--green-dim:rgba(46,204,113,0.12);
+  --red:#E74C3C;--red-dim:rgba(231,76,60,0.12);
+  --blue:#3498DB;--blue-dim:rgba(52,152,219,0.12);
+  --purple:#9B59B6;--purple-dim:rgba(155,89,182,0.12);
+  --serif:'Bebas Neue',Georgia,serif;
+  --mono:'DM Mono','Courier New',monospace;
+  --sans:'DM Sans',system-ui,sans-serif;
+}
+
+/* ── LIGHT THEME ── */
+body.light {
+  --bg:#F0EDE6;--bg2:#FFFFFF;--bg3:#F5F2EC;--bg4:#E8E4DB;
+  --rim:rgba(0,0,0,0.08);--rim2:rgba(0,0,0,0.14);--rim3:rgba(0,0,0,0.22);
+  --gold:#8B6914;--gold2:#A07820;--gold-dim:rgba(139,105,20,0.1);
+  --green:#1A7A40;--green-dim:rgba(26,122,64,0.1);
+  --red:#C0392B;--red-dim:rgba(192,57,43,0.1);
+  --blue:#1A5FA0;--blue-dim:rgba(26,95,160,0.1);
+  --purple:#6A3A9A;--purple-dim:rgba(106,58,154,0.1);
+}
+body.light { color:#1A1A1A; }
+body.light .nav { background:#FFFFFF; }
+body.light .nav-brand { color:var(--gold); }
+body.light .group-tab { color:rgba(0,0,0,0.45); }
+body.light .group-tab:hover { color:#1A1A1A; background:var(--bg3); }
+body.light .group-tab.active { color:var(--gold); background:var(--gold-dim); }
+body.light .subtab-bar { background:#FFFFFF; border-top-color:var(--rim); }
+body.light .subtab { color:rgba(0,0,0,0.35); }
+body.light .subtab:hover { color:#1A1A1A; background:var(--bg3); }
+body.light .subtab.active { color:#1A1A1A; background:var(--bg3); }
+body.light .mobile-subtab-strip { background:#FFFFFF; border-top-color:var(--rim); }
+body.light .mob-subtab { color:rgba(0,0,0,0.4); border-color:rgba(0,0,0,0.12); }
+body.light .mob-subtab.active { color:var(--gold); border-color:rgba(139,105,20,0.3); background:var(--gold-dim); }
+body.light .clock-nav { color:rgba(0,0,0,0.4); }
+body.light .bankroll-hero { background:linear-gradient(135deg,#FFFFFF,#F5F2EC); border-color:rgba(139,105,20,0.2); }
+body.light .bankroll-amount { color:var(--gold); }
+body.light .bankroll-label { color:rgba(0,0,0,0.4); }
+body.light .bk-item { background:rgba(0,0,0,0.04); }
+body.light .bk-item-label { color:rgba(0,0,0,0.4); }
+body.light .bk-item-val { color:#1A1A1A; }
+body.light .stat-card { background:#FFFFFF; }
+body.light .stat-label { color:rgba(0,0,0,0.4); }
+body.light .stat-val { color:#1A1A1A; }
+body.light .stat-sub { color:rgba(0,0,0,0.35); }
+body.light .form-card { background:#FFFFFF; }
+body.light .form-label { color:rgba(0,0,0,0.45); }
+body.light .form-input { background:var(--bg3); border-color:var(--rim); color:#1A1A1A; }
+body.light .form-input:focus { border-color:rgba(139,105,20,0.4); }
+body.light .form-input option { background:#FFFFFF; color:#1A1A1A; }
+body.light .table-wrap { background:#FFFFFF; }
+body.light .tbl th { background:var(--bg3); color:rgba(0,0,0,0.45); }
+body.light .tbl td { color:rgba(0,0,0,0.75); }
+body.light .tbl tr:hover td { background:rgba(0,0,0,0.02); }
+body.light .badge-itm { background:rgba(26,122,64,0.12); color:var(--green); }
+body.light .badge-final { background:rgba(139,105,20,0.12); color:var(--gold); }
+body.light .badge-bust { background:var(--bg3); color:rgba(0,0,0,0.4); }
+body.light .del-btn { color:rgba(0,0,0,0.25); }
+body.light .del-btn:hover { color:var(--red); background:var(--red-dim); }
+body.light .chart-wrap { background:#FFFFFF; }
+body.light .chart-title { color:rgba(0,0,0,0.4); }
+body.light .bar-label { color:rgba(0,0,0,0.35); }
+body.light .hand-card { background:#FFFFFF; border-color:var(--rim); }
+body.light .hand-card:hover { border-color:var(--rim2); }
+body.light .hand-title { color:#1A1A1A; }
+body.light .hand-meta { color:rgba(0,0,0,0.35); }
+body.light .hand-body { color:rgba(0,0,0,0.55); }
+body.light .tourney-card { background:#FFFFFF; border-color:var(--rim); }
+body.light .tourney-date { background:var(--bg3); border-color:var(--rim); }
+body.light .tourney-date-day { color:var(--gold); }
+body.light .tourney-date-mon { color:rgba(0,0,0,0.35); }
+body.light .tourney-name { color:#1A1A1A; }
+body.light .tourney-meta { color:rgba(0,0,0,0.45); }
+body.light .tourney-buyin { color:var(--gold); }
+body.light .strategy-paste { background:#FFFFFF; border-color:rgba(139,105,20,0.3); }
+body.light .strategy-paste textarea { color:rgba(0,0,0,0.65); }
+body.light .strategy-paste textarea::placeholder { color:rgba(0,0,0,0.2); }
+body.light .strategy-card { background:#FFFFFF; }
+body.light .strategy-card h4 { color:#1A1A1A; }
+body.light .strategy-card p { color:rgba(0,0,0,0.6); }
+body.light .strategy-week { color:var(--purple); }
+body.light .modal { background:#FFFFFF; border-color:var(--rim2); }
+body.light .modal-title { color:var(--gold); }
+body.light .tip { background:var(--bg3); border-color:var(--rim); color:rgba(0,0,0,0.45); }
+body.light .sec-title { color:#1A1A1A; }
+body.light .sec-action { color:rgba(0,0,0,0.5); border-color:var(--rim2); }
+body.light .sec-action:hover { border-color:var(--gold); color:var(--gold); background:var(--gold-dim); }
+body.light .sec-action.primary { background:var(--gold); color:#FFF; border-color:var(--gold); }
+body.light .sec-action.primary:hover { background:var(--gold2); }
+body.light .btn-pdf { color:rgba(0,0,0,0.5); border-color:var(--rim2); }
+body.light .btn-pdf:hover { border-color:var(--gold); color:var(--gold); background:var(--gold-dim); }
+body.light .mobile-nav { background:#FFFFFF; border-top-color:var(--rim); }
+body.light .mobile-tab { color:rgba(0,0,0,0.35); }
+body.light .mobile-tab.active { color:var(--gold); }
+body.light .empty-row td { color:rgba(0,0,0,0.3); }
+body.light ::-webkit-scrollbar-track { background:var(--bg); }
+body.light ::-webkit-scrollbar-thumb { background:var(--bg4); }
+html,body{background:var(--bg);color:#fff;font-family:var(--sans);min-height:100vh;overflow-x:hidden}
+
+/* ── NAV ── */
+.nav{background:var(--bg2);border-bottom:1px solid var(--rim);position:sticky;top:0;z-index:100;display:flex;flex-direction:column}
+.nav-row{padding:.7rem 2rem;display:flex;align-items:center;justify-content:space-between}
+.nav-brand{font-family:var(--serif);font-size:22px;letter-spacing:.08em;color:var(--gold)}
+.nav-brand span{color:rgba(255,255,255,.3);font-size:14px;font-family:var(--mono);letter-spacing:.1em;margin-left:.75rem}
+.nav-groups{display:flex;gap:.2rem}
+.group-tab{font-family:var(--mono);font-size:11px;letter-spacing:.08em;padding:.4rem .9rem;border-radius:6px;border:1px solid transparent;background:transparent;color:rgba(255,255,255,.4);cursor:pointer;transition:all .15s;text-transform:uppercase}
+.group-tab:hover{color:#fff;background:var(--bg3)}
+.group-tab.active{color:var(--gold);background:var(--gold-dim);border-color:rgba(212,175,55,.25)}
+.nav-right{display:flex;align-items:center;gap:.75rem}
+.clock-nav{font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.3);letter-spacing:.06em}
+.btn-pdf{font-family:var(--mono);font-size:11px;padding:.4rem .9rem;border-radius:6px;border:1px solid var(--rim2);background:transparent;color:rgba(255,255,255,.5);cursor:pointer;transition:all .15s;text-transform:uppercase;letter-spacing:.06em}
+.btn-pdf:hover{border-color:var(--gold);color:var(--gold);background:var(--gold-dim)}
+
+/* ── SUBTAB BAR (desktop, second row inside nav) ── */
+.subtab-bar{display:none;padding:.4rem 2rem;border-top:1px solid var(--rim);gap:.15rem}
+.subtab-bar.open{display:flex}
+.subtab-group{display:none;gap:.15rem}
+.subtab-group.active{display:flex}
+.subtab{font-family:var(--mono);font-size:10px;letter-spacing:.07em;padding:.28rem .85rem;border-radius:5px;border:none;background:transparent;color:rgba(255,255,255,.32);cursor:pointer;transition:all .15s;text-transform:uppercase}
+.subtab:hover{color:rgba(255,255,255,.8);background:var(--bg3)}
+.subtab.active{color:#fff;background:var(--bg3)}
+
+/* ── MOBILE SUB-TAB STRIP (fixed above bottom nav) ── */
+.mobile-subtab-strip{display:none;position:fixed;bottom:60px;left:0;right:0;background:var(--bg2);border-top:1px solid var(--rim);z-index:199;padding:.3rem .75rem;gap:.4rem;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.mob-subtab-group{display:none;gap:.4rem;flex-shrink:0}
+.mob-subtab-group.active{display:flex}
+.mob-subtab{font-family:var(--mono);font-size:10px;letter-spacing:.05em;padding:.28rem .9rem;border-radius:20px;border:1px solid var(--rim2);background:transparent;color:rgba(255,255,255,.4);cursor:pointer;white-space:nowrap;text-transform:uppercase;transition:all .15s;flex-shrink:0}
+.mob-subtab.active{color:var(--gold);border-color:rgba(212,175,55,.3);background:var(--gold-dim)}
+
+/* ── PAGES ── */
+.page{display:none;padding:2rem;max-width:1300px;margin:0 auto;animation:fadeIn .3s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── STAT CARDS ROW ── */
+.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:2rem}
+.stat-card{background:var(--bg2);border:1px solid var(--rim);border-radius:12px;padding:1.1rem 1.25rem;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent,var(--gold))}
+.stat-label{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:rgba(255,255,255,.35);text-transform:uppercase;margin-bottom:.5rem}
+.stat-val{font-family:var(--serif);font-size:28px;letter-spacing:.04em;color:#fff;line-height:1}
+.stat-sub{font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.3);margin-top:.35rem}
+.stat-up{color:var(--green)}.stat-down{color:var(--red)}.stat-neutral{color:rgba(255,255,255,.4)}
+
+/* ── SECTION HEADERS ── */
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem}
+.sec-title{font-family:var(--serif);font-size:20px;letter-spacing:.06em;color:#fff}
+.sec-title span{color:var(--gold);margin-right:.5rem}
+.sec-action{font-family:var(--mono);font-size:11px;padding:.4rem 1rem;border-radius:6px;border:1px solid var(--rim2);background:transparent;color:rgba(255,255,255,.5);cursor:pointer;transition:all .15s;text-transform:uppercase;letter-spacing:.06em}
+.sec-action:hover{border-color:var(--gold);color:var(--gold);background:var(--gold-dim)}
+.sec-action.primary{background:var(--gold);color:var(--bg);border-color:var(--gold);font-weight:500}
+.sec-action.primary:hover{background:var(--gold2)}
+
+/* ── BANKROLL ── */
+.bankroll-hero{background:linear-gradient(135deg,var(--bg2),var(--bg3));border:1px solid rgba(212,175,55,.2);border-radius:16px;padding:2rem;margin-bottom:2rem;position:relative;overflow:hidden}
+.bankroll-hero::after{content:'♠';position:absolute;right:2rem;top:50%;transform:translateY(-50%);font-size:120px;color:rgba(212,175,55,.04);pointer-events:none}
+.bankroll-amount{font-family:var(--serif);font-size:56px;letter-spacing:.04em;color:var(--gold);line-height:1;margin-bottom:.5rem}
+.bankroll-label{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:1.5rem}
+.bankroll-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+.bk-item{background:rgba(0,0,0,.3);border-radius:8px;padding:.75rem 1rem}
+.bk-item-label{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:.3rem}
+.bk-item-val{font-family:var(--mono);font-size:16px;font-weight:500;color:#fff}
+
+/* ── INPUT FORM ── */
+.form-card{background:var(--bg2);border:1px solid var(--rim);border-radius:14px;padding:1.5rem;margin-bottom:1.5rem}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:1rem}
+.form-group{display:flex;flex-direction:column;gap:.4rem}
+.form-label{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:rgba(255,255,255,.4);text-transform:uppercase}
+.form-input{background:var(--bg3);border:1px solid var(--rim);border-radius:8px;padding:.6rem .9rem;color:#fff;font-family:var(--mono);font-size:13px;outline:none;transition:border-color .15s}
+.form-input:focus{border-color:rgba(212,175,55,.4)}
+.form-input option{background:var(--bg3)}
+.form-row{display:flex;gap:.75rem;align-items:center;flex-wrap:wrap}
+
+/* ── SESSION TABLE ── */
+.table-wrap{background:var(--bg2);border:1px solid var(--rim);border-radius:14px;overflow:hidden;margin-bottom:1.5rem}
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:rgba(255,255,255,.35);text-transform:uppercase;padding:.75rem 1rem;border-bottom:1px solid var(--rim);text-align:left;background:var(--bg3)}
+.tbl td{font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.7);padding:.75rem 1rem;border-bottom:1px solid var(--rim);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:rgba(255,255,255,.02)}
+.badge{font-size:9px;padding:2px 7px;border-radius:20px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;font-family:var(--mono)}
+.badge-itm{background:rgba(46,204,113,.15);color:var(--green);border:1px solid rgba(46,204,113,.25)}
+.badge-final{background:rgba(212,175,55,.15);color:var(--gold);border:1px solid rgba(212,175,55,.25)}
+.badge-bust{background:rgba(231,76,60,.1);color:rgba(255,255,255,.4);border:1px solid var(--rim)}
+.profit-pos{color:var(--green)}.profit-neg{color:var(--red)}.profit-zero{color:rgba(255,255,255,.4)}
+.del-btn{background:transparent;border:none;color:rgba(255,255,255,.2);cursor:pointer;font-size:14px;padding:2px 6px;border-radius:4px;transition:all .15s}
+.del-btn:hover{color:var(--red);background:var(--red-dim)}
+.empty-row td{text-align:center;color:rgba(255,255,255,.2);font-style:italic;padding:2rem}
+
+/* ── HAND HISTORY ── */
+.hand-card{background:var(--bg2);border:1px solid var(--rim);border-radius:12px;padding:1.1rem 1.35rem;margin-bottom:.75rem;transition:border-color .2s}
+.hand-card:hover{border-color:var(--rim2)}
+.hand-top{display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;margin-bottom:.5rem}
+.hand-title{font-family:var(--sans);font-size:14px;font-weight:500;color:#fff;flex:1;line-height:1.4}
+.hand-meta{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.3);margin-bottom:.4rem}
+.hand-body{font-size:12px;color:rgba(255,255,255,.5);line-height:1.7}
+.hand-result{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.hand-won{background:var(--green-dim);color:var(--green);border:1px solid rgba(46,204,113,.25)}
+.hand-lost{background:var(--red-dim);color:var(--red);border:1px solid rgba(231,76,60,.25)}
+.hand-fold{background:var(--bg3);color:rgba(255,255,255,.35);border:1px solid var(--rim)}
+
+/* ── TOURNAMENT CALENDAR ── */
+.tourney-card{background:var(--bg2);border:1px solid var(--rim);border-radius:12px;padding:1.1rem 1.35rem;margin-bottom:.75rem;display:flex;align-items:center;gap:1.25rem;transition:border-color .2s}
+.tourney-card:hover{border-color:var(--rim2)}
+.tourney-date{background:var(--bg3);border:1px solid var(--rim);border-radius:8px;padding:.5rem .75rem;text-align:center;min-width:52px;flex-shrink:0}
+.tourney-date-day{font-family:var(--serif);font-size:22px;color:var(--gold);line-height:1}
+.tourney-date-mon{font-family:var(--mono);font-size:8px;letter-spacing:.1em;color:rgba(255,255,255,.35);text-transform:uppercase}
+.tourney-info{flex:1}
+.tourney-name{font-size:14px;font-weight:500;color:#fff;margin-bottom:.3rem}
+.tourney-meta{font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.4);display:flex;gap:.75rem;flex-wrap:wrap}
+.tourney-buyin{font-family:var(--mono);font-size:15px;font-weight:500;color:var(--gold)}
+.tourney-status{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.06em}
+.ts-target{background:var(--green-dim);color:var(--green);border:1px solid rgba(46,204,113,.25)}
+.ts-stretch{background:var(--gold-dim);color:var(--gold);border:1px solid rgba(212,175,55,.25)}
+.ts-skip{background:var(--bg3);color:rgba(255,255,255,.3);border:1px solid var(--rim)}
+
+/* ── STRATEGY ── */
+.strategy-paste{background:var(--bg2);border:1px dashed rgba(212,175,55,.3);border-radius:14px;padding:1.35rem;margin-bottom:1.5rem}
+.strategy-paste textarea{width:100%;min-height:100px;background:transparent;border:none;outline:none;font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.6);resize:vertical;line-height:1.7}
+.strategy-paste textarea::placeholder{color:rgba(255,255,255,.18)}
+.strategy-card{background:var(--bg2);border-left:4px solid var(--purple);border-radius:0 12px 12px 0;border-top:1px solid var(--rim);border-right:1px solid var(--rim);border-bottom:1px solid var(--rim);padding:1.1rem 1.35rem;margin-bottom:.75rem}
+.strategy-card h4{font-size:14px;font-weight:500;color:#fff;margin-bottom:.4rem}
+.strategy-card p{font-size:12px;color:rgba(255,255,255,.5);line-height:1.75}
+.strategy-week{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--purple);text-transform:uppercase;margin-bottom:.4rem}
+
+/* ── CHART BARS ── */
+.chart-wrap{background:var(--bg2);border:1px solid var(--rim);border-radius:14px;padding:1.5rem;margin-bottom:1.5rem}
+.chart-title{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:1.25rem}
+.bar-chart{display:flex;align-items:flex-end;gap:6px;height:100px}
+.bar-col{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1}
+.bar{border-radius:4px 4px 0 0;min-height:3px;transition:height .3s ease}
+.bar-pos{background:linear-gradient(to top,var(--green),rgba(46,204,113,.5))}
+.bar-neg{background:linear-gradient(to top,var(--red),rgba(231,76,60,.5))}
+.bar-label{font-family:var(--mono);font-size:8px;color:rgba(255,255,255,.3);text-align:center;white-space:nowrap}
+
+/* ── MODAL ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--rim2);border-radius:16px;padding:2rem;width:min(500px,90vw);max-height:90vh;overflow-y:auto}
+.modal-title{font-family:var(--serif);font-size:22px;letter-spacing:.06em;margin-bottom:1.5rem;color:var(--gold)}
+.modal-actions{display:flex;gap:.75rem;margin-top:1.5rem;justify-content:flex-end}
+
+/* ── TOOLTIP ── */
+.tip{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.4);background:var(--bg3);border:1px solid var(--rim);border-radius:6px;padding:.35rem .65rem;display:inline-block;margin-top:.5rem}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px}
+
+/* ── MOBILE RESPONSIVE ── */
+@media (max-width: 768px) {
+  .nav-row{padding:.55rem .85rem}
+  .nav-brand{font-size:18px}
+  .nav-brand span{display:none}
+  .nav-groups{display:none} /* group tabs handled by mobile bottom nav */
+  .subtab-bar,.subtab-bar.open{display:none !important} /* use mobile strip instead */
+  .nav-right{gap:.5rem}
+  .clock-nav{display:none}
+  .btn-pdf{font-size:10px;padding:.35rem .7rem}
+
+  .page{padding:1rem}
+
+  .bankroll-hero{padding:1.25rem}
+  .bankroll-amount{font-size:38px}
+  .bankroll-hero::after{display:none}
+  .bankroll-grid{grid-template-columns:1fr 1fr;gap:.75rem}
+  .bankroll-grid .bk-item:last-child{grid-column:1/-1}
+
+  .stat-row{grid-template-columns:1fr 1fr;gap:8px}
+  .stat-card{padding:.85rem 1rem}
+  .stat-val{font-size:22px}
+
+  .form-grid{grid-template-columns:1fr}
+  .form-input{font-size:16px;padding:.75rem 1rem} /* 16px prevents iOS zoom */
+  .form-input[type=number]{font-size:16px}
+  .form-input[type=text]{font-size:16px}
+  .form-input[type=date]{font-size:16px}
+
+  .sec-hdr{flex-wrap:wrap;gap:.5rem}
+  .sec-title{font-size:16px}
+  .sec-action{font-size:10px;padding:.4rem .8rem}
+
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tbl{min-width:600px}
+  .tbl th,.tbl td{padding:.6rem .75rem;font-size:11px}
+
+  .tourney-card{flex-wrap:wrap;gap:.75rem;padding:.9rem 1rem}
+  .tourney-date{min-width:44px}
+  .tourney-meta{gap:.4rem}
+
+  .hand-card{padding:.9rem 1rem}
+  .strategy-card{padding:.9rem 1rem}
+
+  .modal{padding:1.25rem;width:95vw}
+  .modal-title{font-size:18px}
+
+  .chart-wrap{padding:1rem}
+  .bar-chart{height:80px}
+
+  /* Bottom nav for mobile — 5 group tabs */
+  .mobile-nav{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--rim);z-index:200;padding:.5rem 0 calc(.5rem + env(safe-area-inset-bottom))}
+  .mobile-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:.4rem .25rem;border:none;background:transparent;color:rgba(255,255,255,.4);cursor:pointer;font-family:var(--mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;transition:color .15s}
+  .mobile-tab.active{color:var(--gold)}
+  .mobile-tab-icon{font-size:18px;line-height:1}
+  /* Sub-tab strip visible above bottom nav when non-HOME group active */
+  .mobile-subtab-strip.open{display:flex}
+  body{padding-bottom:112px} /* bottom nav ~60px + strip ~48px */
+}
+
+@media (min-width:769px){
+  .mobile-nav{display:none}
+  .mobile-subtab-strip{display:none !important}
+}
+
+.theme-toggle{background:transparent;border:1px solid var(--rim2);border-radius:6px;padding:.35rem .6rem;cursor:pointer;font-size:15px;transition:all .15s;line-height:1}
+.theme-toggle:hover{border-color:var(--gold);background:var(--gold-dim)}
+
+/* ── MONTHLY CALENDAR VIEW ── */
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem}
+.cal-month-title{font-family:var(--serif);font-size:22px;letter-spacing:.06em;color:#fff}
+body.light .cal-month-title{color:#1A1A1A}
+.cal-nav-btn{background:transparent;border:1px solid var(--rim2);border-radius:7px;color:rgba(255,255,255,.5);font-size:16px;padding:.35rem .8rem;cursor:pointer;transition:all .15s}
+.cal-nav-btn:hover{border-color:var(--gold);color:var(--gold)}
+body.light .cal-nav-btn{color:rgba(0,0,0,.4)}
+body.light .cal-nav-btn:hover{color:var(--gold)}
+.cal-grid-wrap{background:var(--bg2);border:1px solid var(--rim);border-radius:14px;overflow:hidden;margin-bottom:1.5rem}
+body.light .cal-grid-wrap{background:#fff}
+.cal-dow-row{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--rim)}
+.cal-dow{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:rgba(255,255,255,.3);text-transform:uppercase;text-align:center;padding:.6rem 0}
+body.light .cal-dow{color:rgba(0,0,0,.35)}
+.cal-days{display:grid;grid-template-columns:repeat(7,1fr)}
+.cal-day{min-height:64px;padding:.4rem .35rem;border-right:1px solid var(--rim);border-bottom:1px solid var(--rim);position:relative;cursor:default}
+.cal-day:nth-child(7n){border-right:none}
+body.light .cal-day{border-color:var(--rim)}
+.cal-day-num{font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.3);margin-bottom:2px}
+body.light .cal-day-num{color:rgba(0,0,0,.35)}
+.cal-day.today .cal-day-num{background:var(--gold);color:var(--bg);border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-weight:500}
+.cal-day.other-month .cal-day-num{color:rgba(255,255,255,.12)}
+body.light .cal-day.other-month .cal-day-num{color:rgba(0,0,0,.15)}
+.cal-event-bar{border-radius:3px;padding:1px 4px;font-family:var(--mono);font-size:9px;font-weight:500;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;transition:opacity .15s}
+.cal-event-bar:hover{opacity:.8}
+.cal-event-bar.target{background:rgba(46,204,113,.25);color:#2ECC71;border:1px solid rgba(46,204,113,.35)}
+.cal-event-bar.stretch{background:rgba(212,175,55,.2);color:#D4AF37;border:1px solid rgba(212,175,55,.3)}
+.cal-event-bar.skip{background:rgba(255,255,255,.07);color:rgba(255,255,255,.4);border:1px solid var(--rim)}
+body.light .cal-event-bar.skip{background:rgba(0,0,0,.06);color:rgba(0,0,0,.4)}
+.cal-event-bar.start{border-radius:3px 0 0 3px}
+.cal-event-bar.mid{border-radius:0;border-left:none;border-right:none}
+.cal-event-bar.end{border-radius:0 3px 3px 0;border-left:none}
+.cal-event-bar.solo{border-radius:3px}
+.cal-legend{display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1rem}
+.cal-legend-item{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.4)}
+body.light .cal-legend-item{color:rgba(0,0,0,.4)}
+.cal-legend-dot{width:10px;height:10px;border-radius:2px}
+.view-toggle{display:flex;gap:.35rem;margin-bottom:1.25rem}
+.view-btn{font-family:var(--mono);font-size:10px;padding:.35rem .8rem;border-radius:6px;border:1px solid var(--rim2);background:transparent;color:rgba(255,255,255,.4);cursor:pointer;transition:all .15s;letter-spacing:.06em;text-transform:uppercase}
+.view-btn.active{background:var(--gold-dim);color:var(--gold);border-color:rgba(212,175,55,.3)}
+body.light .view-btn{color:rgba(0,0,0,.4)}
+body.light .view-btn.active{color:var(--gold)}
+@media(max-width:768px){
+  .cal-day{min-height:48px;padding:.3rem .2rem}
+  .cal-day-num{font-size:10px}
+  .cal-event-bar{font-size:8px;padding:1px 3px}
+}
+
+/* ── SERIES GROUPING ── */
+.series-group{margin-bottom:1.75rem}
+.series-header{display:flex;align-items:center;gap:.75rem;padding:.6rem 1rem;background:var(--bg3);border:1px solid var(--rim);border-radius:10px;margin-bottom:.6rem}
+body.light .series-header{background:var(--bg3)}
+.series-icon{font-size:14px}
+.series-name{font-family:var(--serif);font-size:16px;letter-spacing:.04em;color:#fff;flex:1}
+body.light .series-name{color:#1A1A1A}
+.series-count{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.3);letter-spacing:.06em}
+body.light .series-count{color:rgba(0,0,0,.35)}
+.series-events{display:flex;flex-direction:column;gap:.5rem;padding-left:.75rem;border-left:2px solid var(--rim2)}
+.event-row{background:var(--bg2);border:1px solid var(--rim);border-radius:10px;padding:.75rem 1rem;display:flex;align-items:center;gap:1rem;transition:border-color .15s;position:relative;overflow:hidden}
+.event-row::before{content:'';position:absolute;top:0;left:0;bottom:0;width:3px}
+.event-row.main-event::before{background:var(--gold)}
+.event-row.side-event::before{background:var(--blue)}
+.event-row:hover{border-color:var(--rim2)}
+body.light .event-row{background:#fff}
+.event-date-box{background:var(--bg3);border:1px solid var(--rim);border-radius:7px;padding:.4rem .6rem;text-align:center;min-width:44px;flex-shrink:0}
+body.light .event-date-box{background:var(--bg3)}
+.event-date-day{font-family:var(--serif);font-size:18px;color:var(--gold);line-height:1}
+.event-date-mon{font-family:var(--mono);font-size:8px;letter-spacing:.08em;color:rgba(255,255,255,.35);text-transform:uppercase}
+body.light .event-date-mon{color:rgba(0,0,0,.35)}
+.event-info{flex:1;min-width:0}
+.event-name{font-size:13px;font-weight:500;color:#fff;margin-bottom:.25rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.light .event-name{color:#1A1A1A}
+.event-meta{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.35);display:flex;gap:.6rem;flex-wrap:wrap}
+body.light .event-meta{color:rgba(0,0,0,.4)}
+.event-right{display:flex;flex-direction:column;align-items:flex-end;gap:.3rem;flex-shrink:0}
+.event-buyin{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--gold)}
+.event-type-badge{font-family:var(--mono);font-size:8px;padding:2px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:.06em;font-weight:500}
+.event-type-badge.main{background:rgba(212,175,55,.15);color:var(--gold);border:1px solid rgba(212,175,55,.25)}
+.event-type-badge.side{background:rgba(52,152,219,.12);color:var(--blue);border:1px solid rgba(52,152,219,.2)}
+
+/* Calendar bar colors for main vs side */
+.cal-event-bar.main-event-bar{background:rgba(212,175,55,.3);color:#D4AF37;border:1px solid rgba(212,175,55,.4)}
+.cal-event-bar.side-event-bar{background:rgba(52,152,219,.2);color:#5DADE2;border:1px solid rgba(52,152,219,.3)}
+
+@media(max-width:768px){
+  .event-row{flex-wrap:wrap;gap:.6rem}
+  .event-date-box{min-width:40px}
+  .series-events{padding-left:.4rem}
+}
+
+/* ── SATELLITE TRACKER ── */
+.sat-hero{background:linear-gradient(135deg,var(--bg2),var(--bg3));border:1px solid rgba(155,111,232,.2);border-radius:14px;padding:1.5rem 2rem;margin-bottom:1.5rem;position:relative;overflow:hidden}
+.sat-hero::after{content:'🛰';position:absolute;right:1.5rem;top:50%;transform:translateY(-50%);font-size:60px;opacity:.06;pointer-events:none}
+.sat-goal-label{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:rgba(155,111,232,.8);text-transform:uppercase;margin-bottom:.4rem}
+.sat-goal-name{font-family:var(--serif);font-size:24px;font-weight:700;color:#fff;margin-bottom:.25rem}
+.sat-progress-wrap{background:rgba(0,0,0,.3);border-radius:20px;height:8px;margin:.75rem 0}
+.sat-progress-bar{height:8px;border-radius:20px;background:linear-gradient(90deg,var(--purple),#C084FC);transition:width .5s ease}
+.sat-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-top:.75rem}
+.sat-stat{background:rgba(0,0,0,.2);border-radius:8px;padding:.6rem .85rem}
+.sat-stat-label{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:.2rem}
+.sat-stat-val{font-family:var(--mono);font-size:16px;color:#fff;font-weight:500}
+.sat-card{background:var(--bg2);border:1px solid var(--rim);border-radius:12px;padding:1rem 1.25rem;margin-bottom:.65rem;display:flex;align-items:center;gap:1rem}
+.sat-card-left{flex:1}
+.sat-card-name{font-size:14px;font-weight:500;color:#fff;margin-bottom:.25rem}
+.sat-card-meta{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.35);display:flex;gap:.6rem;flex-wrap:wrap}
+.sat-card-right{display:flex;flex-direction:column;align-items:flex-end;gap:.3rem;flex-shrink:0}
+.sat-buyin{font-family:var(--mono);font-size:14px;color:var(--purple)}
+.sat-result-badge{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.05em}
+.sat-won{background:rgba(45,184,122,.15);color:var(--green);border:1px solid rgba(45,184,122,.3)}
+.sat-lost{background:rgba(232,92,92,.1);color:rgba(255,255,255,.4);border:1px solid var(--rim)}
+.sat-pending{background:rgba(155,111,232,.12);color:var(--purple);border:1px solid rgba(155,111,232,.25)}
+
+/* ── OPPONENTS ── */
+.opp-card{background:var(--bg2);border:1px solid var(--rim);border-radius:12px;padding:1.1rem 1.35rem;margin-bottom:.75rem;transition:border-color .2s}
+.opp-card:hover{border-color:var(--rim2)}
+.opp-top{display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;margin-bottom:.5rem}
+.opp-name{font-size:15px;font-weight:500;color:#fff}
+.opp-venue{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.35);margin-top:.15rem}
+.opp-tags{display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.5rem}
+.opp-tag{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:20px;background:var(--bg3);color:rgba(255,255,255,.5);border:1px solid var(--rim)}
+.opp-tag.loose{background:rgba(232,92,92,.1);color:#E85C5C;border-color:rgba(232,92,92,.25)}
+.opp-tag.tight{background:rgba(45,184,122,.1);color:#2DB87A;border-color:rgba(45,184,122,.25)}
+.opp-tag.aggressive{background:rgba(240,168,50,.1);color:#F0A832;border-color:rgba(240,168,50,.25)}
+.opp-tag.passive{background:rgba(52,152,219,.1);color:#3498DB;border-color:rgba(52,152,219,.25)}
+.opp-tag.fish{background:rgba(155,111,232,.1);color:var(--purple);border-color:rgba(155,111,232,.25)}
+.opp-tag.reg{background:rgba(201,168,76,.1);color:var(--gold);border-color:rgba(201,168,76,.25)}
+.opp-notes{font-size:12px;color:rgba(255,255,255,.45);line-height:1.7}
+.tag-select-grid{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.35rem}
+.tag-toggle{font-family:var(--mono);font-size:10px;padding:3px 10px;border-radius:20px;border:1px solid var(--rim);background:transparent;color:rgba(255,255,255,.4);cursor:pointer;transition:all .15s}
+.tag-toggle.selected{border-color:var(--gold);color:var(--gold);background:var(--gold-dim)}
+
+/* ── HEATMAP ── */
+.heatmap-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;margin-bottom:1.5rem}
+.heatmap-card{background:var(--bg2);border:1px solid var(--rim);border-radius:13px;padding:1.25rem;overflow:hidden}
+.heatmap-title{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:1rem}
+.heatmap-row{display:flex;align-items:center;gap:.65rem;margin-bottom:.5rem}
+.heatmap-label{font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.55);width:130px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.heatmap-bar-wrap{flex:1;background:rgba(255,255,255,.06);border-radius:4px;height:20px;position:relative;overflow:hidden}
+.heatmap-bar-fill{height:100%;border-radius:4px;transition:width .6s ease;display:flex;align-items:center;justify-content:flex-end;padding-right:6px}
+.heatmap-bar-val{font-family:var(--mono);font-size:9px;font-weight:500;white-space:nowrap}
+.heat-pos{background:linear-gradient(90deg,rgba(45,184,122,.3),rgba(45,184,122,.6))}
+.heat-neg{background:linear-gradient(90deg,rgba(232,92,92,.3),rgba(232,92,92,.6))}
+.heat-neutral{background:linear-gradient(90deg,rgba(201,168,76,.2),rgba(201,168,76,.4))}
+.heatmap-empty{font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.2);text-align:center;padding:2rem}
+.month-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;margin-bottom:1rem}
+.month-cell{aspect-ratio:1;border-radius:4px;cursor:default;position:relative}
+.month-cell:hover .month-tooltip{display:block}
+.month-tooltip{display:none;position:absolute;bottom:110%;left:50%;transform:translateX(-50%);background:var(--bg);border:1px solid var(--rim2);border-radius:6px;padding:4px 8px;font-family:var(--mono);font-size:9px;color:#fff;white-space:nowrap;z-index:10}
+
+@media(max-width:768px){
+  .sat-stats{grid-template-columns:1fr 1fr}
+  .heatmap-grid{grid-template-columns:1fr}
+  .sat-card{flex-wrap:wrap}
+}
+
+/* ── TIMER ── */
+body.light #timer-widget{background:rgba(0,0,0,.05);border-color:var(--rim)}
+body.light #timer-display{color:var(--txt)}
+@media(max-width:768px){
+  #timer-widget{min-width:140px;padding:.65rem 1rem}
+  #timer-display{font-size:20px}
+}
+
+/* ── MENTAL TRACKING CARD ── */
+.mental-card{background:linear-gradient(135deg,var(--bg2),var(--bg3));border:1px solid rgba(155,111,232,.25);border-radius:14px;padding:1.35rem;margin-bottom:1rem}
+.mental-card-header{display:flex;align-items:flex-start;gap:.85rem;margin-bottom:1.1rem}
+.mental-icon{font-size:28px;line-height:1;flex-shrink:0}
+.mental-title{font-family:var(--serif);font-size:17px;font-weight:700;color:#fff;margin-bottom:.2rem}
+.mental-sub{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.35);line-height:1.5}
+body.light .mental-title{color:#1A1A1A}
+body.light .mental-sub{color:rgba(0,0,0,.4)}
+.mental-ratings{display:flex;flex-direction:column;gap:.75rem}
+.mental-rating-row{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
+.mental-rating-label{font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.5);width:72px;flex-shrink:0}
+body.light .mental-rating-label{color:rgba(0,0,0,.5)}
+.mental-rating-btns{display:flex;gap:.3rem;flex-wrap:wrap}
+.rating-btn{font-family:var(--mono);font-size:11px;width:28px;height:28px;border-radius:6px;border:1px solid var(--rim);background:transparent;color:rgba(255,255,255,.4);cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center}
+.rating-btn:hover{border-color:var(--purple);color:var(--purple)}
+.rating-btn.selected{background:var(--purple);color:#fff;border-color:var(--purple)}
+.fast-btn{width:auto;padding:0 10px;font-size:10px;letter-spacing:.04em}
+.fast-btn.selected{background:var(--gold);border-color:var(--gold);color:var(--bg)}
+
+/* ── CSV BANNER ── */
+.csv-banner{background:var(--green-dim);border:1px solid rgba(45,184,122,.2);border-radius:12px;padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1.25rem;flex-wrap:wrap}
+.csv-banner-left{display:flex;align-items:center;gap:.85rem}
+.csv-banner-icon{font-size:28px;flex-shrink:0}
+.csv-banner-title{font-size:14px;font-weight:500;color:#fff;margin-bottom:.2rem}
+body.light .csv-banner-title{color:#1A1A1A}
+.csv-banner-sub{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.4);line-height:1.55;max-width:400px}
+body.light .csv-banner-sub{color:rgba(0,0,0,.45)}
+.btn-primary-lg{font-family:var(--mono);font-size:12px;padding:.6rem 1.4rem;background:var(--green);color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:500;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;transition:background .15s}
+.btn-primary-lg:hover{background:#25a865}
+
+@media(max-width:768px){
+  .mental-rating-btns{gap:.2rem}
+  .rating-btn{width:24px;height:24px;font-size:10px}
+  .csv-banner{flex-direction:column;align-items:flex-start}
+  .mental-rating-row{gap:.4rem}
+}
+
+/* ── SESSION TOAST ── */
+#session-toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--green);border-radius:12px;padding:.85rem 1.25rem;display:flex;align-items:center;gap:1rem;z-index:500;box-shadow:0 8px 32px rgba(0,0,0,.4);font-family:var(--mono);font-size:12px;white-space:nowrap;transition:opacity .3s,transform .3s;opacity:0;pointer-events:none;max-width:90vw}
+#session-toast.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(-4px)}
+.toast-msg{color:rgba(255,255,255,.7)}
+.toast-pnl{font-weight:500}
+.toast-btn{background:var(--gold);color:var(--bg);border:none;border-radius:6px;padding:.35rem .85rem;cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;flex-shrink:0}
+.toast-close{background:transparent;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:16px;padding:0 2px;flex-shrink:0}
+@media(max-width:768px){#session-toast{bottom:72px;font-size:11px}}
+
+/* ── NEXT ACTIONS PANEL ── */
+.next-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:.85rem;margin-bottom:1.25rem}
+.next-action-card{background:var(--bg2);border:1.5px solid var(--gold-dim);border-radius:14px;padding:1.25rem 1rem;display:flex;flex-direction:column;align-items:center;gap:.55rem;cursor:pointer;transition:border-color .18s,background .18s,transform .1s;text-align:center;user-select:none}
+.next-action-card:hover{border-color:var(--gold);background:rgba(212,175,55,0.07);transform:translateY(-2px)}
+.next-action-card:active{transform:translateY(0)}
+.na-icon{font-size:28px;line-height:1}
+.na-label{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);font-weight:500}
+.na-sub{font-size:10px;color:rgba(255,255,255,.35);font-family:var(--mono)}
+body.light .next-action-card{background:#FFFFFF;border-color:rgba(139,105,20,0.2)}
+body.light .next-action-card:hover{border-color:var(--gold);background:var(--gold-dim)}
+body.light .na-sub{color:rgba(0,0,0,.4)}
+@media(max-width:768px){.next-actions{grid-template-columns:repeat(2,1fr);gap:.65rem}}
+
+/* ── TOURNAMENT CALCULATOR ── */
+.calc-toggle{display:flex;gap:.5rem;margin-bottom:1.25rem;background:var(--bg3);border-radius:10px;padding:.3rem}
+.calc-mode-btn{flex:1;font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;padding:.55rem .5rem;border:none;border-radius:7px;background:transparent;color:rgba(255,255,255,.4);cursor:pointer;transition:all .18s}
+.calc-mode-btn.active{background:var(--gold);color:var(--bg);font-weight:500}
+body.light .calc-mode-btn{color:rgba(0,0,0,.4)}
+body.light .calc-mode-btn.active{color:#fff}
+.calc-panel{display:none}
+.calc-panel.active{display:block}
+.calc-preset{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.5rem}
+.calc-preset-btn{font-family:var(--mono);font-size:10px;padding:.3rem .75rem;border:1px solid var(--rim2);border-radius:6px;background:transparent;color:rgba(255,255,255,.45);cursor:pointer;transition:all .15s}
+.calc-preset-btn:hover{border-color:var(--gold);color:var(--gold)}
+body.light .calc-preset-btn{color:rgba(0,0,0,.5);border-color:var(--rim)}
+.calc-result-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.65rem;margin-top:1rem}
+.calc-result-item{background:var(--bg3);border-radius:10px;padding:.9rem .85rem;text-align:center}
+.calc-result-place{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.35);margin-bottom:.25rem;text-transform:uppercase}
+.calc-result-pct{font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.5);margin-bottom:.2rem}
+.calc-result-amount{font-family:var(--mono);font-size:17px;font-weight:500;color:var(--gold)}
+body.light .calc-result-item{background:var(--bg3)}
+body.light .calc-result-place{color:rgba(0,0,0,.4)}
+body.light .calc-result-pct{color:rgba(0,0,0,.4)}
+.pct-input{font-family:var(--mono);font-size:11px;width:52px;padding:.25rem .4rem;background:var(--bg);border:1px solid var(--rim2);border-radius:5px;color:rgba(255,255,255,.7);text-align:center}
+.pct-input:focus{outline:none;border-color:var(--gold)}
+body.light .pct-input{background:#fff;border-color:var(--rim);color:#1A1A1A}
+.calc-rec-banner{border-radius:12px;padding:1rem 1.25rem;margin-top:1rem;text-align:center}
+.calc-rec-banner .rec-label{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;opacity:.7;margin-bottom:.3rem}
+.calc-rec-banner .rec-action{font-family:var(--serif);font-size:26px;letter-spacing:.04em}
+.calc-rec-banner .rec-detail{font-family:var(--mono);font-size:11px;margin-top:.4rem;opacity:.8}
+.calc-rec-banner.shove{background:rgba(231,76,60,0.15);border:1px solid rgba(231,76,60,0.3);color:var(--red)}
+.calc-rec-banner.normal{background:rgba(46,204,113,0.1);border:1px solid rgba(46,204,113,0.25);color:var(--green)}
+.calc-rec-banner.protect{background:rgba(212,175,55,0.1);border:1px solid rgba(212,175,55,0.25);color:var(--gold)}
+.calc-rec-banner.amber{background:rgba(240,168,50,0.12);border:1px solid rgba(240,168,50,0.3);color:#F0A832}
+.calc-rec-banner.blue{background:rgba(52,152,219,0.12);border:1px solid rgba(52,152,219,0.3);color:var(--blue)}
+.calc-advisor-grid{display:grid;grid-template-columns:1fr 1fr;gap:.85rem;margin-top:1rem}
+.calc-advisor-card{background:var(--bg3);border-radius:12px;padding:1.1rem 1rem;text-align:center}
+.calc-advisor-label{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:.5rem}
+.calc-advisor-val{font-family:var(--mono);font-size:22px;font-weight:500;color:#fff;margin-bottom:.25rem;line-height:1.2}
+.calc-advisor-sub{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.4)}
+.calc-pushfold-guide{background:var(--bg3);border-radius:12px;padding:1rem 1.1rem;margin-top:.85rem}
+.calc-pushfold-title{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:.65rem}
+.calc-pushfold-row{display:flex;justify-content:space-between;align-items:center;padding:.42rem .65rem;border-radius:7px;margin-bottom:.2rem;gap:.75rem;border:1px solid transparent}
+.pfrow-range{font-family:var(--mono);font-size:11px;font-weight:500;color:rgba(255,255,255,.45);white-space:nowrap;flex-shrink:0;min-width:80px}
+.pfrow-desc{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.3);text-align:right}
+.calc-pushfold-row.active{background:rgba(212,175,55,0.12);border-color:rgba(212,175,55,0.22)}
+.calc-pushfold-row.active .pfrow-range{color:var(--gold)}
+.calc-pushfold-row.active .pfrow-desc{color:rgba(255,255,255,.65)}
+body.light .calc-advisor-card{background:var(--bg3)}
+body.light .calc-advisor-label{color:rgba(0,0,0,.4)}
+body.light .calc-advisor-val{color:#1A1A1A}
+body.light .calc-advisor-sub{color:rgba(0,0,0,.4)}
+body.light .calc-pushfold-guide{background:var(--bg3)}
+body.light .calc-pushfold-title{color:rgba(0,0,0,.3)}
+body.light .pfrow-range{color:rgba(0,0,0,.45)}
+body.light .pfrow-desc{color:rgba(0,0,0,.35)}
+body.light .calc-pushfold-row.active .pfrow-range{color:var(--gold)}
+body.light .calc-pushfold-row.active .pfrow-desc{color:rgba(0,0,0,.7)}
+.calc-payout-total{font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.4);margin-top:.75rem;text-align:right}
+body.light .calc-payout-total{color:rgba(0,0,0,.4)}
+@media(max-width:768px){.calc-result-grid{grid-template-columns:repeat(2,1fr)}.calc-advisor-grid{grid-template-columns:1fr 1fr}.pfrow-desc{display:none}}
+
+/* ── STUDY LOOP ── */
+.study-loop-card{background:var(--bg2);border-left:3px solid #9B59B6;border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.25rem}
+.study-loop-title{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:.85rem}
+.study-loop-items{display:grid;grid-template-columns:repeat(4,1fr);gap:.65rem}
+.study-loop-item{background:var(--bg3);border-radius:8px;padding:.75rem .8rem;display:flex;flex-direction:column;gap:.3rem}
+.sli-status{font-size:16px;line-height:1}
+.sli-label{font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:rgba(255,255,255,.4);text-transform:uppercase}
+.sli-action{font-family:var(--mono);font-size:9px;color:var(--gold);cursor:pointer;text-decoration:underline;margin-top:.2rem}
+.sli-action:hover{color:var(--gold2)}
+.strategy-nudge{background:rgba(155,89,182,0.08);border:1px solid rgba(155,89,182,0.2);border-radius:12px;padding:.9rem 1.2rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.strategy-nudge-text{font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.55)}
+.strategy-nudge-link{font-family:var(--mono);font-size:11px;color:#9B59B6;cursor:pointer;white-space:nowrap}
+.strategy-nudge-link:hover{color:#B87FD4}
+body.light .strategy-nudge-text{color:rgba(0,0,0,.5)}
+.session-lesson-card{background:rgba(155,89,182,0.08);border:1px solid rgba(155,89,182,0.2);border-radius:10px;padding:.9rem 1rem;margin-top:1rem}
+.session-lesson-title{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(155,89,182,.7);margin-bottom:.65rem}
+.session-lesson-btns{display:flex;gap:.65rem;flex-wrap:wrap}
+.onboarding-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+.onboarding-card{background:var(--bg2);border:1px solid var(--gold-dim);border-radius:18px;padding:2.25rem;max-width:480px;width:100%;position:relative}
+.onboarding-title{font-family:var(--serif);font-size:22px;letter-spacing:.03em;color:var(--gold);margin-bottom:.35rem}
+.onboarding-sub{font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.4);margin-bottom:1.5rem}
+body.light .onboarding-sub{color:rgba(0,0,0,.4)}
+.onboarding-steps{display:flex;flex-direction:column;gap:.6rem;margin-bottom:1.5rem}
+.onboarding-step{display:flex;align-items:center;gap:.85rem;background:var(--bg3);border-radius:10px;padding:.75rem .9rem}
+.onboarding-step-icon{font-size:20px;flex-shrink:0;width:28px;text-align:center}
+.onboarding-step-name{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin-bottom:.2rem}
+.onboarding-step-desc{font-size:12px;color:rgba(255,255,255,.45);line-height:1.5}
+body.light .onboarding-step-desc{color:rgba(0,0,0,.45)}
+.onboarding-actions{display:flex;gap:.75rem;flex-wrap:wrap}
+@media(max-width:768px){.study-loop-items{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:500px){.onboarding-card{padding:1.5rem}.onboarding-title{font-size:18px}}
+
+/* ── DEMO MODE ── */
+.demo-banner{background:linear-gradient(135deg,rgba(212,175,55,0.08),rgba(212,175,55,0.04));border:1px solid rgba(212,175,55,0.25);border-radius:14px;padding:1.1rem 1.4rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1.25rem;flex-wrap:wrap}
+.demo-banner-left{display:flex;align-items:center;gap:.9rem}
+.demo-banner-icon{font-size:26px;flex-shrink:0}
+.demo-banner-title{font-size:14px;font-weight:500;color:var(--gold);margin-bottom:.2rem}
+.demo-banner-sub{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.45);line-height:1.55}
+body.light .demo-banner-sub{color:rgba(0,0,0,.45)}
+.btn-demo-load{font-family:var(--mono);font-size:11px;padding:.6rem 1.2rem;background:var(--gold);color:var(--bg);border:none;border-radius:8px;cursor:pointer;font-weight:500;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;transition:background .15s}
+.btn-demo-load:hover{background:var(--gold2)}
+.demo-badge{display:none;align-items:center;gap:.4rem;background:rgba(212,175,55,0.15);border:1px solid rgba(212,175,55,0.35);border-radius:20px;padding:.22rem .75rem;font-family:var(--mono);font-size:10px;font-weight:500;color:var(--gold);letter-spacing:.07em;text-transform:uppercase;white-space:nowrap}
+.demo-badge.visible{display:flex}
+.btn-demo-clear{display:none;font-family:var(--mono);font-size:10px;padding:.25rem .75rem;background:transparent;border:1px solid rgba(212,175,55,0.3);border-radius:6px;color:rgba(255,255,255,.5);cursor:pointer;text-transform:uppercase;letter-spacing:.06em;transition:all .15s;white-space:nowrap}
+.btn-demo-clear:hover{border-color:var(--red);color:var(--red)}
+.btn-demo-clear.visible{display:inline-block}
+body.light .btn-demo-clear{color:rgba(0,0,0,.45)}
+@media(max-width:768px){.demo-banner{flex-direction:column;align-items:flex-start}.btn-demo-load{width:100%}.demo-badge{font-size:9px}.btn-demo-clear{font-size:9px}}
+</style>
 </head>
 <body>
 
@@ -64,93 +832,14 @@
 <!-- ════════════════════ DASHBOARD ════════════════════ -->
 <div class="page active" id="page-dashboard">
 
-  <div class="surface-hero">
-    <div>
-      <div class="surface-kicker">Home</div>
-      <div class="surface-title">Your live tournament command center</div>
-      <div class="surface-sub">Plan the next target, launch active play from the calendar, capture key hands during the run, and close the loop with review.</div>
-    </div>
-    <div class="surface-badge">Proof Fast</div>
-  </div>
-
-  <div class="status-grid">
-    <div class="status-card">
-      <div class="status-label">Next Move</div>
-      <div class="status-value" id="home-command-title">Start with demo mode or your first event.</div>
-      <div class="status-sub" id="home-command-sub">Load sample data to inspect the full workflow, or open your calendar and start from the next scheduled tournament.</div>
-      <div class="surface-actions" style="margin-top:.9rem">
-        <button class="sec-action primary" onclick="loadDemoMode()">LOAD DEMO DATA ↗</button>
-        <button class="sec-action" onclick="switchGroup('plan','calendar')">OPEN CALENDAR</button>
-        <button class="sec-action" onclick="startSessionFromHome()">MANUAL SESSION</button>
-      </div>
-    </div>
-    <div class="status-card">
-      <div class="status-label">System State</div>
-      <div class="status-value">Ready for real sessions or demo proof.</div>
-      <div class="status-sub">Track sync state, current mode, and whether a live session is already active before you move deeper into the app.</div>
-      <div class="status-chip-row" style="margin-top:.85rem">
-        <div class="status-chip">
-          <div class="status-chip-title">Sync</div>
-          <div class="status-chip-value" id="home-sync-chip">Loading...</div>
-        </div>
-        <div class="status-chip">
-          <div class="status-chip-title">Mode</div>
-          <div class="status-chip-value" id="home-demo-chip">Real data</div>
-        </div>
-        <div class="status-chip">
-          <div class="status-chip-title">Active Play</div>
-          <div class="status-chip-value" id="home-active-chip">Not running</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div id="dashboard-active-session-wrap"></div>
-  <div id="dashboard-reliability-wrap"></div>
-
-  <div class="demo-banner" id="demo-banner">
-    <div class="demo-banner-left">
-      <div class="demo-banner-icon">👁</div>
-      <div>
-        <div class="demo-banner-title">Proof Fast</div>
-        <div class="demo-banner-sub">Load realistic Philippine MTT sample data and walk the complete PokerHQ loop before entering your own sessions.</div>
-      </div>
-    </div>
-    <div style="display:flex;align-items:center;gap:.6rem;flex-shrink:0">
-      <button class="btn-demo-load" onclick="loadDemoMode()">LOAD DEMO DATA ↗</button>
-      <button onclick="dismissDemoBanner()" title="Dismiss" style="background:transparent;border:none;color:rgba(255,255,255,.3);font-size:18px;cursor:pointer;line-height:1;padding:0 2px;flex-shrink:0">✕</button>
-    </div>
-  </div>
-
-  <div class="flow-grid">
-    <div class="flow-card" onclick="switchGroup('plan','calendar')">
-      <div class="flow-step">Plan</div>
-      <div class="flow-title">Build the slate</div>
-      <div class="flow-copy">Use the BRM-tagged calendar and satellites to decide what deserves your bankroll and time.</div>
-    </div>
-    <div class="flow-card" onclick="switchGroup('play','sessions')">
-      <div class="flow-step">Play</div>
-      <div class="flow-title">Run the session</div>
-      <div class="flow-copy">Start from Calendar List when an event is live, keep the timer running, and capture hands while context is fresh.</div>
-    </div>
-    <div class="flow-card" onclick="switchGroup('review','sessions')">
-      <div class="flow-step">Review</div>
-      <div class="flow-title">See what happened</div>
-      <div class="flow-copy">Open session detail, linked hands, and heatmaps to connect decisions, result, and mental state.</div>
-    </div>
-    <div class="flow-card" onclick="switchGroup('improve','strategy')">
-      <div class="flow-step">Improve</div>
-      <div class="flow-title">Lock the lesson</div>
-      <div class="flow-copy">Turn debriefs, opponent notes, and weekly briefings into the next clear adjustment.</div>
-    </div>
-  </div>
-
+  <!-- Bankroll Hero -->
   <div class="bankroll-hero">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap">
       <div>
         <div class="bankroll-label">Current Bankroll</div>
         <div class="bankroll-amount" id="dash-bankroll">₱0</div>
       </div>
+      <!-- Session Timer -->
       <div id="timer-widget" style="background:rgba(0,0,0,.25);border:1px solid var(--rim2);border-radius:12px;padding:.85rem 1.25rem;text-align:center;min-width:160px">
         <div style="font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:rgba(255,255,255,.35);text-transform:uppercase;margin-bottom:.3rem">Session Timer</div>
         <div id="timer-display" style="font-family:var(--mono);font-size:26px;font-weight:500;color:#fff;letter-spacing:.08em">00:00:00</div>
@@ -168,6 +857,7 @@
     </div>
   </div>
 
+  <!-- Stat Row -->
   <div class="stat-row">
     <div class="stat-card" style="--accent:var(--green)">
       <div class="stat-label">Total Profit / Loss</div>
@@ -201,43 +891,73 @@
     </div>
   </div>
 
+  <!-- Demo Banner — shown until dismissed or demo is active -->
+  <div class="demo-banner" id="demo-banner">
+    <div class="demo-banner-left">
+      <div class="demo-banner-icon">👁</div>
+      <div>
+        <div class="demo-banner-title">See PokerHQ in action</div>
+        <div class="demo-banner-sub">Load sample data to explore all features with realistic Philippine MTT session history.</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:.6rem;flex-shrink:0">
+      <button class="btn-demo-load" onclick="loadDemoMode()">LOAD DEMO DATA ↗</button>
+      <button onclick="dismissDemoBanner()" title="Dismiss" style="background:transparent;border:none;color:rgba(255,255,255,.3);font-size:18px;cursor:pointer;line-height:1;padding:0 2px;flex-shrink:0">✕</button>
+    </div>
+  </div>
+
+  <!-- Next Actions -->
+  <div class="next-actions">
+    <div class="next-action-card" onclick="switchGroup('play');startTimer()">
+      <div class="na-icon">▶</div>
+      <div class="na-label">Start Session</div>
+      <div class="na-sub">Timer + log</div>
+    </div>
+    <div class="next-action-card" onclick="switchGroup('plan')">
+      <div class="na-icon">📅</div>
+      <div class="na-label">View Calendar</div>
+      <div class="na-sub">Upcoming events</div>
+    </div>
+    <div class="next-action-card" onclick="openModal('modal-hand')">
+      <div class="na-icon">🃏</div>
+      <div class="na-label">Log a Hand</div>
+      <div class="na-sub">Review a spot</div>
+    </div>
+    <div class="next-action-card" onclick="switchGroup('play','calculator')">
+      <div class="na-icon">🧮</div>
+      <div class="na-label">Calculator</div>
+      <div class="na-sub">Payout &amp; advice</div>
+    </div>
+  </div>
+
+  <!-- P&L Chart -->
   <div class="chart-wrap">
-    <div class="chart-title">Cumulative P&amp;L — Last 10 Sessions</div>
+    <div class="chart-title">Cumulative P&L — Last 10 Sessions</div>
     <div class="bar-chart" id="pnl-chart"></div>
   </div>
 
+  <!-- Recent Sessions -->
   <div class="sec-hdr">
     <div class="sec-title"><span>♠</span>Recent Sessions</div>
     <button class="sec-action primary" onclick="switchGroup('play')">LOG SESSION ↗</button>
   </div>
   <div class="table-wrap">
     <table class="tbl">
-      <thead><tr><th>Date</th><th>Tournament</th><th>Buy-in</th><th>Position</th><th>Prize</th><th>P&amp;L</th><th>Result</th></tr></thead>
+      <thead><tr><th>Date</th><th>Tournament</th><th>Buy-in</th><th>Position</th><th>Prize</th><th>P&L</th><th>Result</th></tr></thead>
       <tbody id="dash-session-tbody"></tbody>
     </table>
   </div>
 </div>
+
+<!-- ════════════════════ SESSIONS ════════════════════ -->
 <div class="page" id="page-sessions">
 
-  <div class="surface-hero">
-    <div>
-      <div class="surface-kicker">Play</div>
-      <div class="surface-title">Run the session with context intact</div>
-      <div class="surface-sub">Start from Calendar List when an event is live, keep the active session state visible, and log the result with hands, timer, and mental notes still attached.</div>
-    </div>
-    <div class="surface-actions">
-      <button class="sec-action" onclick="switchGroup('plan','calendar')">OPEN CALENDAR</button>
-      <button class="sec-action" onclick="exportCSV()" style="display:flex;align-items:center;gap:.4rem;padding:.45rem 1.1rem;border-color:var(--green);color:var(--green)">
-        <span style="font-size:14px">⬇</span> EXPORT CSV
-      </button>
-    </div>
+  <div class="sec-hdr">
+    <div class="sec-title"><span>♦</span>Session Log</div>
+    <button class="sec-action" onclick="exportCSV()" style="display:flex;align-items:center;gap:.4rem;padding:.45rem 1.1rem;border-color:var(--green);color:var(--green)">
+      <span style="font-size:14px">⬇</span> EXPORT CSV
+    </button>
   </div>
-
-  <div id="play-active-session-wrap"></div>
-  <div id="play-reliability-wrap"></div>
-  <div id="play-empty-wrap"></div>
-
-  <div class="section-shell">
   <div class="csv-banner">
     <div class="csv-banner-left">
       <div class="csv-banner-icon">📊</div>
@@ -247,15 +967,6 @@
       </div>
     </div>
     <button class="btn-primary-lg" onclick="exportCSV()">⬇ DOWNLOAD CSV</button>
-  </div>
-  </div>
-
-  <div class="section-shell">
-    <div style="display:flex;gap:.55rem;flex-wrap:wrap;margin-top:-.35rem;margin-bottom:1.15rem">
-      <button class="sec-action" onclick="exportBackupJSON()">JSON BACKUP</button>
-      <button class="sec-action" onclick="openBackupRestorePicker()">RESTORE JSON</button>
-    </div>
-    <input type="file" id="backup-restore-input" accept=".json,application/json" style="display:none" onchange="handleBackupRestoreFile(event)">
   </div>
 
   <!-- Bankroll Setup -->
@@ -325,21 +1036,6 @@
       <label class="form-label">Notes</label>
       <input class="form-input" type="text" id="s-notes" placeholder="e.g. Deep run, busted KK vs AA on bubble">
     </div>
-    <div class="form-grid" style="margin-bottom:.75rem">
-      <div class="form-group">
-        <label class="form-label">Package / Festival</label>
-        <input class="form-input" type="text" id="s-package" placeholder="e.g. APT Manila Series" oninput="renderStakingInputSummary()">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Player Share (%)</label>
-        <input class="form-input" type="number" id="s-player-share" min="0" max="100" step="1" placeholder="e.g. 60" oninput="renderStakingInputSummary()">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Markup</label>
-        <input class="form-input" type="number" id="s-markup" min="0.5" step="0.01" placeholder="e.g. 1.10" oninput="renderStakingInputSummary()">
-      </div>
-    </div>
-    <div class="tip" id="staking-tip" style="margin-bottom:1rem">Optional: track sold action and package economics without changing your core session log.</div>
 
     <!-- Mental & Physical — prominent card -->
     <div class="mental-card">
@@ -417,16 +1113,6 @@
   </div>
 
   <div id="study-loop-wrap"></div>
-
-  <div class="form-card">
-    <div class="sec-hdr" style="margin-bottom:1rem">
-      <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:rgba(255,255,255,.4);text-transform:uppercase">Staking & Package Tracking</div>
-      <button class="sec-action" onclick="exportStakingCSV()">⬇ STAKING REPORT</button>
-    </div>
-    <div id="staking-summary-wrap">
-      <div class="tip">Log player share or a package name above to track staking results without changing your session flow.</div>
-    </div>
-  </div>
 
   <!-- Full Session Table -->
   <div class="table-wrap">
@@ -535,7 +1221,7 @@
     <div class="sec-title"><span>♠</span>Hand History</div>
     <div style="display:flex;gap:.5rem;flex-wrap:wrap">
       <button class="sec-action" onclick="openModal('modal-voice')">🎙 VOICE TO HAND</button>
-      <button class="sec-action primary" onclick="openNewHandModal()">+ LOG HAND</button>
+      <button class="sec-action primary" onclick="openModal('modal-hand')">+ LOG HAND</button>
     </div>
   </div>
   <div style="background:var(--blue-dim);border:1px solid rgba(52,152,219,.2);border-radius:10px;padding:.75rem 1rem;margin-bottom:1.25rem;font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.5);display:flex;align-items:center;gap:.6rem">
@@ -608,16 +1294,8 @@
 
 <!-- ════════════════════ HEATMAP PAGE ════════════════════ -->
 <div class="page" id="page-heatmap">
-  <div class="surface-hero">
-    <div>
-      <div class="surface-kicker">Review</div>
-      <div class="surface-title">See patterns, not just results</div>
-      <div class="surface-sub">Use venue, buy-in, ROI, monthly, and mental-state heatmaps to turn session history into the next clear adjustment.</div>
-    </div>
-    <div class="surface-actions">
-      <button class="sec-action" onclick="switchGroup('review','sessions')">OPEN HISTORY</button>
-      <button class="sec-action" onclick="switchGroup('improve','strategy')">LOCK A LESSON</button>
-    </div>
+  <div class="sec-hdr">
+    <div class="sec-title"><span>🔥</span>Results Heatmap</div>
   </div>
   <div class="heatmap-grid">
     <div class="heatmap-card">
@@ -661,7 +1339,6 @@
   <div class="calc-toggle">
     <button class="calc-mode-btn active" id="calc-btn-payout" onclick="calcSwitchMode('payout')">💰 Prize Pool Breakdown</button>
     <button class="calc-mode-btn" id="calc-btn-icm" onclick="calcSwitchMode('icm')">📊 Stack &amp; Bubble Advisor</button>
-    <button class="calc-mode-btn" id="calc-btn-risk" onclick="calcSwitchMode('risk')">🛡 Bankroll Risk</button>
   </div>
 
   <!-- ── MODE 1: PRIZE POOL BREAKDOWN ── -->
@@ -783,73 +1460,6 @@
     </div>
   </div>
 
-  <!-- ── MODE 3: BANKROLL RISK ENGINE ── -->
-  <div class="calc-panel" id="calc-panel-risk">
-    <div class="form-card">
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Current Bankroll (₱)</label>
-          <input class="form-input" id="calc-risk-bankroll" type="number" min="0" placeholder="e.g. 75000" oninput="calcRiskEngine()">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Average Buy-in (₱)</label>
-          <input class="form-input" id="calc-risk-buyin" type="number" min="0" placeholder="e.g. 3500" oninput="calcRiskEngine()">
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">ROI (%)</label>
-          <input class="form-input" id="calc-risk-roi" type="number" step="0.1" placeholder="e.g. 20" oninput="calcRiskEngine()">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Variance Assumption</label>
-          <select class="form-input" id="calc-risk-variance" onchange="calcRiskEngine()">
-            <option value="low">Low variance field</option>
-            <option value="standard" selected>Standard tournament variance</option>
-            <option value="high">High variance / tough field</option>
-          </select>
-        </div>
-      </div>
-
-      <div id="calc-risk-empty" style="text-align:center;padding:2.5rem 0;font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.22)">Enter bankroll, average buy-in, ROI, and variance to see bankroll pressure.</div>
-
-      <div id="calc-risk-results" style="display:none">
-        <div class="calc-advisor-grid">
-          <div class="calc-advisor-card">
-            <div class="calc-advisor-label">Bust Risk</div>
-            <div class="calc-advisor-val" id="risk-bust-val">—</div>
-            <div class="calc-advisor-sub" id="risk-depth-val">— buy-ins available</div>
-          </div>
-          <div class="calc-advisor-card">
-            <div class="calc-advisor-label">Recommended Band</div>
-            <div class="calc-advisor-val" id="risk-band-val" style="font-size:16px;line-height:1.3">—</div>
-            <div class="calc-advisor-sub" id="risk-band-sub">—</div>
-          </div>
-        </div>
-
-        <div id="risk-shot-banner" class="calc-rec-banner" style="margin-top:.85rem"></div>
-
-        <div class="calc-risk-band-grid">
-          <div class="calc-risk-band-card">
-            <div class="calc-risk-band-label">Aggressive</div>
-            <div class="calc-risk-band-buyins" id="risk-aggressive-buyins">—</div>
-            <div class="calc-risk-band-currency" id="risk-aggressive-bankroll">—</div>
-          </div>
-          <div class="calc-risk-band-card">
-            <div class="calc-risk-band-label">Balanced</div>
-            <div class="calc-risk-band-buyins" id="risk-balanced-buyins">—</div>
-            <div class="calc-risk-band-currency" id="risk-balanced-bankroll">—</div>
-          </div>
-          <div class="calc-risk-band-card">
-            <div class="calc-risk-band-label">Conservative</div>
-            <div class="calc-risk-band-buyins" id="risk-conservative-buyins">—</div>
-            <div class="calc-risk-band-currency" id="risk-conservative-bankroll">—</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
 </div>
 
 <!-- ════════════════════ MODALS ════════════════════ -->
@@ -938,44 +1548,6 @@
         <label class="form-label">Lesson / Review Note</label>
         <input class="form-input" type="text" id="h-lesson" placeholder="e.g. Should have folded given tight opponent's range at this stack depth">
       </div>
-      <input type="hidden" id="h-pending-session-key" value="">
-      <div style="grid-column:1/-1;background:rgba(255,255,255,.03);border:1px solid var(--rim);border-radius:10px;padding:1rem">
-        <div style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:.85rem">Replay Details (Optional)</div>
-        <div class="form-grid" style="margin-bottom:0">
-          <div class="form-group">
-            <label class="form-label">Hero Position</label>
-            <input class="form-input" type="text" id="h-hero-pos" placeholder="e.g. BTN">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Key Opponent Position</label>
-            <input class="form-input" type="text" id="h-villain-pos" placeholder="e.g. BB">
-          </div>
-          <div class="form-group" style="grid-column:1/-1">
-            <label class="form-label">Stacks / Blinds</label>
-            <input class="form-input" type="text" id="h-stacks" placeholder="e.g. 24BB effective at 2k/4k/4k">
-          </div>
-          <div class="form-group" style="grid-column:1/-1">
-            <label class="form-label">Board Runout</label>
-            <input class="form-input" type="text" id="h-board" placeholder="e.g. Ah 9c 4d | turn 2s | river Kc">
-          </div>
-          <div class="form-group" style="grid-column:1/-1">
-            <label class="form-label">Preflop Action</label>
-            <textarea class="form-input" id="h-preflop" rows="2" placeholder="e.g. CO opened 2.2x, Hero 3-bet BTN, BB called..."></textarea>
-          </div>
-          <div class="form-group" style="grid-column:1/-1">
-            <label class="form-label">Flop Action</label>
-            <textarea class="form-input" id="h-flop" rows="2" placeholder="Optional"></textarea>
-          </div>
-          <div class="form-group" style="grid-column:1/-1">
-            <label class="form-label">Turn Action</label>
-            <textarea class="form-input" id="h-turn" rows="2" placeholder="Optional"></textarea>
-          </div>
-          <div class="form-group" style="grid-column:1/-1">
-            <label class="form-label">River Action</label>
-            <textarea class="form-input" id="h-river" rows="2" placeholder="Optional"></textarea>
-          </div>
-        </div>
-      </div>
     </div>
     <div class="modal-actions">
       <button class="sec-action" onclick="closeModal('modal-hand')">CANCEL</button>
@@ -984,57 +1556,11 @@
   </div>
 </div>
 
-<div class="modal-overlay" id="modal-hand-replay">
-  <div class="modal" style="max-width:760px">
-    <div class="modal-title" id="hr-title">Hand Replay</div>
-    <div id="hr-body"></div>
-    <div class="modal-actions">
-      <button class="sec-action" onclick="closeModal('modal-hand-replay')">CLOSE</button>
-    </div>
-  </div>
-</div>
-
-<script src="./js/data/config-runtime.js"></script>
-<script src="./js/features/active-session.js"></script>
-<script src="./js/features/demo-mode.js"></script>
-<script src="./js/features/calculator.js"></script>
-<script src="./js/features/staking.js"></script>
-<script src="./js/features/review.js"></script>
-<script src="./js/features/calendar.js"></script>
-<script src="./js/features/study-loop.js"></script>
-<script src="./js/features/strategy.js"></script>
-<script src="./js/features/hands.js"></script>
-<script src="./js/features/library.js"></script>
-<script src="./js/features/onboarding.js"></script>
 <script>
 // ── STORAGE — with offline queue ──
-function getProfileConfigApi() { return window.PokerHQConfig || {}; }
-function resolveScopedLocalKey(key) {
-  var cfg = getProfileConfigApi();
-  if (cfg.resolveLocalStorageKey) return cfg.resolveLocalStorageKey(key);
-  return 'pokerhq_'+key;
-}
-function resolveReadableLocalKeys(key) {
-  var cfg = getProfileConfigApi();
-  if (cfg.resolveLocalReadKeys) return cfg.resolveLocalReadKeys(key);
-  return ['pokerhq_'+key];
-}
-function readJSONFromKeys(keys, def) {
-  try {
-    for (var i = 0; i < keys.length; i++) {
-      var raw = localStorage.getItem(keys[i]);
-      if (!raw) continue;
-      return JSON.parse(raw);
-    }
-  } catch(e) {}
-  return def;
-}
-function load(key, def) { return readJSONFromKeys(resolveReadableLocalKeys(key), def); }
-function loadLocalOnly(key, def) { try { var v = localStorage.getItem(key); return v ? JSON.parse(v) : def; } catch(e) { return def; } }
-function saveLocalOnly(key, val) { try { if (val === null || typeof val === 'undefined') localStorage.removeItem(key); else localStorage.setItem(key, JSON.stringify(val)); } catch(e) {} }
+function load(key, def) { try { return JSON.parse(localStorage.getItem('pokerhq_'+key)) || def; } catch(e) { return def; } }
 
-var _offlineQueueKey = resolveScopedLocalKey('offline_queue');
-var _offlineQueue = readJSONFromKeys(resolveReadableLocalKeys('offline_queue'), {});
+var _offlineQueue = JSON.parse(localStorage.getItem('pokerhq_offline_queue')||'{}');
 var _isOnline = navigator.onLine;
 
 window.addEventListener('online',  function(){ _isOnline=true;  flushOfflineQueue(); updateOnlineStatus(); });
@@ -1043,32 +1569,29 @@ window.addEventListener('offline', function(){ _isOnline=false; updateOnlineStat
 function updateOnlineStatus() {
   var el = document.getElementById('sync-status');
   if (!el) return;
-  if (!_isOnline) { el.textContent='○ Offline — changes saved locally'; el.style.color='#F0A832'; }
-  renderReliability();
+  if (!_isOnline) { el.textContent='○ Offline — saved locally'; el.style.color='#F0A832'; }
 }
 
 function flushOfflineQueue() {
   var keys = Object.keys(_offlineQueue);
-  if (!keys.length || !window.fbSave) return;
+  if (!keys.length) return;
   keys.forEach(function(k) {
     if (window.fbSave) window.fbSave(k, _offlineQueue[k]);
   });
   _offlineQueue = {};
-  localStorage.setItem(_offlineQueueKey, '{}');
-  renderReliability();
+  localStorage.setItem('pokerhq_offline_queue', '{}');
 }
 
 function save(key, val) {
   if (window._demoMode) return; // Never persist demo data
-  localStorage.setItem(resolveScopedLocalKey(key), JSON.stringify(val));
+  localStorage.setItem('pokerhq_'+key, JSON.stringify(val));
   if (_isOnline && window.fbSave) {
     window.fbSave(key, val);
   } else {
     // Queue for later sync
     _offlineQueue[key] = val;
-    localStorage.setItem(_offlineQueueKey, JSON.stringify(_offlineQueue));
+    localStorage.setItem('pokerhq_offline_queue', JSON.stringify(_offlineQueue));
   }
-  renderReliability();
 }
 
 window.sessions   = load('sessions', []);
@@ -1086,18 +1609,7 @@ var strategies = window.strategies;
 var newsItems  = window.newsItems;
 var spotlights = window.spotlights;
 var bankroll   = window.bankroll;
-window.syncGlobalAliases = function() {
-  sessions = window.sessions;
-  tourneys = window.tourneys;
-  hands = window.hands;
-  strategies = window.strategies;
-  newsItems = window.newsItems;
-  spotlights = window.spotlights;
-  bankroll = window.bankroll;
-  if (typeof satellites !== 'undefined') satellites = window.satellites || [];
-  if (typeof satTarget !== 'undefined') satTarget = window.satTarget || { name:'', buyin:0 };
-  if (typeof opponents !== 'undefined') opponents = window.opponents || [];
-};
+
 // ── CLOCK ──
 function tickClock() {
   var t = new Date().toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit',hour12:false});
@@ -1120,14 +1632,13 @@ function switchTab(id) {
   // Data refresh
   if (id==='dashboard') refreshDashboard();
   renderCalendarMonth();
-  if (id==='sessions') { loadBankrollForm(); hydrateSessionFormFromDraft(false); renderSessionTable(); renderActiveSessionSurface(); if (window.renderStakingInputSummary) renderStakingInputSummary(); }
+  if (id==='sessions') { loadBankrollForm(); renderSessionTable(); }
   if (id==='calendar') { renderCalendar(); }
   if (id==='strategy') renderStrategy();
   if (id==='hands') { populateSessionDropdowns(); renderHands(); }
   if (id==='satellite') renderSatellites();
   if (id==='opponents') renderOpponents();
   if (id==='heatmap') renderHeatmap();
-  renderReliability();
 }
 
 // ── BANKROLL ──
@@ -1152,11 +1663,6 @@ function updateBRMTip() {
 }
 function fmt(n) { return Math.round(n).toLocaleString(); }
 function fmtCur(n) { var v=Math.round(n); return (v>=0?'₱':'−₱')+Math.abs(v).toLocaleString(); }
-['s-date','s-name','s-venue','s-buyin','s-focus','s-energy','s-sleep','s-fasting'].forEach(function(id) {
-  var el = document.getElementById(id);
-  if (el) el.addEventListener('input', syncActiveDraftFromForm);
-  if (el) el.addEventListener('change', syncActiveDraftFromForm);
-});
 
 // ── SESSION CRUD ──
 function addSession() {
@@ -1168,7 +1674,6 @@ function addSession() {
   var pos    = parseInt(document.getElementById('s-position').value)||0;
   var field  = parseInt(document.getElementById('s-field').value)||0;
   var itm    = field>0 ? Math.ceil(field*0.15) : 0;
-  var stakingData = window.collectSessionStakingData ? collectSessionStakingData() : {};
 
   var s = {
     id: Date.now(),
@@ -1184,31 +1689,10 @@ function addSession() {
     focus:   parseFloat(document.getElementById('s-focus').value)||0,
     energy:  parseFloat(document.getElementById('s-energy').value)||0,
     sleep:   parseFloat(document.getElementById('s-sleep').value)||0,
-    fasting: document.getElementById('s-fasting').value||'',
-    bullets: _activeSessionDraft && _activeSessionDraft.bullets ? _activeSessionDraft.bullets : 1
+    fasting: document.getElementById('s-fasting').value||''
   };
-  Object.keys(stakingData).forEach(function(key) {
-    s[key] = stakingData[key];
-  });
-  if (_activeSessionDraft && _activeSessionDraft.readiness) {
-    s.readiness = Object.assign({}, _activeSessionDraft.readiness);
-  }
   window.sessions.unshift(s); sessions = window.sessions;
   save('sessions', sessions);
-
-  if (_activeSessionDraft && _activeSessionDraft.key) {
-    var sessionLabel = s.name + ' — ' + s.date;
-    hands = hands.map(function(h) {
-      if (h.pendingSessionKey === _activeSessionDraft.key && !h.sessionId) {
-        h.sessionId = s.id;
-        h.session = sessionLabel;
-        delete h.pendingSessionKey;
-      }
-      return h;
-    });
-    window.hands = hands;
-    save('hands', hands);
-  }
 
   // Update bankroll
   bankroll.amount = Math.max(0, bankroll.amount + pnl);
@@ -1217,22 +1701,18 @@ function addSession() {
   clearSessionForm();
   renderSessionTable();
   refreshDashboard();
-  endActiveSession();
   // Show gentle toast — not a blocking dialog
-  showSessionToast(fmtCur(pnl), s.id);
-  switchGroup('review','sessions');
-  setTimeout(function(){ viewSessionDetail(s.id, true); }, 140);
+  showSessionToast(fmtCur(pnl), sessions[0] ? sessions[0].id : null);
 }
 
 function clearSessionForm() {
   clearRatings();
-  ['s-date','s-name','s-venue','s-buyin','s-rebuy','s-field','s-position','s-prize','s-hours','s-notes','s-package','s-player-share','s-markup'].forEach(function(id){
+  ['s-date','s-name','s-venue','s-buyin','s-rebuy','s-field','s-position','s-prize','s-hours','s-notes'].forEach(function(id){
     document.getElementById(id).value='';
   });
   document.getElementById('s-date').value = new Date().toISOString().split('T')[0];
 var satDateEl = document.getElementById('sat-date'); if (satDateEl) satDateEl.value = new Date().toISOString().split('T')[0];
-  if (window.renderStakingInputSummary) renderStakingInputSummary();
-  populateSessionDropdowns();
+populateSessionDropdowns();
 }
 
 function deleteSession(id) {
@@ -1253,7 +1733,6 @@ function resultBadge(r) {
 
 function renderSessionTable() {
   renderStudyLoop();
-  if (window.renderStakingSummary) renderStakingSummary();
   var tbody = document.getElementById('session-tbody');
   if (!sessions.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="11">No sessions logged yet — add your first tournament above.</td></tr>'; return; }
   tbody.innerHTML = sessions.map(function(s) {
@@ -1312,23 +1791,15 @@ function refreshDashboard() {
   // P&L chart
   var chart = document.getElementById('pnl-chart');
   var last10 = sessions.slice(0,10).reverse();
-  if (!last10.length) {
-    if (chart) chart.innerHTML='<div style="color:rgba(255,255,255,.2);font-family:var(--mono);font-size:11px;width:100%;text-align:center;padding:2rem 0">No sessions to chart yet</div>';
-    refreshDemoBanner();
-    renderActiveSessionSurface();
-    renderReliability();
-    return;
-  }
+  if (!last10.length) { chart.innerHTML='<div style="color:rgba(255,255,255,.2);font-family:var(--mono);font-size:11px;width:100%;text-align:center;padding:2rem 0">No sessions to chart yet</div>'; refreshDemoBanner(); return; }
   var maxAbs = Math.max.apply(null, last10.map(function(s){ return Math.abs(s.pnl); }))||1;
-  if (chart) chart.innerHTML = last10.map(function(s){
+  chart.innerHTML = last10.map(function(s){
     var h = Math.max(4, Math.round((Math.abs(s.pnl)/maxAbs)*90));
     var pos = s.pnl>=0;
     var name = s.name.length>8?s.name.substring(0,8)+'…':s.name;
     return '<div class="bar-col"><div class="bar '+(pos?'bar-pos':'bar-neg')+'" style="height:'+h+'px;width:100%"></div><div class="bar-label">'+name+'</div></div>';
   }).join('');
   refreshDemoBanner();
-  renderActiveSessionSurface();
-  renderReliability();
 }
 
 // ── CALENDAR ──
@@ -1561,7 +2032,7 @@ function renderCalendarList() {
       html += '<div class="event-buyin">₱'+t.buyin.toLocaleString()+'</div>';
       html += '<span class="'+badgeCls+'">'+badgeTxt+'</span>';
       html += '<span class="tourney-status '+sc+'">'+sl+'</span>';
-      html += '<button class="sec-action" style="font-size:10px;padding:3px 9px;margin-top:2px;border-color:var(--green);color:var(--green)" onclick="startSessionFromTourney('+t.id+')">▶ START SESSION</button>';
+      html += '<button class="sec-action" style="font-size:10px;padding:3px 9px;margin-top:2px;border-color:var(--green);color:var(--green)" onclick="startSessionFromTourney('+t.id+')">▶ PLAY</button>';
       html += '<button class="del-btn" onclick="deleteTourney('+t.id+')">✕</button>';
       html += '</div></div>';
     });
@@ -1664,8 +2135,6 @@ function renderStrategy() {
 function addHand() {
   var sessionLink = document.getElementById('h-session-link');
   var sessionId = sessionLink ? parseInt(sessionLink.value)||0 : 0;
-  var pendingKeyEl = document.getElementById('h-pending-session-key');
-  var pendingKey = pendingKeyEl ? pendingKeyEl.value || '' : '';
   var sessionLabel = '';
   if (sessionId) {
     var linked = sessions.find(function(s){ return s.id===sessionId; });
@@ -1678,16 +2147,13 @@ function addHand() {
     title: document.getElementById('h-title').value||'Hand',
     desc: document.getElementById('h-desc').value||'',
     lesson: document.getElementById('h-lesson').value||'',
-    result: document.getElementById('h-result').value,
-    pendingSessionKey: sessionId ? '' : pendingKey
+    result: document.getElementById('h-result').value
   };
   window.hands.unshift(h); hands = window.hands;
   save('hands', hands);
   closeModal('modal-hand');
-  if (pendingKeyEl) pendingKeyEl.value = '';
   populateSessionDropdowns();
   renderHands();
-  renderActiveSessionSurface();
 }
 
 function deleteHand(id) {
@@ -1705,7 +2171,7 @@ function renderHands() {
   var countEl = document.getElementById('hand-count');
   if (countEl) countEl.textContent = filtered.length+' hand'+(filtered.length!==1?'s':'');
   if (!filtered.length) {
-    el.innerHTML='<div style="padding:3rem;text-align:center;color:rgba(255,255,255,.2);font-family:var(--mono);font-size:13px">'+(filterVal?'No hands linked to this session yet.':'No hands logged yet. Capture a hand manually or turn a voice memo into a structured review.')+'</div>';
+    el.innerHTML='<div style="padding:3rem;text-align:center;color:rgba(255,255,255,.2);font-family:var(--mono);font-size:13px">'+(filterVal?'No hands logged for this session yet.':'No hands logged yet. Click + LOG HAND or use 🎙 VOICE TO HAND.')+'</div>';
     return;
   }
   el.innerHTML = filtered.map(function(h) {
@@ -1780,25 +2246,6 @@ function exportPDF() {
     });
     y+=6;
 
-    if (window.getStakingPackageRows) {
-      var stakingRows = getStakingPackageRows();
-      if (stakingRows.length) {
-        chk(20);
-        doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(80,80,80);
-        doc.text('STAKING SUMMARY', ML, y); y+=6;
-        doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(50,50,50);
-        stakingRows.slice(0,4).forEach(function(row) {
-          chk(8);
-          doc.text(row.packageLabel.substring(0,40), ML, y);
-          doc.text('Events: '+row.sessionCount, ML+72, y);
-          doc.text('Value: ₱'+fmt(row.packageValue), ML+102, y);
-          doc.text('Player Net: '+fmtCur(row.playerNet), ML+145, y);
-          y += 5;
-        });
-        y += 4;
-      }
-    }
-
     // Strategy notes
     if (strategies.length) {
       chk(14);
@@ -1820,33 +2267,6 @@ function exportPDF() {
 }
 
 // ── GEMINI JSON PARSER ──
-function normalizeImportToken(value) {
-  return String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
-}
-
-function getImportedTourneyFingerprint(t) {
-  return [
-    normalizeImportToken(t.date),
-    normalizeImportToken(t.day),
-    normalizeImportToken(t.month),
-    normalizeImportToken(t.series),
-    normalizeImportToken(t.name),
-    normalizeImportToken(t.venue),
-    normalizeImportToken(t.type),
-    String(Math.round((parseFloat(t.buyin) || 0) * 100))
-  ].join('|');
-}
-
-function getImportedStrategyFingerprint(s) {
-  return [
-    normalizeImportToken(s.week),
-    normalizeImportToken(s.topic),
-    normalizeImportToken(s.note),
-    normalizeImportToken(s.source),
-    normalizeImportToken(s.type)
-  ].join('|');
-}
-
 function parseGeminiJSON() {
   var raw = document.getElementById('strategy-raw').value.trim();
   if (!raw) return;
@@ -1888,8 +2308,8 @@ function parseGeminiJSON() {
           source: ev.source||'',
           status: status
         };
-        var tfp = getImportedTourneyFingerprint(t);
-        var exists = tourneys.some(function(x){ return getImportedTourneyFingerprint(x) === tfp; });
+        // Only add if not already exists (match by name+date)
+        var exists = tourneys.some(function(x){ return x.name===t.name && x.date===t.date; });
         if (!exists) { tourneys.push(t); imported.calendars.push(t); }
       });
     }
@@ -1923,12 +2343,8 @@ function parseGeminiJSON() {
           source: ins.source||'',
           type: 'gemini'
         };
-        var sfp = getImportedStrategyFingerprint(s);
-        var exists = strategies.some(function(x){ return getImportedStrategyFingerprint(x) === sfp; });
-        if (!exists) {
-          strategies.unshift(s);
-          imported.strategies.push(s);
-        }
+        strategies.unshift(s);
+        imported.strategies.push(s);
       });
     }
 
@@ -1946,11 +2362,9 @@ function parseGeminiJSON() {
 
   // Save everything
   if (imported.calendars.length) {
-    window.tourneys = tourneys;
     tourneys.sort(function(a,b){ return (a.date||'').localeCompare(b.date||''); });
     save('tourneys', tourneys);
   }
-  window.strategies = strategies;
   save('strategies', strategies);
 
   // Render news inline on strategy page
@@ -2011,6 +2425,277 @@ function switchGroup(group, page) {
   switchTab(page || defaults[group]);
   window.scrollTo(0,0);
 }
+
+// ── TOURNAMENT CALCULATOR ──
+function calcSwitchMode(mode) {
+  document.querySelectorAll('.calc-mode-btn').forEach(function(b){ b.classList.remove('active'); });
+  document.querySelectorAll('.calc-panel').forEach(function(p){ p.classList.remove('active'); });
+  document.getElementById('calc-btn-'+mode).classList.add('active');
+  document.getElementById('calc-panel-'+mode).classList.add('active');
+}
+
+var _calcPresets = {
+  3:  [50, 30, 20],
+  5:  [40, 25, 16, 11, 8],
+  9:  [32, 20, 13, 9, 7, 6, 5, 4.5, 3.5],
+  10: [30, 18, 12, 9, 7, 6, 5, 4.5, 4, 3.5]
+};
+var _calcPcts = [];
+var _calcNumPlaces = 0;
+
+function calcPlacesChanged() {
+  var sel = document.getElementById('calc-places');
+  var customWrap = document.getElementById('calc-custom-places-wrap');
+  if (sel.value === 'custom') {
+    customWrap.style.display = '';
+    document.getElementById('calc-custom-places').value = '';
+    _calcPcts = [];
+    _calcNumPlaces = 0;
+    document.getElementById('calc-pct-editor').innerHTML = '';
+    document.getElementById('calc-payout-results').innerHTML = '';
+    document.getElementById('calc-payout-total').textContent = '';
+  } else {
+    customWrap.style.display = 'none';
+    var n = parseInt(sel.value) || 0;
+    if (n > 0) {
+      _calcNumPlaces = n;
+      if (_calcPresets[n]) {
+        _calcPcts = _calcPresets[n].slice();
+      } else {
+        _calcPcts = [];
+        while (_calcPcts.length < n) _calcPcts.push(0);
+      }
+      calcRenderPctEditor();
+      calcPayouts();
+    }
+  }
+}
+
+function generateCustomStructure(places) {
+  if (places < 1) return [];
+  if (places === 1) return [100];
+  var decay = 0.75;
+  var raw = [];
+  for (var i = 0; i < places; i++) raw.push(Math.pow(decay, i));
+  var total = raw.reduce(function(a, b){ return a + b; }, 0);
+  var pcts = raw.map(function(v){ return Math.round((v / total) * 1000) / 10; });
+  // Fix rounding drift on 1st place
+  var sum = pcts.reduce(function(a, b){ return a + b; }, 0);
+  pcts[0] = Math.round((pcts[0] + Math.round((100 - sum) * 10) / 10) * 10) / 10;
+  return pcts;
+}
+
+var _calcCustomDebounceTimer = null;
+function calcCustomPlacesDebounced() {
+  clearTimeout(_calcCustomDebounceTimer);
+  _calcCustomDebounceTimer = setTimeout(function() {
+    var n = parseInt(document.getElementById('calc-custom-places').value) || 0;
+    if (n < 1 || n > 100) return;
+    _calcNumPlaces = n;
+    // Use preset if available, otherwise generate
+    if (_calcPresets[n]) {
+      _calcPcts = _calcPresets[n].slice();
+    } else {
+      _calcPcts = generateCustomStructure(n);
+    }
+    calcRenderPctEditor();
+    calcPayouts();
+  }, 500);
+}
+
+function calcApplyPreset(n) {
+  _calcPcts = _calcPresets[n].slice();
+  _calcNumPlaces = n;
+  // Update the places dropdown
+  var sel = document.getElementById('calc-places');
+  if (sel) {
+    var found = false;
+    for (var i = 0; i < sel.options.length; i++) {
+      if (parseInt(sel.options[i].value) === n) { sel.value = String(n); found = true; break; }
+    }
+    if (!found) sel.value = 'custom';
+  }
+  document.getElementById('calc-custom-places-wrap').style.display = 'none';
+  calcRenderPctEditor();
+  calcPayouts();
+}
+
+function ordinal(n) {
+  var s = ['th','st','nd','rd'], v = n % 100;
+  return n + (s[(v-20)%10] || s[v] || s[0]);
+}
+
+function calcRenderPctEditor() {
+  if (!_calcPcts.length) { document.getElementById('calc-pct-editor').innerHTML = ''; return; }
+  var total = _calcPcts.reduce(function(a,b){ return a+b; }, 0);
+  var tcolor = Math.abs(total-100) < 0.15 ? 'var(--green)' : 'var(--red)';
+  var warn   = Math.abs(total-100) >= 0.15 ? ' ⚠ must equal 100%' : ' ✓';
+  var html = '<div style="display:flex;flex-wrap:wrap;gap:.5rem .75rem;align-items:center;margin-bottom:.5rem">';
+  for (var i=0; i<_calcPcts.length; i++) {
+    html += '<div style="display:flex;align-items:center;gap:.3rem">';
+    html += '<span style="font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.4)">'+ordinal(i+1)+'</span>';
+    html += '<input class="pct-input" type="number" step="0.5" min="0" max="100" value="'+_calcPcts[i]+'" data-idx="'+i+'" oninput="onPercentChange(+this.getAttribute(\'data-idx\'))">';
+    html += '<span style="font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.3)">%</span>';
+    html += '</div>';
+  }
+  html += '</div>';
+  html += '<div id="calc-pct-total" style="font-family:var(--mono);font-size:10px;color:'+tcolor+'">Total: '+total.toFixed(1)+'%'+warn+'</div>';
+  document.getElementById('calc-pct-editor').innerHTML = html;
+}
+
+function onPercentChange(editedIndex) {
+  var inputs = document.querySelectorAll('.pct-input');
+  var editedVal = parseFloat(inputs[editedIndex].value) || 0;
+
+  // Cap at 100
+  if (editedVal > 100) { editedVal = 100; inputs[editedIndex].value = 100; }
+  _calcPcts[editedIndex] = editedVal;
+
+  var remaining = 100 - editedVal;
+
+  // Collect other inputs and their current values
+  var others = [];
+  var otherTotal = 0;
+  inputs.forEach(function(inp, i) {
+    if (i !== editedIndex) {
+      var v = parseFloat(inp.value) || 0;
+      others.push({ el: inp, idx: i, val: v });
+      otherTotal += v;
+    }
+  });
+
+  if (others.length === 0) { calcPayouts(); return; }
+
+  // Redistribute remaining proportionally; fall back to even split if all others are 0
+  if (otherTotal === 0) {
+    var share = Math.round(remaining / others.length * 10) / 10;
+    others.forEach(function(o) {
+      o.el.value = share;
+      _calcPcts[o.idx] = share;
+    });
+  } else {
+    others.forEach(function(o) {
+      var newVal = Math.round((o.val / otherTotal) * remaining * 10) / 10;
+      o.el.value = newVal;
+      _calcPcts[o.idx] = newVal;
+    });
+  }
+
+  // Enforce 1st place is always the highest — swap with 2nd if needed
+  if (_calcPcts.length >= 2 && _calcPcts[0] < _calcPcts[1]) {
+    var tmp = _calcPcts[0]; _calcPcts[0] = _calcPcts[1]; _calcPcts[1] = tmp;
+    if (inputs[0]) inputs[0].value = _calcPcts[0];
+    if (inputs[1]) inputs[1].value = _calcPcts[1];
+  }
+
+  // Update total indicator (no full re-render — keeps cursor in focused input)
+  var finalTotal = _calcPcts.reduce(function(a,b){ return a+b; }, 0);
+  var ok = Math.abs(finalTotal - 100) < 0.5;
+  var totEl = document.getElementById('calc-pct-total');
+  if (totEl) {
+    totEl.style.color = ok ? 'var(--green)' : 'var(--red)';
+    totEl.textContent = 'Total: ' + Math.round(finalTotal * 10) / 10 + '%' + (ok ? ' ✓' : ' ⚠ must equal 100%');
+  }
+
+  calcPayouts();
+}
+
+function calcPayouts() {
+  var pool = parseFloat(document.getElementById('calc-pool').value) || 0;
+  var resultsEl = document.getElementById('calc-payout-results');
+  var totalEl   = document.getElementById('calc-payout-total');
+  if (!pool || !_calcPcts.length) {
+    resultsEl.innerHTML = '';
+    totalEl.textContent = '';
+    return;
+  }
+  var html = '';
+  var totalPayout = 0;
+  for (var i=0; i<_calcPcts.length; i++) {
+    var pct    = _calcPcts[i];
+    var amount = pool * pct / 100;
+    totalPayout += amount;
+    html += '<div class="calc-result-item">';
+    html += '<div class="calc-result-place">'+ordinal(i+1)+' Place</div>';
+    html += '<div class="calc-result-pct">'+pct.toFixed(1)+'%</div>';
+    html += '<div class="calc-result-amount">₱'+Math.round(amount).toLocaleString()+'</div>';
+    html += '</div>';
+  }
+  resultsEl.innerHTML = html;
+  totalEl.textContent = 'Total: ₱'+Math.round(totalPayout).toLocaleString()+' across '+_calcPcts.length+' place'+((_calcPcts.length!==1)?'s':'');
+}
+
+function calcStackAdvisor() {
+  var stack   = parseFloat(document.getElementById('calc-stack').value)  || 0;
+  var bb      = parseFloat(document.getElementById('calc-bb').value)     || 0;
+  var players = parseInt(document.getElementById('calc-players').value)  || 0;
+  var paid    = parseInt(document.getElementById('calc-paid').value)     || 0;
+  var emptyEl   = document.getElementById('calc-advisor-empty');
+  var resultsEl = document.getElementById('calc-advisor-results');
+  if (!stack || !bb || !players || !paid) {
+    emptyEl.style.display   = '';
+    resultsEl.style.display = 'none';
+    return;
+  }
+  emptyEl.style.display   = 'none';
+  resultsEl.style.display = '';
+
+  var bbDepth          = stack / bb;
+  var mRatio           = stack / (bb * 2);   // approx SB+BB, no antes
+  var playersFromMoney = Math.max(0, players - paid);
+  var nearBubble       = playersFromMoney <= 10;
+  var pctPaid          = (paid / players * 100).toFixed(0);
+
+  // Card 1 — Stack
+  document.getElementById('adv-bb-val').textContent  = bbDepth.toFixed(1)+' BB';
+  document.getElementById('adv-m-val').textContent   = 'M-ratio: '+mRatio.toFixed(1)+'x';
+
+  // Card 2 — Bubble
+  var bubbleTxt = playersFromMoney === 0
+    ? 'In the money ✓'
+    : playersFromMoney+' spot'+(playersFromMoney!==1?'s':'')+' from the money';
+  document.getElementById('adv-bubble-val').textContent = bubbleTxt;
+  document.getElementById('adv-pct-paid').textContent   = pctPaid+'% of field paid';
+
+  // Recommendation
+  var rec, cls, detail;
+  if (bbDepth <= 10) {
+    rec = 'SHOVE ANY TWO'; cls = 'shove';
+    detail = bbDepth.toFixed(1)+'BB — push/fold only. Get it in before the blinds cripple you.';
+  } else if (bbDepth <= 15 && nearBubble) {
+    rec = 'SHOVE TOP 40%'; cls = 'amber';
+    detail = 'Short stack near the bubble — shove any pair, Ax, KJ+, QJ from any position.';
+  } else if (bbDepth <= 20 && nearBubble) {
+    rec = 'SHOVE TOP 25%'; cls = 'amber';
+    detail = 'Bubble pressure — shove 66+, AJ+, KQ. Fold marginal hands and preserve your equity.';
+  } else if (bbDepth <= 20) {
+    rec = 'PLAY AGGRESSIVE'; cls = 'blue';
+    detail = bbDepth.toFixed(1)+'BB — steal blinds, squeeze spots, and build a stack.';
+  } else {
+    rec = 'NORMAL PLAY'; cls = 'normal';
+    detail = bbDepth.toFixed(1)+'BB — play your A-game. Open wide in position, use your stack leverage.';
+  }
+  var bannerEl = document.getElementById('adv-rec-banner');
+  bannerEl.className = 'calc-rec-banner '+cls;
+  bannerEl.innerHTML =
+    '<div class="rec-label">Recommendation</div>'+
+    '<div class="rec-action">'+rec+'</div>'+
+    '<div class="rec-detail">'+detail+'</div>';
+
+  // Push/fold guide — highlight active row
+  var pfRows = [
+    {id:'pfrow-10',  min:0,  max:10},
+    {id:'pfrow-13',  min:10, max:13},
+    {id:'pfrow-17',  min:13, max:17},
+    {id:'pfrow-20',  min:17, max:20},
+    {id:'pfrow-deep',min:20, max:Infinity}
+  ];
+  pfRows.forEach(function(r) {
+    var el = document.getElementById(r.id);
+    if (el) el.classList.toggle('active', bbDepth >= r.min && bbDepth < r.max);
+  });
+}
+
 // ── THEME TOGGLE ──
 function toggleTheme() {
   var isLight = document.body.classList.toggle('light');
@@ -2031,6 +2716,55 @@ function populateSessionDropdowns() {
     el.innerHTML = isFilter ? '<option value="">All sessions</option>'+sessions.map(function(s){return '<option value="'+s.id+'">'+s.date+' — '+s.name+'</option>';}).join('') : opts;
   });
 }
+
+// ── SESSION DETAIL VIEW ──
+function viewSessionDetail(sid) {
+  var s = sessions.find(function(x){ return x.id===sid; });
+  if (!s) return;
+  var linkedHands = hands.filter(function(h){ return h.sessionId===sid; });
+  var pnlCls = s.pnl>0?'color:#2DB87A':s.pnl<0?'color:#E85C5C':'color:rgba(255,255,255,.4)';
+  var html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1.25rem">';
+  html += '<div style="background:var(--bg3);border-radius:8px;padding:.75rem"><div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.3);margin-bottom:.25rem">BUY-IN</div><div style="font-family:var(--mono);font-size:16px">₱'+s.total.toLocaleString()+'</div></div>';
+  html += '<div style="background:var(--bg3);border-radius:8px;padding:.75rem"><div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.3);margin-bottom:.25rem">P&L</div><div style="font-family:var(--mono);font-size:16px;'+pnlCls+'">'+fmtCur(s.pnl)+'</div></div>';
+  html += '<div style="background:var(--bg3);border-radius:8px;padding:.75rem"><div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.3);margin-bottom:.25rem">POSITION</div><div style="font-family:var(--mono);font-size:16px">'+(s.position||'—')+(s.field?' / '+s.field:'')+'</div></div>';
+  html += '<div style="background:var(--bg3);border-radius:8px;padding:.75rem"><div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.3);margin-bottom:.25rem">HOURS</div><div style="font-family:var(--mono);font-size:16px">'+(s.hours||'—')+'h</div></div>';
+  html += '</div>';
+  if (s.notes) html += '<div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:1.25rem;padding:.75rem;background:var(--bg3);border-radius:8px">📝 '+s.notes+'</div>';
+
+  // Linked hands
+  html += '<div style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:rgba(255,255,255,.35);text-transform:uppercase;margin-bottom:.75rem">Logged Hands ('+linkedHands.length+')</div>';
+  if (!linkedHands.length) {
+    html += '<div style="font-size:12px;color:rgba(255,255,255,.25);font-style:italic;margin-bottom:.75rem">No hands logged for this session yet.</div>';
+  } else {
+    linkedHands.forEach(function(h) {
+      var rc = {won:'#2DB87A',lost:'#E85C5C',fold:'rgba(255,255,255,.3)'}[h.result]||'rgba(255,255,255,.3)';
+      var rl = {won:'WON',lost:'LOST',fold:'FOLD'}[h.result]||'FOLD';
+      html += '<div style="background:var(--bg3);border-radius:8px;padding:.75rem;margin-bottom:.5rem">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem"><span style="font-size:13px;font-weight:500;color:#fff">'+h.title+'</span><span style="font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:20px;background:rgba(0,0,0,.3);color:'+rc+'">'+rl+'</span></div>';
+      if (h.desc) html += '<div style="font-size:12px;color:rgba(255,255,255,.45);line-height:1.6;margin-bottom:.35rem">'+h.desc+'</div>';
+      if (h.lesson) html += '<div style="font-size:11px;color:var(--gold);font-family:var(--mono)">💡 '+h.lesson+'</div>';
+      html += '</div>';
+    });
+  }
+  html += '<button class="sec-action" style="margin-top:.5rem" onclick="closeModal(\'modal-session-detail\');openHandModalForSession('+sid+')">+ ADD HAND TO THIS SESSION</button>';
+  html += '<div class="session-lesson-card"><div class="session-lesson-title">Turn this session into a lesson</div><div class="session-lesson-btns"><button class="sec-action" onclick="closeModal(\'modal-session-detail\');openHandModalForSession('+sid+')">🃏 LOG A HAND</button><button class="sec-action" onclick="closeModal(\'modal-session-detail\');switchGroup(\'improve\',\'strategy\');setTimeout(function(){var el=document.getElementById(\'strat-topic\');if(el){el.focus();el.scrollIntoView({behavior:\'smooth\',block:\'center\'});}},250)">📝 ADD NOTE</button></div></div>';
+
+  document.getElementById('sd-title').textContent = s.name + ' — ' + s.date;
+  document.getElementById('sd-body').innerHTML = html;
+  openModal('modal-session-detail');
+}
+
+function openHandModalForSession(sid) {
+  var s = sessions.find(function(x){ return x.id===sid; });
+  openModal('modal-hand');
+  setTimeout(function(){
+    var sl = document.getElementById('h-session-link');
+    if (sl && s) { sl.value = sid; }
+    var hs = document.getElementById('h-session');
+    if (hs && s) hs.value = s.name + ' — ' + s.date;
+  }, 100);
+}
+
 // ── VOICE TO HAND ──
 function clearVoiceModal() {
   document.getElementById('voice-transcript').value='';
@@ -2087,13 +2821,9 @@ function saveVoiceHand() {
   var sessionLink = document.getElementById('voice-session-link');
   var sessionId = sessionLink ? parseInt(sessionLink.value)||0 : 0;
   var sessionLabel = '';
-  var pendingKey = '';
   if (sessionId) {
     var linked = sessions.find(function(s){ return s.id===sessionId; });
     if (linked) sessionLabel = linked.name + ' — ' + linked.date;
-  } else if (_activeSessionDraft && _activeSessionDraft.key) {
-    pendingKey = _activeSessionDraft.key;
-    sessionLabel = getActiveSessionLabel() || new Date().toLocaleDateString('en-PH');
   }
   var h = {
     id: Date.now(),
@@ -2103,8 +2833,7 @@ function saveVoiceHand() {
     desc: document.getElementById('vr-desc').value||'',
     lesson: document.getElementById('vr-lesson').value||'',
     result: document.getElementById('vr-result').value,
-    source: 'voice',
-    pendingSessionKey: sessionId ? '' : pendingKey
+    source: 'voice'
   };
   window.hands.unshift(h); hands = window.hands;
   save('hands', hands);
@@ -2112,7 +2841,6 @@ function saveVoiceHand() {
   clearVoiceModal();
   populateSessionDropdowns();
   renderHands();
-  renderActiveSessionSurface();
 }
 
 // ── SATELLITE TRACKER ──
@@ -2259,6 +2987,194 @@ function renderOpponents() {
     return '<div class="opp-card"><div class="opp-top"><div><div class="opp-name">'+o.name+'</div><div class="opp-venue">'+o.venue+(o.added?' · Added '+o.added:'')+'</div></div><button class="del-btn" onclick="deleteOpponent('+o.id+')">✕</button></div>'+(tagHTML?'<div class="opp-tags">'+tagHTML+'</div>':'')+(o.notes?'<div class="opp-notes">'+o.notes+'</div>':'')+'</div>';
   }).join('');
 }
+
+// ── RESULTS HEATMAP ──
+function renderHeatmap() {
+  if (!sessions.length) {
+    ['hmap-venue','hmap-buyin','hmap-itm','hmap-roi','hmap-monthly'].forEach(function(id){
+      var e=document.getElementById(id); if(e) e.innerHTML='<div class="heatmap-empty">Log sessions to see heatmap</div>';
+    });
+    return;
+  }
+
+  // P&L by venue
+  var venueMap = {};
+  sessions.forEach(function(s) {
+    var v = s.venue||'Unknown';
+    if (!venueMap[v]) venueMap[v] = {pnl:0,count:0,itm:0};
+    venueMap[v].pnl += s.pnl||0;
+    venueMap[v].count++;
+    if (s.result==='itm'||s.result==='final') venueMap[v].itm++;
+  });
+  renderHeatmapBars('hmap-venue', Object.keys(venueMap).map(function(k){
+    return {label:k, val:venueMap[k].pnl, display:fmtCur(venueMap[k].pnl)};
+  }));
+
+  // P&L by buy-in range
+  var ranges = [
+    {label:'₱0–₱2,999',   min:0,     max:2999},
+    {label:'₱3k–₱5,999',  min:3000,  max:5999},
+    {label:'₱6k–₱9,999',  min:6000,  max:9999},
+    {label:'₱10k–₱15k',   min:10000, max:15000},
+    {label:'₱15k+',        min:15001, max:999999}
+  ];
+  var rangeData = ranges.map(function(r) {
+    var inRange = sessions.filter(function(s){ return s.total>=r.min && s.total<=r.max; });
+    var pnl = inRange.reduce(function(a,s){ return a+(s.pnl||0); },0);
+    return {label:r.label, val:pnl, display:fmtCur(pnl)+' ('+inRange.length+')'};
+  }).filter(function(r){ return r.val!==0; });
+  renderHeatmapBars('hmap-buyin', rangeData);
+
+  // ITM rate by venue
+  renderHeatmapBars('hmap-itm', Object.keys(venueMap).map(function(k) {
+    var v=venueMap[k];
+    var rate = v.count>0 ? Math.round((v.itm/v.count)*100) : 0;
+    return {label:k, val:rate, display:rate+'% ITM ('+v.count+' sessions)', neutral:true};
+  }), 100);
+
+  // ROI by tournament name
+  var nameMap = {};
+  sessions.forEach(function(s) {
+    var n = s.name||'Unknown';
+    if (!nameMap[n]) nameMap[n]={invested:0,returned:0};
+    nameMap[n].invested += s.total||0;
+    nameMap[n].returned += s.prize||0;
+  });
+  renderHeatmapBars('hmap-roi', Object.keys(nameMap).map(function(k) {
+    var v=nameMap[k];
+    var roi = v.invested>0 ? Math.round(((v.returned-v.invested)/v.invested)*100) : 0;
+    return {label:k, val:roi, display:roi+'% ROI'};
+  }));
+
+  // Monthly P&L grid
+  var monthlyEl = document.getElementById('hmap-monthly');
+  if (monthlyEl) {
+    var now = new Date();
+    var monthData = {};
+    sessions.forEach(function(s) {
+      if (!s.date) return;
+      var d = new Date(s.date+'T00:00:00');
+      var key = d.getFullYear()+'-'+(d.getMonth()+1);
+      if (!monthData[key]) monthData[key]={pnl:0,count:0};
+      monthData[key].pnl += s.pnl||0;
+      monthData[key].count++;
+    });
+    var html = '';
+    for (var i=11;i>=0;i--) {
+      var d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+      var key = d.getFullYear()+'-'+(d.getMonth()+1);
+      var mon = monthData[key];
+      var label = d.toLocaleString('en',{month:'short',year:'2-digit'});
+      var bg, title;
+      if (!mon) { bg='rgba(255,255,255,.06)'; title=label+': No data'; }
+      else if (mon.pnl>0) { var intensity=Math.min(1,mon.pnl/10000); bg='rgba(45,184,122,'+(0.2+intensity*0.6)+')'; title=label+': '+fmtCur(mon.pnl)+' ('+mon.count+' sessions)'; }
+      else { var intensity=Math.min(1,Math.abs(mon.pnl)/10000); bg='rgba(232,92,92,'+(0.2+intensity*0.6)+')'; title=label+': '+fmtCur(mon.pnl)+' ('+mon.count+' sessions)'; }
+      html += '<div class="month-cell" style="background:'+bg+'" title="'+title+'"><div class="month-tooltip">'+title+'</div></div>';
+    }
+    monthlyEl.innerHTML = html;
+  }
+}
+
+function renderHeatmapBars(elId, data, maxVal) {
+  var el = document.getElementById(elId);
+  if (!el) return;
+  if (!data.length) { el.innerHTML='<div class="heatmap-empty">No data yet</div>'; return; }
+  var sorted = data.slice().sort(function(a,b){ return Math.abs(b.val)-Math.abs(a.val); });
+  var max = maxVal || Math.max.apply(null, sorted.map(function(d){ return Math.abs(d.val)||1; }));
+  el.innerHTML = sorted.map(function(d) {
+    var pct = Math.round((Math.abs(d.val)/max)*100);
+    var cls = d.neutral?'heat-neutral':d.val>=0?'heat-pos':'heat-neg';
+    var textCol = d.neutral?'rgba(201,168,76,.9)':d.val>=0?'rgba(45,184,122,.9)':'rgba(232,92,92,.9)';
+    return '<div class="heatmap-row"><div class="heatmap-label" title="'+d.label+'">'+d.label+'</div><div class="heatmap-bar-wrap"><div class="heatmap-bar-fill '+cls+'" style="width:'+Math.max(pct,4)+'%"><span class="heatmap-bar-val" style="color:'+textCol+'">'+d.display+'</span></div></div></div>';
+  }).join('');
+}
+
+// ── SESSION TIMER ──
+var _timerInterval = null;
+var _timerStart = null;
+var _timerElapsed = 0; // ms
+
+function startTimer() {
+  if (_timerInterval) return;
+  _timerStart = Date.now() - _timerElapsed;
+  _timerInterval = setInterval(updateTimerDisplay, 1000);
+  document.getElementById('timer-start-btn').style.display = 'none';
+  document.getElementById('timer-stop-btn').style.display = 'inline-block';
+  document.getElementById('timer-log-btn').style.display = 'none';
+  save('timer', {running:true, startedAt:_timerStart, elapsed:0});
+}
+
+function stopTimer() {
+  if (!_timerInterval) return;
+  clearInterval(_timerInterval);
+  _timerInterval = null;
+  _timerElapsed = Date.now() - _timerStart;
+  document.getElementById('timer-start-btn').style.display = 'inline-block';
+  document.getElementById('timer-stop-btn').style.display = 'none';
+  document.getElementById('timer-log-btn').style.display = 'inline-block';
+  document.getElementById('timer-start-btn').textContent = 'RESUME';
+  save('timer', {running:false, startedAt:null, elapsed:_timerElapsed});
+}
+
+function updateTimerDisplay() {
+  var elapsed = Date.now() - _timerStart;
+  var h = Math.floor(elapsed/3600000);
+  var m = Math.floor((elapsed%3600000)/60000);
+  var s = Math.floor((elapsed%60000)/1000);
+  var el = document.getElementById('timer-display');
+  if (el) el.textContent = pad(h)+':'+pad(m)+':'+pad(s);
+}
+
+function pad(n) { return n < 10 ? '0'+n : ''+n; }
+
+function logTimerToSession() {
+  var hours = _timerElapsed / 3600000;
+  var hoursField = document.getElementById('s-hours');
+  if (hoursField) hoursField.value = hours.toFixed(1);
+  // Switch to sessions tab
+  switchGroup('play');
+  alert('Timer logged: '+hours.toFixed(1)+'h. Fill in the rest of the session details and click LOG SESSION.');
+  // Reset timer
+  _timerElapsed = 0;
+  _timerStart = null;
+  var el = document.getElementById('timer-display');
+  if (el) el.textContent = '00:00:00';
+  document.getElementById('timer-start-btn').style.display = 'inline-block';
+  document.getElementById('timer-start-btn').textContent = 'START';
+  document.getElementById('timer-stop-btn').style.display = 'none';
+  document.getElementById('timer-log-btn').style.display = 'none';
+  save('timer', {running:false, startedAt:null, elapsed:0});
+}
+
+// ── RESTORE TIMER STATE (called by Firebase sync on load / cross-device update) ──
+function restoreTimerState(state) {
+  if (!state) return;
+  if (state.running && state.startedAt) {
+    // Timer running on another device — resume here
+    if (_timerInterval) return; // already running locally, don't override
+    _timerStart = state.startedAt;
+    _timerElapsed = 0;
+    _timerInterval = setInterval(updateTimerDisplay, 1000);
+    document.getElementById('timer-start-btn').style.display = 'none';
+    document.getElementById('timer-stop-btn').style.display = 'inline-block';
+    document.getElementById('timer-log-btn').style.display = 'none';
+    updateTimerDisplay();
+  } else if (state.elapsed > 0) {
+    // Timer was stopped with elapsed time — show paused state
+    if (_timerInterval) return; // running locally, don't override
+    _timerElapsed = state.elapsed;
+    var e = state.elapsed;
+    var h = Math.floor(e/3600000), m = Math.floor((e%3600000)/60000), s = Math.floor((e%60000)/1000);
+    var dispEl = document.getElementById('timer-display');
+    if (dispEl) dispEl.textContent = pad(h)+':'+pad(m)+':'+pad(s);
+    document.getElementById('timer-start-btn').style.display = 'inline-block';
+    document.getElementById('timer-start-btn').textContent = 'RESUME';
+    document.getElementById('timer-stop-btn').style.display = 'none';
+    document.getElementById('timer-log-btn').style.display = 'inline-block';
+  }
+}
+window.restoreTimerState = restoreTimerState;
+
 // ── CSV EXPORT ──
 function exportCSV() {
   if (!sessions.length) { alert('No sessions to export.'); return; }
@@ -2283,6 +3199,42 @@ function exportCSV() {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
+// ── MENTAL/PHYSICAL HEATMAP — add to existing renderHeatmap ──
+var _origRenderHeatmap = renderHeatmap;
+renderHeatmap = function() {
+  _origRenderHeatmap();
+  renderMentalHeatmap();
+};
+
+function renderMentalHeatmap() {
+  // Find or create the mental heatmap card
+  var el = document.getElementById('hmap-mental');
+  if (!el) return;
+  var withData = sessions.filter(function(s){ return s.focus||s.energy||s.sleep; });
+  if (!withData.length) { el.innerHTML='<div class="heatmap-empty">Log mental stats with sessions to see trends</div>'; return; }
+
+  // Correlate focus/energy/sleep with P&L
+  var ranges = [
+    {label:'Focus 1-4 (Low)',   filter:function(s){ return s.focus && s.focus<=4; }},
+    {label:'Focus 5-7 (Mid)',   filter:function(s){ return s.focus && s.focus>=5 && s.focus<=7; }},
+    {label:'Focus 8-10 (High)', filter:function(s){ return s.focus && s.focus>=8; }},
+    {label:'Energy 1-4 (Low)',  filter:function(s){ return s.energy && s.energy<=4; }},
+    {label:'Energy 5-7 (Mid)',  filter:function(s){ return s.energy && s.energy>=5 && s.energy<=7; }},
+    {label:'Energy 8-10 (High)',filter:function(s){ return s.energy && s.energy>=8; }},
+    {label:'Fasted',            filter:function(s){ return s.fasting==='yes'; }},
+    {label:'Not Fasted',        filter:function(s){ return s.fasting==='no'; }},
+  ];
+  var data = ranges.map(function(r) {
+    var matching = withData.filter(r.filter);
+    if (!matching.length) return null;
+    var pnl = matching.reduce(function(a,s){ return a+(s.pnl||0); },0);
+    return {label:r.label, val:pnl, display:fmtCur(pnl)+' ('+matching.length+')'};
+  }).filter(Boolean);
+
+  renderHeatmapBars('hmap-mental', data);
+}
+
 // ── RATING BUTTONS ──
 function setRating(inputId, btnGroupId, val, btn) {
   document.getElementById(inputId).value = val;
@@ -2304,14 +3256,12 @@ function setRating(inputId, btnGroupId, val, btn) {
   });
   btn.style.background = '';
   btn.classList.add('selected');
-  syncActiveDraftFromForm();
 }
 
 function setFasting(val, btn) {
   document.getElementById('s-fasting').value = val;
   document.querySelectorAll('.fast-btn').forEach(function(b){ b.classList.remove('selected'); });
   btn.classList.add('selected');
-  syncActiveDraftFromForm();
 }
 
 function clearRatings() {
@@ -2326,6 +3276,215 @@ function clearRatings() {
     var e = document.getElementById(id); if(e) e.value='';
   });
 }
+
+// ── CALENDAR → SESSION LOOP ──
+function startSessionFromTourney(tid) {
+  var t = tourneys.find(function(x){ return x.id===tid; });
+  if (!t) return;
+  // Open PLAY group → sessions, then pre-fill the form
+  switchGroup('play');
+  setTimeout(function(){
+    document.getElementById('s-name').value  = t.name || '';
+    document.getElementById('s-venue').value = t.venue || '';
+    document.getElementById('s-buyin').value = t.buyin || '';
+    // Convert "April 29, 2026" → "2026-04-29" for date input
+    var rawDate = t.date || '';
+    var parsedDate = '';
+    var MONTHS = {january:'01',february:'02',march:'03',april:'04',may:'05',june:'06',july:'07',august:'08',september:'09',october:'10',november:'11',december:'12'};
+    var dm = rawDate.match(/(\w+)\s+(\d{1,2}),?\s*(\d{4})/);
+    if (dm) {
+      var mon = MONTHS[dm[1].toLowerCase()] || '01';
+      var day = dm[2].length===1 ? '0'+dm[2] : dm[2];
+      parsedDate = dm[3]+'-'+mon+'-'+day;
+    }
+    document.getElementById('s-date').value = parsedDate || new Date().toISOString().split('T')[0];
+    // Scroll to form
+    var fc = document.querySelector('.form-card');
+    if (fc) fc.scrollIntoView({behavior:'smooth', block:'start'});
+    // Start timer automatically
+    startTimer();
+  }, 200);
+}
+
+// ── SESSION TOAST ──
+var _toastSid = null;
+var _toastTimer = null;
+
+function showSessionToast(pnl, sid) {
+  _toastSid = sid;
+  var el = document.getElementById('session-toast');
+  var pnlEl = document.getElementById('toast-pnl');
+  if (!el) return;
+  if (pnlEl) pnlEl.textContent = pnl;
+  pnlEl.style.color = pnl.includes('-') ? 'var(--red)' : 'var(--green)';
+  el.classList.add('show');
+  // Auto-dismiss after 8 seconds
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(hideSessionToast, 8000);
+}
+
+function hideSessionToast() {
+  var el = document.getElementById('session-toast');
+  if (el) el.classList.remove('show');
+  clearTimeout(_toastTimer);
+}
+
+function logHandFromToast() {
+  hideSessionToast();
+  if (_toastSid) openHandModalForSession(_toastSid);
+  else openModal('modal-hand');
+}
+
+// ── DEMO MODE ──
+window._demoMode = false;
+
+var _demoSessions = [
+  {id:9001,date:'2026-03-22',name:'Okada Manila Millions - Day 1A',venue:'Okada Manila',buyin:7500,rebuy:0,total:7500,field:187,position:23,prize:0,pnl:-7500,hours:8.5,notes:'Deep run, busted AK vs QQ 3-way all-in',result:'bust',focus:8,energy:7,sleep:7,fasting:'no'},
+  {id:9002,date:'2026-03-15',name:'Metro Sunday Main',venue:'Metro Card Club',buyin:3300,rebuy:3300,total:6600,field:214,position:4,prize:28000,pnl:21400,hours:11,notes:'Final table! Lost AJ vs K9 runner runner',result:'final',focus:9,energy:8,sleep:8,fasting:'yes'},
+  {id:9003,date:'2026-03-08',name:'Solaire Weekly Special',venue:'Solaire Resort',buyin:5500,rebuy:0,total:5500,field:98,position:67,prize:0,pnl:-5500,hours:3,notes:'Card dead all day',result:'bust',focus:5,energy:4,sleep:4,fasting:'no'},
+  {id:9004,date:'2026-03-01',name:'Metro Sunday Main',venue:'Metro Card Club',buyin:3300,rebuy:0,total:3300,field:198,position:18,prize:8500,pnl:5200,hours:9,notes:'ITM, busted 99 vs AA',result:'itm',focus:8,energy:9,sleep:9,fasting:'yes'},
+  {id:9005,date:'2026-02-22',name:'Okada Daily Special',venue:'Okada Manila',buyin:3500,rebuy:3500,total:7000,field:112,position:54,prize:0,pnl:-7000,hours:4.5,notes:'Tough table draw',result:'bust',focus:6,energy:5,sleep:5,fasting:'no'},
+  {id:9006,date:'2026-02-15',name:'Metro Saturday Turbo',venue:'Metro Card Club',buyin:2200,rebuy:0,total:2200,field:156,position:8,prize:7200,pnl:5000,hours:6,notes:'Good reads all day',result:'itm',focus:9,energy:8,sleep:8,fasting:'yes'},
+  {id:9007,date:'2026-02-08',name:'Casino Filipino Weekly',venue:'Casino Filipino',buyin:2000,rebuy:2000,total:4000,field:88,position:44,prize:0,pnl:-4000,hours:3.5,notes:'Tilted after bad beat',result:'bust',focus:4,energy:6,sleep:6,fasting:'no'},
+  {id:9008,date:'2026-02-01',name:'Okada Sunday Million',venue:'Okada Manila',buyin:12500,rebuy:0,total:12500,field:203,position:31,prize:0,pnl:-12500,hours:6,notes:'Played solid, ran bad',result:'bust',focus:8,energy:7,sleep:6,fasting:'no'},
+  {id:9009,date:'2026-01-25',name:'Metro Sunday Main',venue:'Metro Card Club',buyin:3300,rebuy:0,total:3300,field:221,position:12,prize:12000,pnl:8700,hours:10,notes:'Top 10 deep run',result:'itm',focus:9,energy:9,sleep:8,fasting:'yes'},
+  {id:9010,date:'2026-01-18',name:'Solaire Sunday Feature',venue:'Solaire Resort',buyin:5500,rebuy:5500,total:11000,field:76,position:2,prize:45000,pnl:34000,hours:12,notes:'2nd place — heads up lost flip',result:'final',focus:10,energy:9,sleep:9,fasting:'yes'},
+  {id:9011,date:'2026-01-11',name:'Metro Saturday Turbo',venue:'Metro Card Club',buyin:2200,rebuy:0,total:2200,field:143,position:89,prize:0,pnl:-2200,hours:2,notes:'Early exit',result:'bust',focus:6,energy:5,sleep:4,fasting:'no'},
+  {id:9012,date:'2026-01-04',name:'Okada Daily Special',venue:'Okada Manila',buyin:3500,rebuy:0,total:3500,field:134,position:15,prize:9500,pnl:6000,hours:8,notes:'Strong start to the year',result:'itm',focus:9,energy:8,sleep:9,fasting:'yes'},
+  {id:9013,date:'2025-12-28',name:'Metro Year End Special',venue:'Metro Card Club',buyin:5500,rebuy:5500,total:11000,field:312,position:1,prize:95000,pnl:84000,hours:14,notes:'🏆 WON IT! Best result of the year',result:'final',focus:10,energy:10,sleep:9,fasting:'yes'},
+  {id:9014,date:'2025-12-21',name:'Casino Filipino Christmas',venue:'Casino Filipino',buyin:3000,rebuy:0,total:3000,field:94,position:48,prize:0,pnl:-3000,hours:3,notes:'Nothing going',result:'bust',focus:5,energy:6,sleep:7,fasting:'no'},
+  {id:9015,date:'2025-12-14',name:'Okada Sunday Million',venue:'Okada Manila',buyin:12500,rebuy:0,total:12500,field:189,position:22,prize:0,pnl:-12500,hours:5.5,notes:'AK < QQ for big pot',result:'bust',focus:7,energy:6,sleep:5,fasting:'no'},
+  {id:9016,date:'2025-12-07',name:'Metro Sunday Main',venue:'Metro Card Club',buyin:3300,rebuy:3300,total:6600,field:234,position:9,prize:18000,pnl:11400,hours:10.5,notes:'Deep run again at Metro',result:'itm',focus:8,energy:8,sleep:7,fasting:'yes'},
+  {id:9017,date:'2025-11-30',name:'Solaire Monthly Main',venue:'Solaire Resort',buyin:5500,rebuy:0,total:5500,field:88,position:55,prize:0,pnl:-5500,hours:4,notes:'Poor conditions, tired',result:'bust',focus:4,energy:3,sleep:3,fasting:'no'},
+  {id:9018,date:'2025-11-22',name:'Metro Saturday Turbo',venue:'Metro Card Club',buyin:2200,rebuy:0,total:2200,field:167,position:6,prize:9800,pnl:7600,hours:7,notes:'Turbo structure suits my game',result:'itm',focus:9,energy:9,sleep:8,fasting:'yes'},
+  {id:9019,date:'2025-11-15',name:'Okada Daily Special',venue:'Okada Manila',buyin:3500,rebuy:3500,total:7000,field:121,position:72,prize:0,pnl:-7000,hours:3,notes:'Bad spot early',result:'bust',focus:6,energy:7,sleep:6,fasting:'no'},
+  {id:9020,date:'2025-11-08',name:'Casino Filipino Weekly',venue:'Casino Filipino',buyin:2000,rebuy:0,total:2000,field:76,position:3,prize:12000,pnl:10000,hours:8,notes:'Final table Casino Filipino',result:'final',focus:8,energy:7,sleep:8,fasting:'yes'}
+];
+
+var _demoTourneys = [
+  {id:8001,date:'April 15, 2026',day:'15',month:'APR',series:'Metro Summer Event',name:'Main Event — Flight 1A',type:'main',venue:'Metro Card Club, Pasig',buyin:6500,gtd:'₱3,000,000',structure:'Regular',notes:'Multiple flights through April 20',source:'Metro Card Club',status:'target'},
+  {id:8002,date:'April 29, 2026',day:'29',month:'APR',series:'Okada Manila Millions',name:'Main Event — Flight 1A',type:'main',venue:'Okada Manila, Parañaque',buyin:7500,gtd:'₱6,000,000',structure:'Deep Stack',notes:'Starts 12:00',source:'PokerStars Live Manila',status:'target'},
+  {id:8003,date:'April 29, 2026',day:'29',month:'APR',series:'Okada Manila Millions',name:'Event #2 — NLH Side',type:'side',venue:'Okada Manila, Parañaque',buyin:1900,gtd:'',structure:'Regular',notes:'Starts 20:00',source:'PokerStars Live Manila',status:'target'},
+  {id:8004,date:'April 30, 2026',day:'30',month:'APR',series:'Okada Manila Millions',name:'Event #4 — NLH',type:'side',venue:'Okada Manila, Parañaque',buyin:4500,gtd:'',structure:'Regular',notes:'Starts 12:00',source:'PokerStars Live Manila',status:'target'},
+  {id:8005,date:'May 2, 2026',day:'2',month:'MAY',series:'Okada Manila Millions',name:'Event #13 — Satellite',type:'side',venue:'Okada Manila, Parañaque',buyin:2200,gtd:'',structure:'Satellite',notes:'Win seat to Super Stack',source:'PokerStars Live Manila',status:'target'},
+  {id:8006,date:'May 3, 2026',day:'3',month:'MAY',series:'Okada Manila Millions',name:'Event #15 — Hyper Turbo',type:'side',venue:'Okada Manila, Parañaque',buyin:3500,gtd:'',structure:'Hyper Turbo',notes:'Starts 21:00',source:'PokerStars Live Manila',status:'target'},
+  {id:8007,date:'May 10, 2026',day:'10',month:'MAY',series:'Okada Manila Millions',name:'Main Event — Final 9',type:'main',venue:'Okada Manila, Parañaque',buyin:0,gtd:'₱6,000,000',structure:'Regular',notes:'Final 9 players only',source:'PokerStars Live Manila',status:'target'},
+  {id:8008,date:'April 22, 2026',day:'22',month:'APR',series:'APT Taipei 2026',name:'APT National Cup — Flight A',type:'main',venue:'Red Space, Taipei, Taiwan',buyin:21000,gtd:'₱26,250,000',structure:'Regular',notes:'Satellite qualification required',source:'AsianPokerTour.com',status:'stretch'}
+];
+
+var _demoHands = [
+  {id:7001,sessionId:9002,session:'Metro Sunday Main — 2026-03-15',title:'Final table bubble — fold KQs facing 3-bet shove',desc:'6 handed on final table bubble. CO opens 2.5x, I 3-bet KQs from BTN, BB shoves 22BB. CO folds. ICM pressure enormous — folded. BB shows AJs.',lesson:'Correct fold given ICM. KQs vs AJs is a flip and busting on bubble vs locking up min-cash is a massive EV difference.',result:'fold'},
+  {id:7002,sessionId:9010,session:'Solaire Sunday Feature — 2026-01-18',title:'Heads up — called off stack with second pair on river',desc:'HU, villain bets pot on AK743 board. I call with K9 for second pair. Villain shows A7 for two pair. Should have considered his value range on this runout.',lesson:'In HU pot-sized river bets, villain is rarely bluffing at this stack depth. Need to fold second pair more.',result:'lost'},
+  {id:7003,sessionId:9013,session:'Metro Year End Special — 2025-12-28',title:'Won the tournament — final hand KK vs AQ all-in preflop',desc:'3-handed, shoved KK over button open, BB called off 28BB with AQ. Kings held. Took down the ₱95,000 first place prize.',lesson:'Standard spot. Played patiently through the final table and got it in good.',result:'won'},
+  {id:7004,sessionId:9001,session:'Okada Manila Millions — 2026-03-22',title:'3-way all-in AK vs QQ vs 88 — 23 left',desc:'UTG shoves 18BB, I reshove AK from BTN for 24BB, BB calls off with QQ. UTG has 88. Board runs out Q8642. Lose to full house.',lesson:'Standard spot AK vs short stack. Unlucky to run into QQ and then see 88 hit a full house.',result:'lost'},
+  {id:7005,sessionId:9009,session:'Metro Sunday Main — 2026-01-25',title:'Hero fold top pair vs river overbet — saved my tournament',desc:'UTG bet pot on AK4 flop, called. Turn 2, check-check. River 7, UTG overbets 1.5x pot. Folded AJ. UTG showed AK for top two.',lesson:'Rec players rarely overbet bluff the river. This read saved me 30BB and I went on to cash.',result:'fold'},
+  {id:7006,sessionId:9020,session:'Casino Filipino Weekly — 2025-11-08',title:'3-bet bluff caught but villain folded river anyway',desc:'Bluffed 3 streets on K72 rainbow board with 56s. Villain called flop and turn then folded to 2.5x pot river bet. Running it twice works.',lesson:'Board texture and villain profile matter. This rec player was clearly unhappy with his hand by the turn.',result:'won'}
+];
+
+var _demoSatellites = [
+  {id:6001,date:'2026-03-20',name:'Okada Daily Satellite',venue:'Okada Manila',buyin:1100,result:'lost',forEvent:'Okada Manila Millions Main Event',notes:'Busted KK vs AA 3 seats given'},
+  {id:6002,date:'2026-03-14',name:'Okada Daily Satellite',venue:'Okada Manila',buyin:1100,result:'won',forEvent:'Okada Manila Millions Main Event',notes:'Won seat! Saved ₱6,400 vs direct buy-in'},
+  {id:6003,date:'2026-03-07',name:'Metro Satellite to Sunday Main',venue:'Metro Card Club',buyin:550,result:'won',forEvent:'Metro Sunday Main Event',notes:'Fastest satellite win — 90 mins'},
+  {id:6004,date:'2026-02-28',name:'Okada Daily Satellite',venue:'Okada Manila',buyin:1100,result:'lost',forEvent:'Okada Manila Millions Main Event',notes:'AK < 77 preflop flip'}
+];
+
+var _demoOpponents = [
+  {id:5001,name:'The Limper (Seat 3)',venue:'Metro Card Club',tags:['loose','passive','calling-station'],notes:'Open limps 80% of hands UTG. Never folds top pair. Check-raise on turn always means two pair or better. Bet for value relentlessly.',added:'2026-03-15'},
+  {id:5002,name:'Hoodie Guy',venue:'Okada Manila',tags:['reg','aggressive','bluffer'],notes:'GTO-aware regular. 3-bets wide in position. Overbets rivers as bluffs on bricked boards. Folds to 4-bets unless has it.',added:'2026-03-22'},
+  {id:5003,name:'Old Man Coffee',venue:'Solaire Resort',tags:['tight','nit','passive'],notes:'Only plays premiums. If he raises preflop it is QQ+/AK. Easy to play against — just fold when he shows aggression.',added:'2026-01-18'},
+  {id:5004,name:'The Aggro Kid',venue:'Metro Card Club',tags:['loose','aggressive','maniac'],notes:'23-25 years old, plays every pot. Cbets 100% flops, gives up on turns. Float and take it away. Does not handle pressure well short-stacked.',added:'2025-12-28'},
+  {id:5005,name:'Sunglasses Lady',venue:'Casino Filipino',tags:['tight','reg'],notes:'Solid regular at Casino Filipino. Position aware, rarely bluffs. If she calls your 3-bet she has a hand. Respect her river bets.',added:'2025-11-08'}
+];
+
+var _demoStrategies = [{
+  id:4001,week:'Week of March 22, 2026',
+  topic:'Blind vs Blind Limping Strategies',
+  note:'In SB vs BB spots at 20-60BB, GTO dictates limping 56-75% of hands including premiums. Because BB has a wide uncapped checking range, SB must protect by checking flop at high frequency (55-75%) especially on low connected boards. In live PH MTTs, BB players over-fold to raises but call down postflop with wide ranges — adjust by limping more, checking more flops, and value betting large when you connect.',
+  type:'gemini'
+}];
+
+var _demoBankroll = {amount:18500, rule:15};
+var _demoSatTarget = {name:'Okada Manila Millions Main Event', buyin:7500};
+
+function loadDemoMode() {
+  if (!confirm('This will load sample data so you can explore PokerHQ.\n\nYour real data is safe and will not be affected.')) return;
+  window._demoMode = true;
+  // Load into memory only — save() is now a no-op while _demoMode is true
+  window.sessions   = _demoSessions.slice();
+  window.tourneys   = _demoTourneys.slice();
+  window.hands      = _demoHands.slice();
+  window.strategies = _demoStrategies.slice();
+  window.satellites = _demoSatellites.slice();
+  window.opponents  = _demoOpponents.slice();
+  window.bankroll   = Object.assign({}, _demoBankroll);
+  // Sync local var aliases in this script scope
+  sessions   = window.sessions;
+  tourneys   = window.tourneys;
+  hands      = window.hands;
+  strategies = window.strategies;
+  bankroll   = window.bankroll;
+  satellites = window.satellites;
+  opponents  = window.opponents;
+  satTarget  = Object.assign({}, _demoSatTarget);
+  // Show demo badge + clear button
+  var badge = document.getElementById('demo-badge');
+  var clearBtn = document.getElementById('demo-clear-btn');
+  if (badge)   badge.classList.add('visible');
+  if (clearBtn) clearBtn.classList.add('visible');
+  // Set calendar to April 2026 so demo events are visible
+  if (typeof _calYear !== 'undefined') { _calYear = 2026; _calMonth = 3; }
+  // Go home and refresh everything
+  switchGroup('home');
+  refreshDashboard();
+  renderCalendarMonth();
+  renderCalendarList();
+  renderHands();
+  if (window.renderSatellites) renderSatellites();
+  if (window.renderOpponents)  renderOpponents();
+  renderStrategy();
+  renderHeatmap();
+  loadBankrollForm();
+  populateSessionDropdowns();
+}
+
+function clearDemoMode() {
+  window._demoMode = false;
+  // Restore from localStorage
+  window.sessions   = load('sessions', []);
+  window.tourneys   = load('tourneys', []);
+  window.hands      = load('hands', []);
+  window.strategies = load('strategies', []);
+  window.satellites = load('satellites', []);
+  window.opponents  = load('opponents', []);
+  window.bankroll   = load('bankroll', {amount:0, rule:15});
+  // Sync local var aliases
+  sessions   = window.sessions;
+  tourneys   = window.tourneys;
+  hands      = window.hands;
+  strategies = window.strategies;
+  bankroll   = window.bankroll;
+  satellites = window.satellites;
+  opponents  = window.opponents;
+  satTarget  = load('satTarget', {name:'',buyin:0});
+  // Hide demo badge + clear button
+  var badge = document.getElementById('demo-badge');
+  var clearBtn = document.getElementById('demo-clear-btn');
+  if (badge)    badge.classList.remove('visible');
+  if (clearBtn) clearBtn.classList.remove('visible');
+  // Re-sync from Firebase
+  if (window.fbLoadAll) window.fbLoadAll();
+  // Refresh all views
+  refreshDashboard();
+  renderCalendarMonth();
+  renderCalendarList();
+  renderHands();
+  if (window.renderSatellites) renderSatellites();
+  if (window.renderOpponents)  renderOpponents();
+  renderStrategy();
+  renderHeatmap();
+  loadBankrollForm();
+}
+
 // ── STUDY LOOP ──
 function getStudyLoopStatus() {
   var now = new Date(), weekStart = new Date(now);
@@ -2426,6 +3585,24 @@ function onboardingOverlayClick(e) {
   if (e.target === document.getElementById('onboarding-overlay')) dismissOnboarding();
 }
 
+function onboardingLoadDemo() {
+  loadDemoMode();
+  dismissOnboarding();
+}
+
+function refreshDemoBanner() {
+  var banner = document.getElementById('demo-banner');
+  if (!banner) return;
+  var dismissed = localStorage.getItem('pokerhq_demo_dismissed');
+  banner.style.display = (!window._demoMode && !dismissed) ? 'flex' : 'none';
+}
+
+function dismissDemoBanner() {
+  localStorage.setItem('pokerhq_demo_dismissed', '1');
+  var banner = document.getElementById('demo-banner');
+  if (banner) banner.style.display = 'none';
+}
+
 // ── INIT ──
 document.getElementById('s-date').value = new Date().toISOString().split('T')[0];
 var satDateEl = document.getElementById('sat-date'); if (satDateEl) satDateEl.value = new Date().toISOString().split('T')[0];
@@ -2435,16 +3612,11 @@ if (savedTheme === 'light') {
   document.body.classList.add('light');
   document.getElementById('theme-toggle').textContent = '☀️';
 }
-initActiveSessionFeature();
-initDemoModeFeature();
 refreshDashboard();
 refreshDemoBanner();
 showOnboarding();
 // Restore timer state from localStorage (Firebase will re-sync shortly after)
 restoreTimerState(load('timer', null));
-hydrateSessionFormFromDraft(false);
-renderActiveSessionSurface();
-renderReliability();
 </script>
 
 <!-- Satellite Modal -->
@@ -2569,73 +3741,6 @@ renderReliability();
   </div>
 </div>
 
-<!-- Pre-Session Readiness Modal -->
-<div class="modal-overlay" id="modal-readiness">
-  <div class="modal" style="max-width:620px">
-    <div class="modal-title">Pre-Session Readiness</div>
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1rem">
-      <div style="font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.42);line-height:1.6">Fast check before you start. Use quick taps, then either start or skip.</div>
-      <div class="readiness-pill caution" id="readiness-pill">Caution</div>
-    </div>
-    <div class="readiness-result-card">
-      <div class="readiness-result-title" id="readiness-title">Caution</div>
-      <div class="readiness-result-sub" id="readiness-detail">Fill the quick checks below to see your readiness read.</div>
-    </div>
-    <div class="readiness-grid">
-      <div class="readiness-item">
-        <div class="readiness-label">Sleep</div>
-        <div class="readiness-options">
-          <button class="readiness-option" data-readiness-field="sleep" data-readiness-value="poor" onclick="setReadinessField('sleep','poor')">Poor</button>
-          <button class="readiness-option" data-readiness-field="sleep" data-readiness-value="ok" onclick="setReadinessField('sleep','ok')">OK</button>
-          <button class="readiness-option" data-readiness-field="sleep" data-readiness-value="good" onclick="setReadinessField('sleep','good')">Good</button>
-        </div>
-      </div>
-      <div class="readiness-item">
-        <div class="readiness-label">Energy</div>
-        <div class="readiness-options">
-          <button class="readiness-option" data-readiness-field="energy" data-readiness-value="low" onclick="setReadinessField('energy','low')">Low</button>
-          <button class="readiness-option" data-readiness-field="energy" data-readiness-value="ok" onclick="setReadinessField('energy','ok')">OK</button>
-          <button class="readiness-option" data-readiness-field="energy" data-readiness-value="high" onclick="setReadinessField('energy','high')">High</button>
-        </div>
-      </div>
-      <div class="readiness-item">
-        <div class="readiness-label">Fasting / Food</div>
-        <div class="readiness-options">
-          <button class="readiness-option" data-readiness-field="food" data-readiness-value="fasted" onclick="setReadinessField('food','fasted')">Fasted</button>
-          <button class="readiness-option" data-readiness-field="food" data-readiness-value="light" onclick="setReadinessField('food','light')">Light</button>
-          <button class="readiness-option" data-readiness-field="food" data-readiness-value="fed" onclick="setReadinessField('food','fed')">Fed</button>
-        </div>
-      </div>
-      <div class="readiness-item">
-        <div class="readiness-label">Bankroll Fit</div>
-        <div class="readiness-options">
-          <button class="readiness-option" data-readiness-field="bankrollFit" data-readiness-value="target" onclick="setReadinessField('bankrollFit','target')">Target</button>
-          <button class="readiness-option" data-readiness-field="bankrollFit" data-readiness-value="stretch" onclick="setReadinessField('bankrollFit','stretch')">Stretch</button>
-          <button class="readiness-option" data-readiness-field="bankrollFit" data-readiness-value="skip" onclick="setReadinessField('bankrollFit','skip')">High Risk</button>
-        </div>
-      </div>
-      <div class="readiness-item">
-        <div class="readiness-label">Strategy Reviewed</div>
-        <div class="readiness-options">
-          <button class="readiness-option" data-readiness-field="strategyReviewed" data-readiness-value="yes" onclick="setReadinessField('strategyReviewed','yes')">Yes</button>
-          <button class="readiness-option" data-readiness-field="strategyReviewed" data-readiness-value="no" onclick="setReadinessField('strategyReviewed','no')">No</button>
-        </div>
-      </div>
-      <div class="readiness-item">
-        <div class="readiness-label">Villain Notes Available</div>
-        <div class="readiness-options">
-          <button class="readiness-option" data-readiness-field="villainNotes" data-readiness-value="yes" onclick="setReadinessField('villainNotes','yes')">Yes</button>
-          <button class="readiness-option" data-readiness-field="villainNotes" data-readiness-value="no" onclick="setReadinessField('villainNotes','no')">No</button>
-        </div>
-      </div>
-    </div>
-    <div class="modal-actions">
-      <button class="sec-action" onclick="skipReadinessCheck()">SKIP</button>
-      <button class="sec-action primary" onclick="confirmReadinessCheck()">START SESSION</button>
-    </div>
-  </div>
-</div>
-
 <!-- Session Detail Modal -->
 <div class="modal-overlay" id="modal-session-detail">
   <div class="modal" style="max-width:600px">
@@ -2699,36 +3804,35 @@ renderReliability();
 <!-- ONBOARDING OVERLAY -->
 <div class="onboarding-overlay" id="onboarding-overlay" style="display:none" onclick="onboardingOverlayClick(event)">
   <div class="onboarding-card">
-    <div style="font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:.5rem">Proof Fast</div>
     <div class="onboarding-title">Welcome to PokerHQ</div>
-    <div class="onboarding-sub">Your live tournament command center. Load demo data to see the full workflow, or start building your real schedule now.</div>
+    <div class="onboarding-sub">Your MTT command center. Here's how it works:</div>
     <div class="onboarding-steps">
       <div class="onboarding-step">
         <div class="onboarding-step-icon">📅</div>
         <div>
           <div class="onboarding-step-name">PLAN</div>
-          <div class="onboarding-step-desc">Build the slate with your calendar, BRM tags, and satellite targets before you commit capital.</div>
+          <div class="onboarding-step-desc">Schedule tournaments, track satellites, manage your bankroll rule.</div>
         </div>
       </div>
       <div class="onboarding-step">
         <div class="onboarding-step-icon">▶</div>
         <div>
           <div class="onboarding-step-name">PLAY</div>
-          <div class="onboarding-step-desc">Start from Calendar List, keep the active session running, and capture hands while they are still fresh.</div>
+          <div class="onboarding-step-desc">Log sessions, track hands, use the payout & stack calculator.</div>
         </div>
       </div>
       <div class="onboarding-step">
         <div class="onboarding-step-icon">📊</div>
         <div>
           <div class="onboarding-step-name">REVIEW</div>
-          <div class="onboarding-step-desc">Open session detail, linked hands, and heatmaps to connect process, result, and mental state.</div>
+          <div class="onboarding-step-desc">See your P&L history and performance heatmap over time.</div>
         </div>
       </div>
       <div class="onboarding-step">
         <div class="onboarding-step-icon">🧠</div>
         <div>
           <div class="onboarding-step-name">IMPROVE</div>
-          <div class="onboarding-step-desc">Turn review into a sharper next session through strategy notes, briefings, and opponent memory.</div>
+          <div class="onboarding-step-desc">Import weekly briefings, log strategy notes, track opponents.</div>
         </div>
       </div>
     </div>
@@ -2738,5 +3842,6 @@ renderReliability();
     </div>
   </div>
 </div>
+
 </body>
 </html>
