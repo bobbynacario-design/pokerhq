@@ -566,6 +566,14 @@ body.light .na-sub{color:rgba(0,0,0,.4)}
 body.light .surface-title{color:#1A1A1A}
 body.light .surface-sub{color:rgba(0,0,0,.55)}
 body.light .surface-badge{background:#fff;color:rgba(0,0,0,.5)}
+.treasury-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.85rem;margin-bottom:.85rem}
+.treasury-stat-value{font-family:var(--serif);font-size:30px;letter-spacing:.04em;color:var(--gold);line-height:1.05;margin-top:.35rem}
+.treasury-stat-sub{font-family:var(--mono);font-size:10px;letter-spacing:.04em;color:rgba(255,255,255,.38);margin-top:.45rem;text-transform:uppercase}
+.treasury-signed.positive{color:var(--green)}
+.treasury-signed.negative{color:#E85C5C}
+.treasury-empty{padding:2.2rem 1rem;text-align:center;color:rgba(255,255,255,.28);font-family:var(--mono);font-size:12px;border:1px dashed var(--rim2);border-radius:14px}
+body.light .treasury-stat-sub{color:rgba(0,0,0,.4)}
+body.light .treasury-empty{color:rgba(0,0,0,.35)}
 .status-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:1rem;margin-bottom:1.25rem}
 .status-card{background:var(--bg2);border:1px solid var(--rim);border-radius:16px;padding:1rem 1.1rem}
 .status-label{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.38);margin-bottom:.45rem}
@@ -663,7 +671,7 @@ body.light .scouting-name{color:#1A1A1A}
 body.light .quick-checkin{background:rgba(0,0,0,.06);color:#1A1A1A}
 body.light .counter-btn{color:#1A1A1A}
 @media(max-width:980px){.status-grid,.active-session-quick,.review-rail,.scouting-grid{grid-template-columns:1fr}.flow-grid{grid-template-columns:repeat(2,1fr)}.active-session-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:768px){.surface-title{font-size:24px}.flow-grid{grid-template-columns:1fr}.reliability-meta{grid-template-columns:1fr}}
+@media(max-width:768px){.surface-title{font-size:24px}.flow-grid{grid-template-columns:1fr}.reliability-meta{grid-template-columns:1fr}.treasury-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.treasury-stat-value{font-size:24px}}
 
 .calc-toggle{display:flex;gap:.5rem;margin-bottom:1.25rem;background:var(--bg3);border-radius:10px;padding:.3rem}
 .calc-mode-btn{flex:1;font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;padding:.55rem .5rem;border:none;border-radius:7px;background:transparent;color:rgba(255,255,255,.4);cursor:pointer;transition:all .18s}
@@ -781,3 +789,54 @@ body.light .demo-banner-sub{color:rgba(0,0,0,.45)}
 body.light .btn-demo-clear{color:rgba(0,0,0,.45)}
 @media(max-width:768px){.demo-banner{flex-direction:column;align-items:flex-start}.btn-demo-load{width:100%}.demo-badge{font-size:9px}.btn-demo-clear{font-size:9px}}
 
+.staking-report-controls{display:flex;gap:1rem;align-items:end;justify-content:space-between;margin-top:1.1rem;flex-wrap:wrap}
+.staking-report-picker{min-width:280px;flex:1}
+.staking-report-actions{display:flex;gap:.65rem;align-items:center;justify-content:flex-end}
+.staking-report-repair{display:flex;gap:.75rem;align-items:end;flex:1 1 100%;padding:.85rem 1rem;border:1px solid rgba(255,255,255,.06);border-radius:14px;background:rgba(0,0,0,.14)}
+.staking-report-repair-input{min-width:280px;flex:1}
+.staking-report-repair-note{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.48);margin-top:.35rem;line-height:1.45}
+.staking-report-preview{margin-top:1rem;border:1px solid rgba(212,175,55,.26);background:linear-gradient(180deg,rgba(212,175,55,.07),rgba(255,255,255,.02));border-radius:18px;padding:1rem 1rem 1.1rem}
+.staking-report-preview-head{display:flex;gap:1rem;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;margin-bottom:.9rem}
+.staking-report-preview-kicker{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:.25rem}
+.staking-report-preview-title{font-size:20px;font-weight:600;color:#fff;line-height:1.15}
+.staking-report-preview-sub{font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.55);margin-top:.28rem}
+.staking-report-preview-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.75rem;margin-bottom:.95rem}
+.staking-report-metric{background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:.8rem .85rem}
+.staking-report-metric-label{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.42);margin-bottom:.35rem}
+.staking-report-metric-value{font-family:var(--mono);font-size:16px;font-weight:600;color:#fff;line-height:1.2}
+.staking-report-preview-list{display:grid;gap:.75rem}
+.staking-report-card{background:rgba(0,0,0,.16);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:.95rem}
+.staking-report-card-top{display:flex;gap:.85rem;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;margin-bottom:.8rem}
+.staking-report-card-title{font-size:15px;font-weight:600;color:#fff}
+.staking-report-card-meta{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.5);margin-top:.22rem}
+.staking-report-card-badge{font-family:var(--mono);font-size:10px;color:var(--gold);border:1px solid rgba(212,175,55,.24);background:rgba(212,175,55,.08);border-radius:999px;padding:.3rem .55rem;white-space:nowrap}
+.staking-report-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.55rem .9rem}
+.staking-report-row{display:flex;align-items:center;justify-content:space-between;gap:1rem;font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.62);padding:.22rem 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.staking-report-row strong{font-size:11px;color:#fff;font-weight:600;text-align:right}
+.staking-allocation-grid textarea.form-input{min-height:86px;resize:vertical}
+.staking-report-backers{margin-top:.8rem;border-top:1px solid rgba(255,255,255,.08);padding-top:.8rem}
+.staking-report-backers-title{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:.45rem}
+.staking-report-backer-table{display:grid;gap:.28rem}
+.staking-report-backer-row{display:grid;grid-template-columns:minmax(0,1.6fr) .7fr 1fr 1fr 1fr;gap:.6rem;align-items:center;font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.68);padding:.28rem 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.staking-report-backer-row span:last-child{text-align:right}
+.staking-report-backer-head{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.38)}
+body.light .staking-report-preview{background:linear-gradient(180deg,rgba(212,175,55,.08),rgba(0,0,0,.01));border-color:rgba(212,175,55,.26)}
+body.light .staking-report-preview-title{color:#1A1A1A}
+body.light .staking-report-preview-sub{color:rgba(0,0,0,.48)}
+body.light .staking-report-metric{background:rgba(255,255,255,.72);border-color:rgba(0,0,0,.06)}
+body.light .staking-report-metric-label{color:rgba(0,0,0,.42)}
+body.light .staking-report-metric-value{color:#1A1A1A}
+body.light .staking-report-card{background:rgba(255,255,255,.76);border-color:rgba(0,0,0,.06)}
+body.light .staking-report-card-title{color:#1A1A1A}
+body.light .staking-report-card-meta{color:rgba(0,0,0,.5)}
+body.light .staking-report-row{color:rgba(0,0,0,.56);border-bottom-color:rgba(0,0,0,.05)}
+body.light .staking-report-row strong{color:#1A1A1A}
+body.light .staking-report-backers{border-top-color:rgba(0,0,0,.08)}
+body.light .staking-report-backers-title{color:rgba(0,0,0,.46)}
+body.light .staking-report-backer-row{color:rgba(0,0,0,.62);border-bottom-color:rgba(0,0,0,.05)}
+body.light .staking-report-backer-head{color:rgba(0,0,0,.38)}
+body.light .staking-report-repair{background:rgba(255,255,255,.72);border-color:rgba(0,0,0,.06)}
+body.light .staking-report-repair-note{color:rgba(0,0,0,.46)}
+@media(max-width:980px){.staking-report-preview-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:720px){.staking-report-card-grid{grid-template-columns:1fr}.staking-report-preview-head{align-items:stretch}.staking-report-actions{width:100%;justify-content:flex-start}.staking-report-actions .sec-action{width:100%}.staking-report-repair{align-items:stretch;flex-direction:column}.staking-report-repair .sec-action{width:100%}.staking-report-backer-row{grid-template-columns:minmax(0,1.2fr) .7fr 1fr 1fr 1fr;font-size:10px}}
+@media(max-width:560px){.staking-report-preview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.staking-report-controls{align-items:stretch}.staking-report-picker{min-width:0;width:100%}}

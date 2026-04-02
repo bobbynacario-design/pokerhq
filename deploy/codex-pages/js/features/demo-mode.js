@@ -66,6 +66,12 @@ var _demoStrategies = [{
 }];
 
 var _demoBankroll = {amount:18500, rule:15};
+var _demoWallet = {balance:32000};
+var _demoWalletLedger = [
+  {id:9601,date:'2026-03-14',type:'deposit',amount:25000,notes:'Cash added before Metro Sunday Main',walletDelta:25000,bankrollDelta:0,walletBalanceAfter:25000,bankrollBalanceAfter:18500},
+  {id:9602,date:'2026-03-14',type:'bankroll_topup',amount:10000,notes:'Loaded bankroll for weekend slate',walletDelta:-10000,bankrollDelta:10000,walletBalanceAfter:15000,bankrollBalanceAfter:28500},
+  {id:9603,date:'2026-03-19',type:'expense',amount:3000,notes:'Hotel and transport',walletDelta:-3000,bankrollDelta:0,walletBalanceAfter:12000,bankrollBalanceAfter:18500}
+];
 var _demoSatTarget = {name:'Okada Manila Millions Main Event', buyin:7500};
 
 function initDemoModeFeature() {}
@@ -81,11 +87,15 @@ function loadDemoMode() {
   window.satellites = _demoSatellites.slice();
   window.opponents  = _demoOpponents.slice();
   window.bankroll   = Object.assign({}, _demoBankroll);
+  window.wallet     = Object.assign({}, _demoWallet);
+  window.walletLedger = _demoWalletLedger.slice();
   sessions   = window.sessions;
   tourneys   = window.tourneys;
   hands      = window.hands;
   strategies = window.strategies;
   bankroll   = window.bankroll;
+  wallet     = window.wallet;
+  walletLedger = window.walletLedger;
   satellites = window.satellites;
   opponents  = window.opponents;
   satTarget  = Object.assign({}, _demoSatTarget);
@@ -104,6 +114,7 @@ function loadDemoMode() {
   renderStrategy();
   renderHeatmap();
   loadBankrollForm();
+  if (typeof renderTreasury === 'function') renderTreasury();
   populateSessionDropdowns();
   renderActiveSessionSurface();
   renderReliability();
@@ -119,11 +130,15 @@ function clearDemoMode() {
   window.satellites = load('satellites', []);
   window.opponents  = load('opponents', []);
   window.bankroll   = load('bankroll', {amount:0, rule:15});
+  window.wallet     = load('wallet', {balance:0});
+  window.walletLedger = load('walletLedger', []);
   sessions   = window.sessions;
   tourneys   = window.tourneys;
   hands      = window.hands;
   strategies = window.strategies;
   bankroll   = window.bankroll;
+  wallet     = window.wallet;
+  walletLedger = window.walletLedger;
   satellites = window.satellites;
   opponents  = window.opponents;
   satTarget  = load('satTarget', {name:'',buyin:0});
@@ -141,6 +156,7 @@ function clearDemoMode() {
   renderStrategy();
   renderHeatmap();
   loadBankrollForm();
+  if (typeof renderTreasury === 'function') renderTreasury();
   renderActiveSessionSurface();
   renderReliability();
 }

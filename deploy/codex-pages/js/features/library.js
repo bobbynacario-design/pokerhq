@@ -186,6 +186,8 @@ function getBackupSnapshot() {
       news: cloneBackupValue(window.newsItems || [], []),
       spotlights: cloneBackupValue(window.spotlights || [], []),
       bankroll: cloneBackupValue(window.bankroll || { amount: 0, rule: 15 }, { amount: 0, rule: 15 }),
+      wallet: cloneBackupValue(window.wallet || { balance: 0 }, { balance: 0 }),
+      walletLedger: cloneBackupValue(window.walletLedger || [], []),
       satellites: cloneBackupValue(window.satellites || [], []),
       satTarget: cloneBackupValue(window.satTarget || { name: '', buyin: 0 }, { name: '', buyin: 0 }),
       opponents: cloneBackupValue(window.opponents || [], []),
@@ -259,6 +261,8 @@ function validateBackupPayload(parsed) {
       news: cloneBackupValue(source.news, []),
       spotlights: cloneBackupValue(source.spotlights, []),
       bankroll: cloneBackupValue(source.bankroll, { amount: 0, rule: 15 }),
+      wallet: isPlainBackupObject(source.wallet) ? cloneBackupValue(source.wallet, { balance: 0 }) : { balance: 0 },
+      walletLedger: Array.isArray(source.walletLedger) ? cloneBackupValue(source.walletLedger, []) : [],
       satellites: cloneBackupValue(source.satellites, []),
       satTarget: cloneBackupValue(source.satTarget, { name: '', buyin: 0 }),
       opponents: cloneBackupValue(source.opponents, []),
@@ -296,6 +300,14 @@ function applyBackupRestore(data) {
   bankroll = window.bankroll;
   save('bankroll', bankroll);
 
+  window.wallet = data.wallet || { balance: 0 };
+  wallet = window.wallet;
+  save('wallet', wallet);
+
+  window.walletLedger = Array.isArray(data.walletLedger) ? data.walletLedger : [];
+  walletLedger = window.walletLedger;
+  save('walletLedger', walletLedger);
+
   satellites = data.satellites;
   window.satellites = satellites;
   save('satellites', satellites);
@@ -326,6 +338,7 @@ function applyBackupRestore(data) {
   if (typeof renderOpponents === 'function') renderOpponents();
   if (typeof renderStudyLoop === 'function') renderStudyLoop();
   if (typeof refreshDashboard === 'function') refreshDashboard();
+  if (typeof renderTreasury === 'function') renderTreasury();
   if (typeof renderActiveSessionSurface === 'function') renderActiveSessionSurface();
   if (typeof renderReliability === 'function') renderReliability();
 }

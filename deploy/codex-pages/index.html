@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -28,6 +28,7 @@
         <button class="group-tab active" id="gtab-home" onclick="switchGroup('home')">♠ HOME</button>
         <button class="group-tab" id="gtab-plan" onclick="switchGroup('plan')">PLAN</button>
         <button class="group-tab" id="gtab-play" onclick="switchGroup('play')">PLAY</button>
+        <button class="group-tab" id="gtab-wallet" onclick="switchGroup('wallet')">TREASURY</button>
         <button class="group-tab" id="gtab-review" onclick="switchGroup('review')">REVIEW</button>
         <button class="group-tab" id="gtab-improve" onclick="switchGroup('improve')">IMPROVE</button>
       </div>
@@ -52,6 +53,9 @@
       <button class="subtab" data-page="sessions" onclick="switchTab('sessions')">♦ Log Session</button>
       <button class="subtab" data-page="hands" onclick="switchTab('hands')">🃏 Hands</button>
       <button class="subtab" data-page="calculator" onclick="switchTab('calculator')">🧮 Calc</button>
+    </div>
+    <div class="subtab-group" id="subtabs-wallet">
+      <button class="subtab" data-page="wallet" onclick="switchTab('wallet')">💼 Treasury</button>
     </div>
     <div class="subtab-group" id="subtabs-review">
       <button class="subtab" data-page="sessions" onclick="switchTab('sessions')">♦ History</button>
@@ -269,7 +273,7 @@
     <div class="form-grid">
       <div class="form-group">
         <label class="form-label">Current Bankroll (₱)</label>
-        <input class="form-input" type="number" id="br-input" placeholder="e.g. 50000" oninput="saveBankroll()">
+        <input class="form-input" type="text" id="br-input" readonly aria-readonly="true">
       </div>
       <div class="form-group">
         <label class="form-label">BRM Rule</label>
@@ -280,7 +284,7 @@
         </select>
       </div>
     </div>
-    <div class="tip" id="brm-tip">Set your bankroll above to see stake recommendations.</div>
+    <div class="tip" id="brm-tip">Bankroll is controlled by session results plus Treasury transfers and adjustments. Use Treasury for manual capital movement.</div>
   </div>
 
   <!-- Log Session Form -->
@@ -340,6 +344,16 @@
       <div class="form-group">
         <label class="form-label">Markup</label>
         <input class="form-input" type="number" id="s-markup" min="0.5" step="0.01" placeholder="e.g. 1.10" oninput="renderStakingInputSummary()">
+      </div>
+    </div>
+    <div class="form-grid staking-allocation-grid" style="margin-bottom:.75rem">
+      <div class="form-group">
+        <label class="form-label">Backer Count (Equal Split)</label>
+        <input class="form-input" type="number" id="s-backer-count" min="0" step="1" placeholder="e.g. 2" oninput="renderStakingInputSummary()">
+      </div>
+      <div class="form-group" style="grid-column:span 2">
+        <label class="form-label">Named Backers (Optional)</label>
+        <textarea class="form-input" id="s-backers" rows="3" placeholder="One per line, e.g.&#10;Alice 20&#10;Bob 20" oninput="renderStakingInputSummary()"></textarea>
       </div>
     </div>
     <div class="tip" id="staking-tip" style="margin-bottom:1rem">Optional: track sold action and package economics without changing your core session log.</div>
@@ -437,6 +451,89 @@
       <thead><tr><th>Date</th><th>Tournament</th><th>Venue</th><th>Buy-in</th><th>Field</th><th>Position</th><th>Prize</th><th>P&L</th><th>Hours</th><th>Result</th><th></th></tr></thead>
       <tbody id="session-tbody"></tbody>
     </table>
+  </div>
+</div>
+
+<div class="page" id="page-wallet">
+  <div class="surface-hero">
+    <div>
+      <div class="surface-kicker">Treasury</div>
+      <div class="surface-title">Track real money around the grind</div>
+      <div class="surface-sub">Keep wallet cash separate from poker operating capital. Sessions still move bankroll. Treasury only changes when you log an explicit ledger entry.</div>
+    </div>
+    <div class="surface-actions">
+      <button class="sec-action" onclick="switchGroup('play','sessions')">OPEN PLAY</button>
+      <button class="sec-action" onclick="switchGroup('review','sessions')">OPEN HISTORY</button>
+    </div>
+  </div>
+
+  <div class="section-shell">
+    <div class="treasury-stats" id="treasury-stats">
+      <div class="stat-card">
+        <div class="status-label">Wallet Balance</div>
+        <div class="treasury-stat-value" id="wallet-balance-current">₱0</div>
+        <div class="treasury-stat-sub">External real-money container</div>
+      </div>
+      <div class="stat-card">
+        <div class="status-label">Bankroll Balance</div>
+        <div class="treasury-stat-value" id="wallet-bankroll-current">₱0</div>
+        <div class="treasury-stat-sub">Poker operating capital</div>
+      </div>
+      <div class="stat-card">
+        <div class="status-label">To Bankroll</div>
+        <div class="treasury-stat-value" id="wallet-topups-total">₱0</div>
+        <div class="treasury-stat-sub">Explicit wallet top-ups</div>
+      </div>
+      <div class="stat-card">
+        <div class="status-label">To Wallet</div>
+        <div class="treasury-stat-value" id="wallet-pullouts-total">₱0</div>
+        <div class="treasury-stat-sub">Explicit bankroll pullouts</div>
+      </div>
+    </div>
+    <div class="tip" id="wallet-transfer-tip">Net transfer to bankroll: ₱0</div>
+  </div>
+
+  <div class="form-card">
+    <div class="sec-hdr" style="margin-bottom:1rem">
+      <div class="sec-title"><span>💼</span>Manual Treasury Entry</div>
+      <button class="sec-action primary" onclick="addWalletTransaction()">ADD ENTRY</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input class="form-input" type="date" id="wallet-date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Type</label>
+        <select class="form-input" id="wallet-type" onchange="updateWalletTransactionHelp()">
+          <option value="deposit">Deposit</option>
+          <option value="withdrawal">Withdrawal</option>
+          <option value="bankroll_topup">Bankroll Top-up</option>
+          <option value="bankroll_pullout">Bankroll Pullout</option>
+          <option value="staking_received">Staking Received</option>
+          <option value="staking_payout">Staking Payout</option>
+          <option value="expense">Expense</option>
+          <option value="adjustment">Adjustment</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Amount (₱)</label>
+        <input class="form-input" type="number" id="wallet-amount" placeholder="e.g. 5000" step="0.01">
+      </div>
+    </div>
+    <div class="form-group" style="margin-top:.15rem">
+      <label class="form-label" id="wallet-notes-label">Notes / Destination</label>
+      <input class="form-input" type="text" id="wallet-notes" placeholder="Optional detail, destination, or counterparty">
+    </div>
+    <div class="tip" id="wallet-entry-tip">Use deposits and withdrawals for wallet-only cash movement. Use bankroll top-up and pullout for explicit transfers between wallet and bankroll.</div>
+  </div>
+
+  <div class="section-shell">
+    <div class="sec-hdr">
+      <div class="sec-title"><span>📘</span>Recent Transactions</div>
+      <div class="status-label" id="wallet-transaction-count">0 entries</div>
+    </div>
+    <div id="wallet-recent-list"></div>
   </div>
 </div>
 
@@ -1002,11 +1099,13 @@
 <script src="./js/features/demo-mode.js"></script>
 <script src="./js/features/calculator.js"></script>
 <script src="./js/features/staking.js"></script>
+<script src="./js/features/package-report.js"></script>
 <script src="./js/features/review.js"></script>
 <script src="./js/features/calendar.js"></script>
 <script src="./js/features/study-loop.js"></script>
 <script src="./js/features/strategy.js"></script>
 <script src="./js/features/hands.js"></script>
+<script src="./js/features/treasury.js"></script>
 <script src="./js/features/library.js"></script>
 <script src="./js/features/onboarding.js"></script>
 <script>
@@ -1081,6 +1180,8 @@ window.strategies = load('strategies', []);
 window.newsItems  = load('news', []);
 window.spotlights = load('spotlights', []);
 window.bankroll   = load('bankroll', {amount:0, rule:15});
+window.wallet     = load('wallet', {balance:0});
+window.walletLedger = load('walletLedger', []);
 // Shorthand aliases
 var sessions   = window.sessions;
 var tourneys   = window.tourneys;
@@ -1089,6 +1190,8 @@ var strategies = window.strategies;
 var newsItems  = window.newsItems;
 var spotlights = window.spotlights;
 var bankroll   = window.bankroll;
+var wallet     = window.wallet;
+var walletLedger = window.walletLedger;
 window.syncGlobalAliases = function() {
   sessions = window.sessions;
   tourneys = window.tourneys;
@@ -1097,6 +1200,8 @@ window.syncGlobalAliases = function() {
   newsItems = window.newsItems;
   spotlights = window.spotlights;
   bankroll = window.bankroll;
+  wallet = window.wallet;
+  walletLedger = window.walletLedger;
   if (typeof satellites !== 'undefined') satellites = window.satellites || [];
   if (typeof satTarget !== 'undefined') satTarget = window.satTarget || { name:'', buyin:0 };
   if (typeof opponents !== 'undefined') opponents = window.opponents || [];
@@ -1141,6 +1246,7 @@ function switchTab(id) {
   if (id==='dashboard') refreshDashboard();
   renderCalendarMonth();
   if (id==='sessions') { loadBankrollForm(); hydrateSessionFormFromDraft(false); renderSessionTable(); renderActiveSessionSurface(); if (window.renderStakingInputSummary) renderStakingInputSummary(); }
+  if (id==='wallet' && typeof renderTreasury === 'function') renderTreasury();
   if (id==='calendar') { renderCalendar(); }
   if (id==='strategy') renderStrategy();
   if (id==='hands') { populateSessionDropdowns(); renderHands(); }
@@ -1152,23 +1258,26 @@ function switchTab(id) {
 
 // ── BANKROLL ──
 function saveBankroll() {
-  bankroll.amount = parseFloat(document.getElementById('br-input').value)||0;
   bankroll.rule   = parseInt(document.getElementById('br-rule').value)||15;
   save('bankroll', bankroll);
   updateBRMTip();
   refreshDashboard();
+  if (typeof renderTreasury === 'function') renderTreasury();
 }
 function loadBankrollForm() {
-  document.getElementById('br-input').value = bankroll.amount||'';
+  document.getElementById('br-input').value = '₱' + fmt(bankroll.amount||0);
   document.getElementById('br-rule').value  = bankroll.rule||15;
   updateBRMTip();
 }
 function updateBRMTip() {
   var br = bankroll.amount, rule = bankroll.rule;
-  if (!br) { document.getElementById('brm-tip').textContent = 'Set your bankroll above to see stake recommendations.'; return; }
+  if (!br) {
+    document.getElementById('brm-tip').textContent = 'Bankroll is controlled by session results plus Treasury transfers and adjustments. Current recommended buy-in: ₱0.';
+    return;
+  }
   var rec = br/rule, stretch = br/(rule*0.6);
   document.getElementById('brm-tip').textContent =
-    'Recommended buy-in: up to ₱'+fmt(rec)+' | Stretch (shot-taking): up to ₱'+fmt(stretch)+' | Shots available at rec stake: '+Math.floor(br/rec);
+    'Bankroll is controlled by session results plus Treasury transfers and adjustments. Recommended buy-in: up to ₱'+fmt(rec)+' | Stretch: up to ₱'+fmt(stretch)+' | Shots available at rec stake: '+Math.floor(br/rec);
 }
 function fmt(n) { return Math.round(n).toLocaleString(); }
 function fmtCur(n) { var v=Math.round(n); return (v>=0?'₱':'−₱')+Math.abs(v).toLocaleString(); }
@@ -1237,6 +1346,7 @@ function addSession() {
   clearSessionForm();
   renderSessionTable();
   refreshDashboard();
+  if (typeof renderTreasury === 'function') renderTreasury();
   endActiveSession();
   // Show gentle toast — not a blocking dialog
   showSessionToast(fmtCur(pnl), s.id);
@@ -1246,7 +1356,7 @@ function addSession() {
 
 function clearSessionForm() {
   clearRatings();
-  ['s-date','s-name','s-venue','s-buyin','s-rebuy','s-field','s-position','s-prize','s-hours','s-notes','s-package','s-player-share','s-markup'].forEach(function(id){
+  ['s-date','s-name','s-venue','s-buyin','s-rebuy','s-field','s-position','s-prize','s-hours','s-notes','s-package','s-player-share','s-markup','s-backer-count','s-backers'].forEach(function(id){
     document.getElementById(id).value='';
   });
   document.getElementById('s-date').value = new Date().toISOString().split('T')[0];
@@ -1263,6 +1373,7 @@ function deleteSession(id) {
   save('sessions', sessions);
   renderSessionTable();
   refreshDashboard();
+  if (typeof renderTreasury === 'function') renderTreasury();
 }
 
 function resultBadge(r) {
@@ -2027,7 +2138,7 @@ function switchGroup(group, page) {
   if (mstgrp) mstgrp.classList.add('active');
 
   // Navigate to the default first page for this group (or override)
-  var defaults = {plan:'calendar', play:'sessions', review:'sessions', improve:'strategy'};
+  var defaults = {plan:'calendar', play:'sessions', wallet:'wallet', review:'sessions', improve:'strategy'};
   switchTab(page || defaults[group]);
   window.scrollTo(0,0);
 }
@@ -2457,6 +2568,7 @@ if (savedTheme === 'light') {
 }
 initActiveSessionFeature();
 initDemoModeFeature();
+if (typeof initTreasuryFeature === 'function') initTreasuryFeature();
 refreshDashboard();
 refreshDemoBanner();
 showOnboarding();
@@ -2688,6 +2800,9 @@ renderBuildBadge();
   <button class="mobile-tab" id="mob-play" onclick="switchGroup('play')">
     <span class="mobile-tab-icon">▶</span>PLAY
   </button>
+  <button class="mobile-tab" id="mob-wallet" onclick="switchGroup('wallet')">
+    <span class="mobile-tab-icon">💼</span>WALLET
+  </button>
   <button class="mobile-tab" id="mob-review" onclick="switchGroup('review')">
     <span class="mobile-tab-icon">📊</span>REVIEW
   </button>
@@ -2706,6 +2821,9 @@ renderBuildBadge();
     <button class="mob-subtab" data-page="sessions" onclick="switchTab('sessions')">♦ Log Session</button>
     <button class="mob-subtab" data-page="hands" onclick="switchTab('hands')">🃏 Hands</button>
     <button class="mob-subtab" data-page="calculator" onclick="switchTab('calculator')">🧮 Calc</button>
+  </div>
+  <div class="mob-subtab-group" id="mob-subtabs-wallet">
+    <button class="mob-subtab" data-page="wallet" onclick="switchTab('wallet')">💼 Treasury</button>
   </div>
   <div class="mob-subtab-group" id="mob-subtabs-review">
     <button class="mob-subtab" data-page="sessions" onclick="switchTab('sessions')">♦ History</button>

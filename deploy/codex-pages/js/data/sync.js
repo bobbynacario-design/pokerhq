@@ -36,6 +36,8 @@ function applyLoadedValue(key, value) {
   if (key === "news") window.newsItems = value;
   if (key === "spotlights") window.spotlights = value;
   if (key === "bankroll") window.bankroll = value;
+  if (key === "wallet") window.wallet = value;
+  if (key === "walletLedger") window.walletLedger = value;
   if (key === "satellites") window.satellites = value;
   if (key === "opponents") window.opponents = value;
   if (key === "satTarget") window.satTarget = value;
@@ -51,6 +53,7 @@ function refreshAllUi() {
   if (window.renderStrategy) window.renderStrategy();
   if (window.renderHands) window.renderHands();
   if (window.loadBankrollForm) window.loadBankrollForm();
+  if (window.renderTreasury) window.renderTreasury();
   if (window.populateSessionDropdowns) window.populateSessionDropdowns();
   if (window.renderSatellites) window.renderSatellites();
   if (window.renderOpponents) window.renderOpponents();
@@ -60,6 +63,7 @@ function refreshAllUi() {
 function refreshRealtimeUi(key) {
   if (window.refreshDashboard) window.refreshDashboard();
   if (window.loadBankrollForm) window.loadBankrollForm();
+  if (window.renderTreasury) window.renderTreasury();
   if (window.renderCalendarMonth) window.renderCalendarMonth();
   if (window.renderCalendarList) window.renderCalendarList();
   if (window.renderStrategy) window.renderStrategy();

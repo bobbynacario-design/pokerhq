@@ -93,6 +93,7 @@ function syncActiveDraftFromForm() {
   _activeSessionDraft.date = document.getElementById('s-date').value || _activeSessionDraft.date || new Date().toISOString().split('T')[0];
   _activeSessionDraft.name = document.getElementById('s-name').value || _activeSessionDraft.name || '';
   _activeSessionDraft.venue = document.getElementById('s-venue').value || _activeSessionDraft.venue || '';
+  _activeSessionDraft.packageName = document.getElementById('s-package').value || _activeSessionDraft.packageName || '';
   _activeSessionDraft.buyin = parseFloat(document.getElementById('s-buyin').value) || _activeSessionDraft.buyin || 0;
   _activeSessionDraft.focus = parseFloat(document.getElementById('s-focus').value) || _activeSessionDraft.focus || 0;
   _activeSessionDraft.energy = parseFloat(document.getElementById('s-energy').value) || _activeSessionDraft.energy || 0;
@@ -107,6 +108,7 @@ function hydrateSessionFormFromDraft(force) {
     ['s-date', _activeSessionDraft.date || new Date().toISOString().split('T')[0]],
     ['s-name', _activeSessionDraft.name || ''],
     ['s-venue', _activeSessionDraft.venue || ''],
+    ['s-package', _activeSessionDraft.packageName || ''],
     ['s-buyin', _activeSessionDraft.buyin || ''],
     ['s-focus', _activeSessionDraft.focus || ''],
     ['s-energy', _activeSessionDraft.energy || ''],

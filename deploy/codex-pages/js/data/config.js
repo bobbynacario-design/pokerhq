@@ -15,6 +15,8 @@ export const FIRESTORE_KEYS = [
   "news",
   "spotlights",
   "bankroll",
+  "wallet",
+  "walletLedger",
   "satellites",
   "opponents",
   "timer"
