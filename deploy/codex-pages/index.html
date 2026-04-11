@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23080A0E'/><text y='.9em' font-size='75' x='50%' text-anchor='middle'>🃏</text></svg>">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PokerHQ — Bob's Tournament Intelligence</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="./profile-override.js"></script>
 <script type="module" src="./js/app.js"></script>
@@ -23,7 +23,19 @@
 <nav class="nav">
   <div class="nav-row">
     <div style="display:flex;align-items:center;gap:1.5rem">
-      <div class="nav-brand">PokerHQ <span>// BOB</span></div>
+      <div class="nav-brand" aria-label="PokerHQ">
+        <div class="nav-brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <path d="M50,15 C65,45 80,55 80,68 A15,15 0 0,1 50,72 A15,15 0 0,1 20,68 C20,55 35,45 50,15 Z" fill="currentColor"/>
+            <path d="M45,70 L40,88 L60,88 L55,70 Z" fill="currentColor"/>
+            <text x="50" y="62" font-family="Montserrat, sans-serif" font-weight="800" font-size="20" fill="#121212" text-anchor="middle" letter-spacing="-1">HQ</text>
+          </svg>
+        </div>
+        <div class="nav-brand-copy">
+          <div class="nav-brand-title">PokerHQ</div>
+          <span class="nav-brand-tag">// BOB</span>
+        </div>
+      </div>
       <div class="nav-groups">
         <button class="group-tab active" id="gtab-home" onclick="switchGroup('home')">♠ HOME</button>
         <button class="group-tab" id="gtab-plan" onclick="switchGroup('plan')">PLAN</button>

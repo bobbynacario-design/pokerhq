@@ -110,6 +110,16 @@
     return primaryKey === legacyKey ? [primaryKey] : [primaryKey, legacyKey];
   }
 
+  function resolveUiStorageKey(baseKey, profileConfig) {
+    return resolveLocalStorageKey("ui_" + baseKey, profileConfig);
+  }
+
+  function resolveUiReadKeys(baseKey, legacyKey, profileConfig) {
+    var keys = resolveLocalReadKeys("ui_" + baseKey, profileConfig).slice();
+    if (legacyKey && keys.indexOf(legacyKey) === -1) keys.push(legacyKey);
+    return keys;
+  }
+
   window.PokerHQConfig = Object.assign({}, window.PokerHQConfig || {}, {
     LEGACY_FIRESTORE_PATH: LEGACY_FIRESTORE_PATH,
     LEGACY_FIRESTORE_DOC_PREFIX: LEGACY_FIRESTORE_DOC_PREFIX,
@@ -120,6 +130,8 @@
     resolveProfileConfig: resolveProfileConfig,
     resolveLegacyLocalStorageKey: resolveLegacyLocalStorageKey,
     resolveLocalStorageKey: resolveLocalStorageKey,
-    resolveLocalReadKeys: resolveLocalReadKeys
+    resolveLocalReadKeys: resolveLocalReadKeys,
+    resolveUiStorageKey: resolveUiStorageKey,
+    resolveUiReadKeys: resolveUiReadKeys
   });
 })();

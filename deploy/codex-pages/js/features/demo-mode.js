@@ -1,4 +1,20 @@
 window._demoMode = false;
+var DEMO_BANNER_UI_KEY = 'demo_dismissed';
+var LEGACY_DEMO_BANNER_UI_KEY = 'pokerhq_demo_dismissed';
+
+function getDemoBannerStorageKey() {
+  var cfg = window.PokerHQConfig || {};
+  return cfg.resolveUiStorageKey ? cfg.resolveUiStorageKey(DEMO_BANNER_UI_KEY) : LEGACY_DEMO_BANNER_UI_KEY;
+}
+
+function readDemoBannerDismissed() {
+  var cfg = window.PokerHQConfig || {};
+  var keys = cfg.resolveUiReadKeys ? cfg.resolveUiReadKeys(DEMO_BANNER_UI_KEY, LEGACY_DEMO_BANNER_UI_KEY) : [LEGACY_DEMO_BANNER_UI_KEY];
+  for (var i = 0; i < keys.length; i++) {
+    if (localStorage.getItem(keys[i])) return true;
+  }
+  return false;
+}
 
 var _demoSessions = [
   {id:9001,date:'2026-03-22',name:'Okada Manila Millions - Day 1A',venue:'Okada Manila',buyin:7500,rebuy:0,total:7500,field:187,position:23,prize:0,pnl:-7500,hours:8.5,notes:'Deep run, busted AK vs QQ 3-way all-in',result:'bust',focus:8,energy:7,sleep:7,fasting:'no'},
@@ -169,13 +185,13 @@ function onboardingLoadDemo() {
 function refreshDemoBanner() {
   var banner = document.getElementById('demo-banner');
   if (!banner) return;
-  var dismissed = localStorage.getItem('pokerhq_demo_dismissed');
+  var dismissed = readDemoBannerDismissed();
   banner.style.display = (!window._demoMode && !dismissed) ? 'flex' : 'none';
   renderReliability();
 }
 
 function dismissDemoBanner() {
-  localStorage.setItem('pokerhq_demo_dismissed', '1');
+  localStorage.setItem(getDemoBannerStorageKey(), '1');
   var banner = document.getElementById('demo-banner');
   if (banner) banner.style.display = 'none';
 }

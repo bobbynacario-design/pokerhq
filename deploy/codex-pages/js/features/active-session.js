@@ -4,9 +4,33 @@ var _timerStart = null;
 var _timerElapsed = 0; // ms
 var _readinessState = null;
 var _readinessBypass = false;
+var ACTIVE_SESSION_DRAFT_STORAGE_KEY = 'active_session_draft';
+var LEGACY_ACTIVE_SESSION_DRAFT_STORAGE_KEY = 'pokerhq_active_session_draft';
+
+function readScopedUiJson(baseKey, legacyKey, fallback) {
+  try {
+    var cfg = window.PokerHQConfig || {};
+    var keys = cfg.resolveUiReadKeys ? cfg.resolveUiReadKeys(baseKey, legacyKey) : [legacyKey];
+    for (var i = 0; i < keys.length; i++) {
+      var raw = localStorage.getItem(keys[i]);
+      if (!raw) continue;
+      return JSON.parse(raw);
+    }
+  } catch (e) {}
+  return fallback;
+}
+
+function saveScopedUiJson(baseKey, value) {
+  try {
+    var cfg = window.PokerHQConfig || {};
+    var key = cfg.resolveUiStorageKey ? cfg.resolveUiStorageKey(baseKey) : LEGACY_ACTIVE_SESSION_DRAFT_STORAGE_KEY;
+    if (value === null || typeof value === 'undefined') localStorage.removeItem(key);
+    else localStorage.setItem(key, JSON.stringify(value));
+  } catch (e) {}
+}
 
 function initActiveSessionFeature() {
-  _activeSessionDraft = loadLocalOnly('pokerhq_active_session_draft', null);
+  _activeSessionDraft = readScopedUiJson(ACTIVE_SESSION_DRAFT_STORAGE_KEY, LEGACY_ACTIVE_SESSION_DRAFT_STORAGE_KEY, null);
 }
 
 function getReliabilitySnapshot() {
@@ -49,7 +73,7 @@ function getActiveSessionLabel() {
 }
 
 function persistActiveSessionDraft() {
-  saveLocalOnly('pokerhq_active_session_draft', _activeSessionDraft);
+  saveScopedUiJson(ACTIVE_SESSION_DRAFT_STORAGE_KEY, _activeSessionDraft);
   renderActiveSessionSurface();
 }
 
@@ -417,6 +441,11 @@ function openHandModalForActiveSession() {
 }
 
 function resetTimerState() {
+  applyIdleTimerUi();
+  save('timer', {running:false, startedAt:null, elapsed:0});
+}
+
+function applyIdleTimerUi() {
   if (_timerInterval) {
     clearInterval(_timerInterval);
     _timerInterval = null;
@@ -434,7 +463,6 @@ function resetTimerState() {
   }
   if (stopBtn) stopBtn.style.display = 'none';
   if (logBtn) logBtn.style.display = 'none';
-  save('timer', {running:false, startedAt:null, elapsed:0});
 }
 
 function endActiveSession() {
@@ -519,8 +547,11 @@ function logTimerToSession() {
 
 function restoreTimerState(state) {
   if (!state) return;
+  if (_timerInterval) {
+    clearInterval(_timerInterval);
+    _timerInterval = null;
+  }
   if (state.running && state.startedAt) {
-    if (_timerInterval) return;
     _timerStart = state.startedAt;
     _timerElapsed = 0;
     _timerInterval = setInterval(updateTimerDisplay, 1000);
@@ -530,8 +561,8 @@ function restoreTimerState(state) {
     updateTimerDisplay();
     renderActiveSessionSurface();
   } else if (state.elapsed > 0) {
-    if (_timerInterval) return;
     _timerElapsed = state.elapsed;
+    _timerStart = null;
     var e = state.elapsed;
     var h = Math.floor(e/3600000), m = Math.floor((e%3600000)/60000), s = Math.floor((e%60000)/1000);
     var dispEl = document.getElementById('timer-display');
@@ -540,6 +571,9 @@ function restoreTimerState(state) {
     document.getElementById('timer-start-btn').textContent = 'RESUME';
     document.getElementById('timer-stop-btn').style.display = 'none';
     document.getElementById('timer-log-btn').style.display = 'inline-block';
+    renderActiveSessionSurface();
+  } else {
+    applyIdleTimerUi();
     renderActiveSessionSurface();
   }
 }
