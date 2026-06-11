@@ -1,37 +1,38 @@
-// PokerHQ Firestore security rules — reference copy.
+// PokerHQ Firestore security rules.
 //
-// HOW TO APPLY (one-time, in the Firebase console — there is no code path for this):
-//   1. Firebase console -> Authentication -> Sign-in method -> enable "Anonymous".
-//      (sync.js calls signInAnonymously; until this is on it silently runs unauthenticated.)
-//   2. Firestore Database -> Rules -> paste the rules below -> Publish.
-//   3. Reload the app, hover the BUILD badge, and copy the "Auth UID" value.
-//   4. Put that UID in OWNER_UIDS below (replace the placeholder), then Publish again.
-//      Add a second UID if you sync the same data from a second device/login.
+// Deployed with: firebase deploy --only firestore:rules --project pokerhq-a67e4
+// (firebase.json at the repo root points at this file)
 //
-// The app stores each data key (sessions, hands, bankroll, ...) as one document under
-// a per-profile collection. Live profile path: "pokerhq-bob". Profile collections all
-// start with "pokerhq-". These rules lock every PokerHQ collection to the owner UID(s)
-// while leaving the rest of the project untouched.
+// CURRENT STATE (phase 1): every PokerHQ collection requires a signed-in user.
+// The app signs in anonymously on load (see js/data/sync.js), so all devices
+// keep working automatically — but anonymous drive-by REST reads/writes are blocked.
+//
+// OPTIONAL TIGHTENING (phase 2): lock the data to your own devices only.
+//   1. Open the app on every device you use (desktop + iPhone) so each gets its UID.
+//   2. Firebase console -> Authentication -> Users: copy each anonymous UID
+//      (or hover the BUILD badge in the app on desktop — it shows "Auth UID").
+//   3. Change the isAllowed() function below to:
+//        return request.auth != null && request.auth.uid in ['UID_1', 'UID_2'];
+//   4. Redeploy with the command above.
+// Caution: with anonymous auth, clearing a browser's site data creates a NEW UID,
+// which would then need to be added to the list before that device can sync again.
 
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isOwner() {
-      return request.auth != null
-        && request.auth.uid in [
-          // <-- replace with the Auth UID from the BUILD badge tooltip
-          'REPLACE_WITH_YOUR_AUTH_UID'
-        ];
+    function isAllowed() {
+      return request.auth != null;
     }
 
-    // Live profile data lives in "pokerhq-bob"; profile-scoped data in "pokerhq-profile-*".
+    // Live profile data ("pokerhq-bob") and any future profile collections
+    // ("pokerhq-profile-<id>"). Everything else in the database stays denied.
     match /pokerhq-bob/{docId} {
-      allow read, write: if isOwner();
+      allow read, write: if isAllowed();
     }
-    match /pokerhq-profile-{profileId}/{docId} {
-      allow read, write: if isOwner();
+    match /{collection}/{docId} {
+      allow read, write: if isAllowed() && collection.matches('pokerhq-profile-.*');
     }
   }
 }
