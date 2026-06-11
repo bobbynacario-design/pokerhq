@@ -13,12 +13,39 @@
 <title>PokerHQ — Bob's Tournament Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="./profile-override.js"></script>
-<script type="module" src="./js/app.js"></script>
-<link rel="stylesheet" href="./styles/app.css">
-<link rel="stylesheet" href="./styles/test-overrides.css">
+<script src="./profile-override.js?v=20260612a"></script>
+<script type="module" src="./js/app.js?v=20260612a"></script>
+<link rel="stylesheet" href="./styles/app.css?v=20260612a">
+<link rel="stylesheet" href="./styles/test-overrides.css?v=20260612a">
 </head>
 <body>
+<!-- LOGIN GATE — shown until Firebase auth resolves a signed-in user -->
+<div id="login-overlay">
+  <div class="login-card">
+    <div class="login-logo" aria-hidden="true">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <path d="M50,15 C65,45 80,55 80,68 A15,15 0 0,1 50,72 A15,15 0 0,1 20,68 C20,55 35,45 50,15 Z" fill="currentColor"/>
+        <path d="M45,70 L40,88 L60,88 L55,70 Z" fill="currentColor"/>
+        <text x="50" y="62" font-family="Montserrat, sans-serif" font-weight="800" font-size="20" fill="#121212" text-anchor="middle" letter-spacing="-1">HQ</text>
+      </svg>
+    </div>
+    <div class="login-title">PokerHQ</div>
+    <div class="login-tagline">// Bob &middot; Tournament Intelligence</div>
+    <div class="login-desc">Private command center for planning, playing, and reviewing live tournament poker.</div>
+    <div class="login-status" id="login-status">Checking sign-in...</div>
+    <div class="login-error" id="login-error" style="display:none"></div>
+    <button class="btn-google" id="login-google-btn" style="display:none" onclick="pokerhqSignIn()">
+      <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+        <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
+        <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
+        <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>
+        <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/>
+      </svg>
+      <span>Sign in with Google</span>
+    </button>
+  </div>
+</div>
+
 
 <!-- NAV -->
 <nav class="nav">
@@ -48,6 +75,7 @@
     </div>
     <div class="nav-right">
       <div class="build-badge" id="build-badge" title="Build info loading...">BUILD</div>
+      <button class="theme-toggle" id="signout-btn" onclick="pokerhqSignOut()" title="Sign out" style="display:none">&#9099;</button>
       <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">🌙</button>
       <div class="clock-nav" id="clock">--:--</div>
       <div class="clock-nav" id="sync-status" style="letter-spacing:.04em">○ Loading...</div>
@@ -1107,20 +1135,20 @@
   </div>
 </div>
 
-<script src="./js/data/config-runtime.js"></script>
-<script src="./js/features/active-session.js"></script>
-<script src="./js/features/demo-mode.js"></script>
-<script src="./js/features/calculator.js"></script>
-<script src="./js/features/staking.js"></script>
-<script src="./js/features/package-report.js"></script>
-<script src="./js/features/review.js"></script>
-<script src="./js/features/calendar.js"></script>
-<script src="./js/features/study-loop.js"></script>
-<script src="./js/features/strategy.js"></script>
-<script src="./js/features/hands.js"></script>
-<script src="./js/features/treasury.js"></script>
-<script src="./js/features/library.js"></script>
-<script src="./js/features/onboarding.js"></script>
+<script src="./js/data/config-runtime.js?v=20260612a"></script>
+<script src="./js/features/active-session.js?v=20260612a"></script>
+<script src="./js/features/demo-mode.js?v=20260612a"></script>
+<script src="./js/features/calculator.js?v=20260612a"></script>
+<script src="./js/features/staking.js?v=20260612a"></script>
+<script src="./js/features/package-report.js?v=20260612a"></script>
+<script src="./js/features/review.js?v=20260612a"></script>
+<script src="./js/features/calendar.js?v=20260612a"></script>
+<script src="./js/features/study-loop.js?v=20260612a"></script>
+<script src="./js/features/strategy.js?v=20260612a"></script>
+<script src="./js/features/hands.js?v=20260612a"></script>
+<script src="./js/features/treasury.js?v=20260612a"></script>
+<script src="./js/features/library.js?v=20260612a"></script>
+<script src="./js/features/onboarding.js?v=20260612a"></script>
 <script>
 // ── STORAGE — with offline queue ──
 function getProfileConfigApi() { return window.PokerHQConfig || {}; }
@@ -1236,7 +1264,7 @@ function renderBuildBadge() {
     + '\nFirestore: ' + ((profile && profile.firestorePath) || 'n/a')
     + '\nDoc prefix: ' + ((profile && profile.firestoreDocPrefix) || '(none)')
     + '\nLocal prefix: ' + ((profile && profile.localPrefix) || 'n/a')
-    + '\nAuth UID: ' + (window.__pokerhqAuthUid || 'not signed in');
+    + '\nAuth: ' + (window.__pokerhqAuthEmail || window.__pokerhqAuthUid || 'not signed in');
 }
 function tickClock() {
   var t = new Date().toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit',hour12:false});

@@ -3,36 +3,34 @@
 // Deployed with: firebase deploy --only firestore:rules --project pokerhq-a67e4
 // (firebase.json at the repo root points at this file)
 //
-// CURRENT STATE (phase 1): every PokerHQ collection requires a signed-in user.
-// The app signs in anonymously on load (see js/data/sync.js), so all devices
-// keep working automatically — but anonymous drive-by REST reads/writes are blocked.
+// Access model: the app requires Google sign-in (login gate in js/data/sync.js),
+// and the data is locked to the owner's Google account below. Signing in with
+// any other account shows an "access denied" message in the app.
 //
-// OPTIONAL TIGHTENING (phase 2): lock the data to your own devices only.
-//   1. Open the app on every device you use (desktop + iPhone) so each gets its UID.
-//   2. Firebase console -> Authentication -> Users: copy each anonymous UID
-//      (or hover the BUILD badge in the app on desktop — it shows "Auth UID").
-//   3. Change the isAllowed() function below to:
-//        return request.auth != null && request.auth.uid in ['UID_1', 'UID_2'];
-//   4. Redeploy with the command above.
-// Caution: with anonymous auth, clearing a browser's site data creates a NEW UID,
-// which would then need to be added to the list before that device can sync again.
+// To grant another account access, add its email (lowercase) to the list in
+// isOwner() and redeploy with the command above.
 
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isAllowed() {
-      return request.auth != null;
+    function isOwner() {
+      return request.auth != null
+        && request.auth.token.email != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.lower() in [
+          'bobbynacario@gmail.com'
+        ];
     }
 
     // Live profile data ("pokerhq-bob") and any future profile collections
     // ("pokerhq-profile-<id>"). Everything else in the database stays denied.
     match /pokerhq-bob/{docId} {
-      allow read, write: if isAllowed();
+      allow read, write: if isOwner();
     }
     match /{collection}/{docId} {
-      allow read, write: if isAllowed() && collection.matches('pokerhq-profile-.*');
+      allow read, write: if isOwner() && collection.matches('pokerhq-profile-.*');
     }
   }
 }

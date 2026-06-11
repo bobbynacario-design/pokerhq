@@ -1,7 +1,9 @@
 /* PokerHQ service worker — keeps the app shell available offline.
-   Navigations are network-first so new deploys land on the next load;
-   static assets are stale-while-revalidate. Sync/API traffic is never cached. */
-var CACHE_NAME = 'pokerhq-shell-v2';
+   Navigations and same-origin assets are network-first so a deploy is never
+   half-applied (fresh HTML must pair with fresh JS/CSS); the cache is the
+   offline fallback. Cross-origin CDN assets (fonts, jspdf, gstatic modules)
+   are stale-while-revalidate. Sync/API traffic is never cached. */
+var CACHE_NAME = 'pokerhq-shell-v3';
 
 var PRECACHE = [
   './',
@@ -65,15 +67,18 @@ self.addEventListener('fetch', function(event) {
   var url = new URL(req.url);
   if (BYPASS_HOSTS.indexOf(url.hostname) !== -1) return;
 
-  if (req.mode === 'navigate') {
+  if (req.mode === 'navigate' || url.origin === self.location.origin) {
     event.respondWith(
       fetch(req).then(function(res) {
-        var copy = res.clone();
-        caches.open(CACHE_NAME).then(function(cache) { cache.put(req, copy); });
+        if (res && res.status === 200) {
+          var copy = res.clone();
+          caches.open(CACHE_NAME).then(function(cache) { cache.put(req, copy); });
+        }
         return res;
       }).catch(function() {
-        return caches.match(req).then(function(hit) {
-          return hit || caches.match('./index.html');
+        // Versioned asset URLs (?v=) must still hit the queryless precache offline.
+        return caches.match(req, { ignoreSearch: true }).then(function(hit) {
+          return hit || (req.mode === 'navigate' ? caches.match('./index.html') : Response.error());
         });
       })
     );
