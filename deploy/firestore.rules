@@ -1,36 +1,85 @@
-// PokerHQ Firestore security rules.
-//
-// Deployed with: firebase deploy --only firestore:rules --project pokerhq-a67e4
-// (firebase.json at the repo root points at this file)
-//
-// Access model: the app requires Google sign-in (login gate in js/data/sync.js),
-// and the data is locked to the owner's Google account below. Signing in with
-// any other account shows an "access denied" message in the app.
-//
-// To grant another account access, add its email (lowercase) to the list in
-// isOwner() and redeploy with the command above.
-
 rules_version = '2';
+
+// Shared Firebase project: pokerhq-a67e4 — ONE ruleset for THREE apps.
+// Firestore keeps a single ruleset per project: deploying from ANY repo
+// replaces the rules for ALL apps (this has happened — a PokerHQ-only
+// deploy on 2026-06-11 locked SonicVault and Daily Briefer out).
+//
+// This file is the canonical merged ruleset. Keep these copies identical:
+//   - sonicvault/firestore.rules
+//   - pokerhq/deploy/firestore.rules
+//   - bobdailybriefing/firestore.rules
+// and always deploy the FULL file: firebase deploy --only firestore:rules
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isOwner() {
+    function isBobGoogleAccount() {
       return request.auth != null
         && request.auth.token.email != null
-        && request.auth.token.email_verified == true
         && request.auth.token.email.lower() in [
           'bobbynacario@gmail.com'
         ];
     }
 
-    // Live profile data ("pokerhq-bob") and any future profile collections
-    // ("pokerhq-profile-<id>"). Everything else in the database stays denied.
+    function isSonicVaultOwner() {
+      return (request.auth != null && request.auth.token.sonicvaultOwner == true)
+        || isBobGoogleAccount();
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // PokerHQ — owner-locked, requires verified Google email
+    // ─────────────────────────────────────────────────────────────
     match /pokerhq-bob/{docId} {
-      allow read, write: if isOwner();
+      allow read, write: if isBobGoogleAccount()
+        && request.auth.token.email_verified == true;
     }
     match /{collection}/{docId} {
-      allow read, write: if isOwner() && collection.matches('pokerhq-profile-.*');
+      allow read, write: if isBobGoogleAccount()
+        && request.auth.token.email_verified == true
+        && collection.matches('pokerhq-profile-.*');
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Bob's Daily Briefing — authenticated, uid-scoped
+    // ─────────────────────────────────────────────────────────────
+    match /briefings-bob/{docId} {
+      allow read: if request.auth != null
+        && (resource.data.uid == request.auth.uid || !('uid' in resource.data));
+
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid;
+
+      allow update: if request.auth != null
+        && (resource.data.uid == request.auth.uid || !('uid' in resource.data))
+        && request.resource.data.uid == request.auth.uid;
+
+      allow delete: if request.auth != null
+        && (resource.data.uid == request.auth.uid || !('uid' in resource.data));
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // SonicVault — private vault locked to owner; public share
+    // catalogs are world-readable but owner-writable only.
+    // The watcher uses the Admin SDK and bypasses these rules.
+    // ─────────────────────────────────────────────────────────────
+    match /sonicvault-bob/{docId} {
+      allow read, write, delete: if isSonicVaultOwner();
+    }
+    match /sonicvault-public-tracks/{docId} {
+      allow read: if true;
+      allow create, update, delete: if isSonicVaultOwner();
+    }
+    match /sonicvault-public-playlists/{docId} {
+      allow read: if true;
+      allow create, update, delete: if isSonicVaultOwner();
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Deny everything else (any unknown collection)
+    // ─────────────────────────────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
