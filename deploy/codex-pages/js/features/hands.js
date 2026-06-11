@@ -1,18 +1,18 @@
 function populateSessionDropdowns() {
   var opts = '<option value="">Select session (optional)...</option>';
   sessions.forEach(function(s) {
-    opts += '<option value="' + s.id + '">' + s.date + ' — ' + s.name + '</option>';
+    opts += '<option value="' + s.id + '">' + esc(s.date) + ' — ' + esc(s.name) + '</option>';
   });
   ['h-session-link', 'voice-session-link', 'hand-session-filter'].forEach(function(id) {
     var el = document.getElementById(id);
     if (!el) return;
     var isFilter = id === 'hand-session-filter';
-    el.innerHTML = isFilter ? '<option value="">All sessions</option>' + sessions.map(function(s) { return '<option value="' + s.id + '">' + s.date + ' — ' + s.name + '</option>'; }).join('') : opts;
+    el.innerHTML = isFilter ? '<option value="">All sessions</option>' + sessions.map(function(s) { return '<option value="' + s.id + '">' + esc(s.date) + ' — ' + esc(s.name) + '</option>'; }).join('') : opts;
   });
 }
 
 function toMultilineHtml(text) {
-  return (text || '').replace(/\n/g, '<br>');
+  return esc(text || '').replace(/\n/g, '<br>');
 }
 
 function getHandResultMeta(result) {
@@ -76,14 +76,14 @@ function buildHandReplayHtml(hand) {
   var html = '';
 
   html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;margin-bottom:1rem">';
-  html += '<div><div style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:rgba(255,255,255,.35);text-transform:uppercase;margin-bottom:.25rem">Linked Session</div><div style="font-size:14px;color:#fff;line-height:1.5">' + sessionLabel + '</div></div>';
+  html += '<div><div style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:rgba(255,255,255,.35);text-transform:uppercase;margin-bottom:.25rem">Linked Session</div><div style="font-size:14px;color:#fff;line-height:1.5">' + esc(sessionLabel) + '</div></div>';
   html += '<div style="font-family:var(--mono);font-size:10px;padding:4px 10px;border-radius:999px;background:rgba(0,0,0,.28);color:' + resultMeta.color + ';border:1px solid var(--rim2)">' + resultMeta.label + '</div>';
   html += '</div>';
 
   if (metaRows.length) {
     html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.65rem;margin-bottom:1rem">';
     metaRows.forEach(function(row) {
-      html += '<div style="background:var(--bg3);border-radius:10px;padding:.8rem .9rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;color:rgba(255,255,255,.35);text-transform:uppercase;margin-bottom:.35rem">' + row.label + '</div><div style="font-size:13px;color:#fff;line-height:1.6">' + row.value + '</div></div>';
+      html += '<div style="background:var(--bg3);border-radius:10px;padding:.8rem .9rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;color:rgba(255,255,255,.35);text-transform:uppercase;margin-bottom:.35rem">' + row.label + '</div><div style="font-size:13px;color:#fff;line-height:1.6">' + esc(row.value) + '</div></div>';
     });
     html += '</div>';
   }
@@ -221,9 +221,45 @@ function renderHands() {
   el.innerHTML = filtered.map(function(h) {
     var resultMeta = getHandResultMeta(h.result);
     var linkedSession = h.sessionId ? sessions.find(function(s) { return s.id === h.sessionId; }) : null;
-    var sessionBadge = linkedSession ? '<span style="font-family:var(--mono);font-size:9px;background:var(--gold-dim);color:var(--gold);border:1px solid rgba(201,168,76,.25);border-radius:20px;padding:2px 7px;margin-left:.4rem">' + linkedSession.name + '</span>' : '';
-    return '<div class="hand-card"><div class="hand-top"><div style="flex:1"><div class="hand-meta">' + h.session + sessionBadge + '</div><div class="hand-title">' + h.title + '</div></div><div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;justify-content:flex-end"><button class="sec-action" style="padding:.32rem .7rem;font-size:10px" onclick="event.stopPropagation();openHandReplay(' + h.id + ')">REPLAY</button><span class="hand-result ' + resultMeta.className + '">' + resultMeta.label + '</span><button class="del-btn" onclick="event.stopPropagation();deleteHand(' + h.id + ')">✕</button></div></div>' + (h.desc ? '<div class="hand-body">' + h.desc + '</div>' : '') + (h.lesson ? '<div style="margin-top:.6rem;font-size:11px;color:var(--gold);font-family:var(--mono)">💡 ' + h.lesson + '</div>' : '') + '</div>';
+    var sessionBadge = linkedSession ? '<span style="font-family:var(--mono);font-size:9px;background:var(--gold-dim);color:var(--gold);border:1px solid rgba(201,168,76,.25);border-radius:20px;padding:2px 7px;margin-left:.4rem">' + esc(linkedSession.name) + '</span>' : '';
+    return '<div class="hand-card"><div class="hand-top"><div style="flex:1"><div class="hand-meta">' + esc(h.session) + sessionBadge + '</div><div class="hand-title">' + esc(h.title) + '</div></div><div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;justify-content:flex-end"><button class="sec-action" style="padding:.32rem .7rem;font-size:10px" onclick="event.stopPropagation();openHandReplay(' + h.id + ')">REPLAY</button><span class="hand-result ' + resultMeta.className + '">' + resultMeta.label + '</span><button class="del-btn" onclick="event.stopPropagation();deleteHand(' + h.id + ')">✕</button></div></div>' + (h.desc ? '<div class="hand-body">' + esc(h.desc) + '</div>' : '') + (h.lesson ? '<div style="margin-top:.6rem;font-size:11px;color:var(--gold);font-family:var(--mono)">💡 ' + esc(h.lesson) + '</div>' : '') + '</div>';
   }).join('');
+}
+
+var ANTHROPIC_KEY_LOCAL_STORAGE = 'pokerhq_anthropic_key';
+
+function getStoredAnthropicKey() {
+  var fromStore = typeof loadLocalOnly === 'function' ? loadLocalOnly(ANTHROPIC_KEY_LOCAL_STORAGE, '') : '';
+  if (fromStore) return fromStore;
+  var cfg = window.PokerHQAI || window.pokerhqAI || {};
+  return cfg.apiKey || cfg.anthropicApiKey || '';
+}
+
+function setStoredAnthropicKey(key) {
+  if (typeof saveLocalOnly === 'function') saveLocalOnly(ANTHROPIC_KEY_LOCAL_STORAGE, key || null);
+}
+
+function refreshVoiceKeyRow() {
+  var input = document.getElementById('voice-api-key');
+  var tip = document.getElementById('voice-key-tip');
+  if (!input) return;
+  var hasKey = !!getStoredAnthropicKey();
+  input.placeholder = hasKey ? 'Key saved on this device — paste a new key to replace' : 'sk-ant-...';
+  if (tip) tip.textContent = hasKey
+    ? "A key is saved in this device's local storage only — never synced. Paste a new one to replace it."
+    : "Stored only in this device's local storage — never synced. Create a key at console.anthropic.com.";
+}
+
+function resolveVoiceApiKey() {
+  var input = document.getElementById('voice-api-key');
+  var typed = input ? input.value.trim() : '';
+  if (typed) {
+    setStoredAnthropicKey(typed);
+    if (input) input.value = '';
+    refreshVoiceKeyRow();
+    return typed;
+  }
+  return getStoredAnthropicKey();
 }
 
 function clearVoiceModal() {
@@ -233,6 +269,7 @@ function clearVoiceModal() {
   document.getElementById('voice-structure-btn').style.display = 'inline-flex';
   document.getElementById('voice-error').style.display = 'none';
   document.getElementById('voice-loading').style.display = 'none';
+  refreshVoiceKeyRow();
 }
 
 async function structureHand() {
@@ -242,15 +279,30 @@ async function structureHand() {
     return;
   }
 
+  var errEl = document.getElementById('voice-error');
+  var apiKey = resolveVoiceApiKey();
+  if (!apiKey) {
+    errEl.textContent = 'Add your Anthropic API key above first — it stays on this device only.';
+    errEl.style.display = 'block';
+    var keyInput = document.getElementById('voice-api-key');
+    if (keyInput) keyInput.focus();
+    return;
+  }
+
   document.getElementById('voice-loading').style.display = 'block';
   document.getElementById('voice-structure-btn').style.display = 'none';
-  document.getElementById('voice-error').style.display = 'none';
+  errEl.style.display = 'none';
   document.getElementById('voice-result').style.display = 'none';
 
   try {
     var response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 1000,
@@ -260,6 +312,14 @@ async function structureHand() {
         }]
       })
     });
+    if (!response.ok) {
+      if (response.status === 401) {
+        setStoredAnthropicKey(null);
+        refreshVoiceKeyRow();
+        throw new Error('API key was rejected (401) — paste a valid key and try again');
+      }
+      throw new Error('Claude API error (' + response.status + ')');
+    }
     var data = await response.json();
     var text = (data.content || []).map(function(c) { return c.text || ''; }).join('');
     var js = text.indexOf('{'), je = text.lastIndexOf('}');
@@ -272,8 +332,8 @@ async function structureHand() {
     document.getElementById('voice-result').style.display = 'block';
     document.getElementById('voice-save-btn').style.display = 'inline-flex';
   } catch (e) {
-    document.getElementById('voice-error').textContent = 'Could not structure hand: ' + e.message + '. Try again or log manually.';
-    document.getElementById('voice-error').style.display = 'block';
+    errEl.textContent = 'Could not structure hand: ' + e.message + '. Try again or log manually.';
+    errEl.style.display = 'block';
     document.getElementById('voice-structure-btn').style.display = 'inline-flex';
   }
   document.getElementById('voice-loading').style.display = 'none';

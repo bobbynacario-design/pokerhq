@@ -1,5 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   firebaseConfig,
   FIRESTORE_KEYS,
@@ -152,6 +153,19 @@ function startRealtimeListeners() {
   });
 }
 
+async function ensureAuth() {
+  try {
+    const auth = getAuth(app);
+    if (!auth.currentUser) await signInAnonymously(auth);
+    window.__pokerhqAuthUid = auth.currentUser ? auth.currentUser.uid : null;
+  } catch (error) {
+    // Anonymous sign-in is not enabled in the Firebase console yet.
+    // Continue unauthenticated so sync keeps working under the open rules.
+    window.__pokerhqAuthUid = null;
+  }
+  if (window.renderBuildBadge) window.renderBuildBadge();
+}
+
 export function initSync() {
   resolvedProfile = resolveProfileConfig();
   window.__pokerhqResolvedProfile = resolvedProfile;
@@ -159,7 +173,9 @@ export function initSync() {
   window.fbSave = fbSave;
   window.fbLoadAll = fbLoadAll;
   window.setSyncStatus = setSyncStatus;
-  if (navigator.onLine && window.flushOfflineQueue) window.flushOfflineQueue();
-  startRealtimeListeners();
-  fbLoadAll();
+  ensureAuth().finally(function() {
+    if (navigator.onLine && window.flushOfflineQueue) window.flushOfflineQueue();
+    startRealtimeListeners();
+    fbLoadAll();
+  });
 }

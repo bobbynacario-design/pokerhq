@@ -92,7 +92,7 @@ function renderSatellites() {
   el.innerHTML = satellites.map(function(s) {
     var rc = { won: 'sat-won', lost: 'sat-lost', pending: 'sat-pending' }[s.result] || 'sat-lost';
     var rl = { won: '🎟 SEAT WON', lost: 'DID NOT WIN', pending: 'PENDING' }[s.result] || 'DID NOT WIN';
-    return '<div class="sat-card"><div class="sat-card-left"><div class="sat-card-name">' + s.name + '</div><div class="sat-card-meta"><span>' + s.date + '</span><span>' + s.venue + '</span>' + (s.forEvent ? '<span>→ ' + s.forEvent + '</span>' : '') + (s.notes ? '<span>' + s.notes + '</span>' : '') + '</div></div><div class="sat-card-right"><div class="sat-buyin">₱' + s.buyin.toLocaleString() + '</div><span class="sat-result-badge ' + rc + '">' + rl + '</span><button class="del-btn" onclick="deleteSatellite(' + s.id + ')">✕</button></div></div>';
+    return '<div class="sat-card"><div class="sat-card-left"><div class="sat-card-name">' + esc(s.name) + '</div><div class="sat-card-meta"><span>' + esc(s.date) + '</span><span>' + esc(s.venue) + '</span>' + (s.forEvent ? '<span>→ ' + esc(s.forEvent) + '</span>' : '') + (s.notes ? '<span>' + esc(s.notes) + '</span>' : '') + '</div></div><div class="sat-card-right"><div class="sat-buyin">₱' + s.buyin.toLocaleString() + '</div><span class="sat-result-badge ' + rc + '">' + rl + '</span><button class="del-btn" onclick="deleteSatellite(' + s.id + ')">✕</button></div></div>';
   }).join('');
 }
 
@@ -144,12 +144,12 @@ function renderOpponents() {
   }) : opponents;
 
   if (!filtered.length) {
-    el.innerHTML = '<div style="padding:3rem;text-align:center;color:rgba(255,255,255,.2);font-family:var(--mono);font-size:13px">' + (q ? 'No villains matching "' + q + '"' : 'No villains logged yet. Add a player you want to remember.') + '</div>';
+    el.innerHTML = '<div style="padding:3rem;text-align:center;color:rgba(255,255,255,.2);font-family:var(--mono);font-size:13px">' + (q ? 'No villains matching "' + esc(q) + '"' : 'No villains logged yet. Add a player you want to remember.') + '</div>';
     return;
   }
   el.innerHTML = filtered.map(function(o) {
-    var tagHTML = (o.tags || []).map(function(t) { return '<span class="opp-tag ' + t + '">' + t + '</span>'; }).join('');
-    return '<div class="opp-card"><div class="opp-top"><div><div class="opp-name">' + o.name + '</div><div class="opp-venue">' + o.venue + (o.added ? ' · Added ' + o.added : '') + '</div></div><button class="del-btn" onclick="deleteOpponent(' + o.id + ')">✕</button></div>' + (tagHTML ? '<div class="opp-tags">' + tagHTML + '</div>' : '') + (o.notes ? '<div class="opp-notes">' + o.notes + '</div>' : '') + '</div>';
+    var tagHTML = (o.tags || []).map(function(t) { return '<span class="opp-tag ' + esc(t) + '">' + esc(t) + '</span>'; }).join('');
+    return '<div class="opp-card"><div class="opp-top"><div><div class="opp-name">' + esc(o.name) + '</div><div class="opp-venue">' + esc(o.venue) + (o.added ? ' · Added ' + esc(o.added) : '') + '</div></div><button class="del-btn" onclick="deleteOpponent(' + o.id + ')">✕</button></div>' + (tagHTML ? '<div class="opp-tags">' + tagHTML + '</div>' : '') + (o.notes ? '<div class="opp-notes">' + esc(o.notes) + '</div>' : '') + '</div>';
   }).join('');
 }
 
@@ -379,6 +379,12 @@ function handleBackupRestoreFile(event) {
   reader.readAsText(file);
 }
 
+function csvField(value) {
+  var str = String(value === null || typeof value === 'undefined' ? '' : value);
+  if (/[",\n\r]/.test(str)) return '"' + str.replace(/"/g, '""') + '"';
+  return str;
+}
+
 function exportCSV() {
   if (!sessions.length) {
     alert('No sessions to export.');
@@ -390,9 +396,9 @@ function exportCSV() {
       s.date || '', s.name || '', s.venue || '',
       s.buyin || 0, s.rebuy || 0, s.total || 0,
       s.field || '', s.position || '', s.prize || 0, s.pnl || 0,
-      s.hours || 0, s.result || '', '"' + (s.notes || '').replace(/"/g, "''") + '"',
+      s.hours || 0, s.result || '', s.notes || '',
       s.focus || '', s.energy || '', s.sleep || '', s.fasting || ''
-    ].join(',');
+    ].map(csvField).join(',');
   });
   var csv = [headers.join(',')].concat(rows).join('\n');
   var blob = new Blob([csv], { type: 'text/csv' });

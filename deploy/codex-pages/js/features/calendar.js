@@ -143,7 +143,7 @@ function renderCalendarMonth() {
       var sc = r.t.status || 'skip';
       var typeBar = r.t.type === 'main' ? 'main-event-bar' : 'side-event-bar';
       var name = isStart || isSolo ? r.t.name.substring(0, 14) + (r.t.name.length > 14 ? '…' : '') : '';
-      html += '<div class="cal-event-bar ' + sc + ' ' + pos + ' ' + typeBar + '" title="' + r.t.name + ' (' + r.t.series + ') — ₱' + r.t.buyin.toLocaleString() + '">' + name + '</div>';
+      html += '<div class="cal-event-bar ' + sc + ' ' + pos + ' ' + typeBar + '" title="' + esc(r.t.name) + ' (' + esc(r.t.series) + ') — ₱' + r.t.buyin.toLocaleString() + '">' + esc(name) + '</div>';
     });
     html += '</div>';
   });
@@ -180,7 +180,7 @@ function renderCalendarList() {
     html += '<div class="series-group">';
     html += '<div class="series-header">';
     html += '<span class="series-icon">' + icon + '</span>';
-    html += '<span class="series-name">' + key + '</span>';
+    html += '<span class="series-name">' + esc(key) + '</span>';
     html += '<span class="series-count">' + count + ' EVENT' + (count > 1 ? 'S' : '') + '</span>';
     html += '</div>';
     html += '<div class="series-events">';
@@ -207,13 +207,13 @@ function renderCalendarList() {
       var sl = { target: 'TARGET', stretch: 'STRETCH', skip: 'SKIP' }[t.status] || 'SKIP';
 
       html += '<div class="' + rowCls + '">';
-      html += '<div class="event-date-box"><div class="event-date-day">' + day + '</div><div class="event-date-mon">' + mon + '</div></div>';
+      html += '<div class="event-date-box"><div class="event-date-day">' + esc(day) + '</div><div class="event-date-mon">' + esc(mon) + '</div></div>';
       html += '<div class="event-info">';
-      html += '<div class="event-name">' + t.name + '</div>';
+      html += '<div class="event-name">' + esc(t.name) + '</div>';
       html += '<div class="event-meta">';
-      html += '<span>' + t.structure + '</span>';
-      if (t.gtd) html += '<span>GTD: ' + t.gtd + '</span>';
-      if (t.notes) html += '<span>' + t.notes + '</span>';
+      html += '<span>' + esc(t.structure) + '</span>';
+      if (t.gtd) html += '<span>GTD: ' + esc(t.gtd) + '</span>';
+      if (t.notes) html += '<span>' + esc(t.notes) + '</span>';
       html += '</div></div>';
       html += '<div class="event-right">';
       html += '<div class="event-buyin">₱' + t.buyin.toLocaleString() + '</div>';

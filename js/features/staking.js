@@ -507,7 +507,7 @@ function renderStakingSummary() {
   packageRows.forEach(function(row) {
     var playerCls = row.playerNet > 0 ? 'profit-pos' : row.playerNet < 0 ? 'profit-neg' : 'profit-zero';
     var backerCls = row.backerNet > 0 ? 'profit-pos' : row.backerNet < 0 ? 'profit-neg' : 'profit-zero';
-    html += '<tr><td>' + row.packageLabel + '</td><td>' + row.sessionCount + '</td><td>' + stakingCurrency(row.totalBuyIn) + '</td><td>' + stakingCurrency(row.packageValue) + '</td><td>' + row.backerSharePct.toFixed(1) + '%</td><td class="' + playerCls + '">' + fmtCur(row.playerNet) + '</td><td class="' + backerCls + '">' + fmtCur(row.backerNet) + '</td></tr>';
+    html += '<tr><td>' + esc(row.packageLabel) + '</td><td>' + row.sessionCount + '</td><td>' + stakingCurrency(row.totalBuyIn) + '</td><td>' + stakingCurrency(row.packageValue) + '</td><td>' + row.backerSharePct.toFixed(1) + '%</td><td class="' + playerCls + '">' + fmtCur(row.playerNet) + '</td><td class="' + backerCls + '">' + fmtCur(row.backerNet) + '</td></tr>';
   });
   html += '</tbody></table></div>';
   wrap.innerHTML = html;
@@ -525,7 +525,7 @@ function exportStakingCSV() {
   lines.push('Package,Events,Total Buy-in,Package Value,Player Cost,Backer Cost,Backer Share %,Player Net,Backer Net,Prizes');
   packageRows.forEach(function(row) {
     lines.push([
-      '"' + row.packageLabel.replace(/"/g, "''") + '"',
+      csvField(row.packageLabel),
       row.sessionCount,
       row.totalBuyIn,
       row.packageValue,
@@ -547,8 +547,8 @@ function exportStakingCSV() {
     }).join(' | ');
     lines.push([
       session.date || '',
-      '"' + (session.name || '').replace(/"/g, "''") + '"',
-      '"' + (staking.packageName || 'Single Event').replace(/"/g, "''") + '"',
+      csvField(session.name || ''),
+      csvField(staking.packageName || 'Single Event'),
       staking.totalBuyIn,
       staking.playerSharePct,
       staking.backerSharePct,
@@ -557,7 +557,7 @@ function exportStakingCSV() {
       staking.playerNet,
       staking.backerNet,
       staking.backers.length || 0,
-      '"' + backerLabel.replace(/"/g, "''") + '"'
+      csvField(backerLabel)
     ].join(','));
   });
 

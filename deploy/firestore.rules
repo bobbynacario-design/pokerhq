@@ -1,0 +1,37 @@
+// PokerHQ Firestore security rules — reference copy.
+//
+// HOW TO APPLY (one-time, in the Firebase console — there is no code path for this):
+//   1. Firebase console -> Authentication -> Sign-in method -> enable "Anonymous".
+//      (sync.js calls signInAnonymously; until this is on it silently runs unauthenticated.)
+//   2. Firestore Database -> Rules -> paste the rules below -> Publish.
+//   3. Reload the app, hover the BUILD badge, and copy the "Auth UID" value.
+//   4. Put that UID in OWNER_UIDS below (replace the placeholder), then Publish again.
+//      Add a second UID if you sync the same data from a second device/login.
+//
+// The app stores each data key (sessions, hands, bankroll, ...) as one document under
+// a per-profile collection. Live profile path: "pokerhq-bob". Profile collections all
+// start with "pokerhq-". These rules lock every PokerHQ collection to the owner UID(s)
+// while leaving the rest of the project untouched.
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner() {
+      return request.auth != null
+        && request.auth.uid in [
+          // <-- replace with the Auth UID from the BUILD badge tooltip
+          'REPLACE_WITH_YOUR_AUTH_UID'
+        ];
+    }
+
+    // Live profile data lives in "pokerhq-bob"; profile-scoped data in "pokerhq-profile-*".
+    match /pokerhq-bob/{docId} {
+      allow read, write: if isOwner();
+    }
+    match /pokerhq-profile-{profileId}/{docId} {
+      allow read, write: if isOwner();
+    }
+  }
+}

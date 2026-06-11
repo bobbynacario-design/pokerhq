@@ -97,9 +97,8 @@ function buildSessionDebrief(session, linkedHands) {
 }
 
 function getSessionDebriefAiConfig() {
-  var cfg = window.PokerHQAI || window.pokerhqAI || null;
-  if (!cfg) return null;
-  var apiKey = cfg.apiKey || cfg.anthropicApiKey || '';
+  var cfg = window.PokerHQAI || window.pokerhqAI || {};
+  var apiKey = cfg.apiKey || cfg.anthropicApiKey || (typeof getStoredAnthropicKey === 'function' ? getStoredAnthropicKey() : '');
   if (!apiKey) return null;
   return {
     provider: 'anthropic',
@@ -114,10 +113,10 @@ function buildSessionDebriefHtml(report) {
   html += '<div class="review-card-title">Session Debrief</div>';
   html += '<div class="review-card-copy">Lightweight local pattern read built from result, mental state, linked hands, and venue history.</div>';
   html += '<div style="display:grid;gap:.65rem;margin-top:.9rem">';
-  html += '<div style="background:var(--bg3);border-radius:10px;padding:.85rem .95rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:.35rem">What went well</div><div style="font-size:13px;color:rgba(255,255,255,.72);line-height:1.65">' + report.wentWell + '</div></div>';
-  html += '<div style="background:var(--bg3);border-radius:10px;padding:.85rem .95rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:.35rem">What likely hurt performance</div><div style="font-size:13px;color:rgba(255,255,255,.72);line-height:1.65">' + report.hurt + '</div></div>';
-  html += '<div style="background:var(--bg3);border-radius:10px;padding:.85rem .95rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:.35rem">What to review next</div><div style="font-size:13px;color:rgba(255,255,255,.72);line-height:1.65">' + report.reviewNext + '</div></div>';
-  html += '<div style="background:rgba(52,152,219,.08);border:1px solid rgba(52,152,219,.2);border-radius:10px;padding:.85rem .95rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:rgba(52,152,219,.9);margin-bottom:.35rem">Next-session focus</div><div style="font-size:13px;color:#fff;line-height:1.65">' + report.focusItem + '</div></div>';
+  html += '<div style="background:var(--bg3);border-radius:10px;padding:.85rem .95rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:.35rem">What went well</div><div style="font-size:13px;color:rgba(255,255,255,.72);line-height:1.65">' + esc(report.wentWell) + '</div></div>';
+  html += '<div style="background:var(--bg3);border-radius:10px;padding:.85rem .95rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:.35rem">What likely hurt performance</div><div style="font-size:13px;color:rgba(255,255,255,.72);line-height:1.65">' + esc(report.hurt) + '</div></div>';
+  html += '<div style="background:var(--bg3);border-radius:10px;padding:.85rem .95rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:.35rem">What to review next</div><div style="font-size:13px;color:rgba(255,255,255,.72);line-height:1.65">' + esc(report.reviewNext) + '</div></div>';
+  html += '<div style="background:rgba(52,152,219,.08);border:1px solid rgba(52,152,219,.2);border-radius:10px;padding:.85rem .95rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:rgba(52,152,219,.9);margin-bottom:.35rem">Next-session focus</div><div style="font-size:13px;color:#fff;line-height:1.65">' + esc(report.focusItem) + '</div></div>';
   html += '</div>';
   if (report.context.handCount || report.context.venueHistoryCount) {
     html += '<div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.8rem">';
@@ -179,10 +178,10 @@ function buildAiDebriefHtml(report) {
   html += '<div class="review-card-title">AI-Enhanced Debrief</div>';
   html += '<div class="review-card-copy">Optional second layer on top of the local debrief.</div>';
   html += '<div style="display:grid;gap:.65rem;margin-top:.9rem">';
-  html += '<div style="background:var(--bg3);border-radius:10px;padding:.85rem .95rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:.35rem">What went well</div><div style="font-size:13px;color:rgba(255,255,255,.72);line-height:1.65">' + report.wentWell + '</div></div>';
-  html += '<div style="background:var(--bg3);border-radius:10px;padding:.85rem .95rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:.35rem">What likely hurt performance</div><div style="font-size:13px;color:rgba(255,255,255,.72);line-height:1.65">' + report.hurt + '</div></div>';
-  html += '<div style="background:var(--bg3);border-radius:10px;padding:.85rem .95rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:.35rem">What to review next</div><div style="font-size:13px;color:rgba(255,255,255,.72);line-height:1.65">' + report.reviewNext + '</div></div>';
-  html += '<div style="background:rgba(212,175,55,.08);border:1px solid rgba(212,175,55,.18);border-radius:10px;padding:.85rem .95rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--gold);margin-bottom:.35rem">Next-session focus</div><div style="font-size:13px;color:#fff;line-height:1.65">' + report.focusItem + '</div></div>';
+  html += '<div style="background:var(--bg3);border-radius:10px;padding:.85rem .95rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:.35rem">What went well</div><div style="font-size:13px;color:rgba(255,255,255,.72);line-height:1.65">' + esc(report.wentWell) + '</div></div>';
+  html += '<div style="background:var(--bg3);border-radius:10px;padding:.85rem .95rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:.35rem">What likely hurt performance</div><div style="font-size:13px;color:rgba(255,255,255,.72);line-height:1.65">' + esc(report.hurt) + '</div></div>';
+  html += '<div style="background:var(--bg3);border-radius:10px;padding:.85rem .95rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:.35rem">What to review next</div><div style="font-size:13px;color:rgba(255,255,255,.72);line-height:1.65">' + esc(report.reviewNext) + '</div></div>';
+  html += '<div style="background:rgba(212,175,55,.08);border:1px solid rgba(212,175,55,.18);border-radius:10px;padding:.85rem .95rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--gold);margin-bottom:.35rem">Next-session focus</div><div style="font-size:13px;color:#fff;line-height:1.65">' + esc(report.focusItem) + '</div></div>';
   html += '</div></div>';
   return html;
 }
@@ -203,7 +202,8 @@ async function enhanceSessionDebriefWithAi(sid) {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': aiConfig.apiKey,
-        'anthropic-version': '2023-06-01'
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
         model: aiConfig.model,
@@ -255,7 +255,7 @@ function viewSessionDetail(sid, fromLog) {
   html += '<div style="background:var(--bg3);border-radius:8px;padding:.75rem"><div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.3);margin-bottom:.25rem">POSITION</div><div style="font-family:var(--mono);font-size:16px">'+(s.position||'—')+(s.field?' / '+s.field:'')+'</div></div>';
   html += '<div style="background:var(--bg3);border-radius:8px;padding:.75rem"><div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.3);margin-bottom:.25rem">HOURS</div><div style="font-family:var(--mono);font-size:16px">'+(s.hours||'—')+'h</div></div>';
   html += '</div>';
-  if (s.notes) html += '<div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:1.25rem;padding:.75rem;background:var(--bg3);border-radius:8px">📝 '+s.notes+'</div>';
+  if (s.notes) html += '<div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:1.25rem;padding:.75rem;background:var(--bg3);border-radius:8px">📝 '+esc(s.notes)+'</div>';
   if (staking) {
     html += '<div style="background:var(--bg3);border-radius:10px;padding:.9rem 1rem;margin-bottom:1.1rem">';
     html += '<div style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:rgba(255,255,255,.35);text-transform:uppercase;margin-bottom:.7rem">Staking</div>';
@@ -265,7 +265,7 @@ function viewSessionDetail(sid, fromLog) {
     html += '<div><div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.3);margin-bottom:.2rem">PACKAGE VALUE</div><div style="font-family:var(--mono);font-size:14px">₱'+Math.round(staking.packageValue).toLocaleString()+'</div></div>';
     html += '<div><div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.3);margin-bottom:.2rem">PLAYER NET</div><div style="font-family:var(--mono);font-size:14px;'+(staking.playerNet>=0?'color:#2DB87A':'color:#E85C5C')+'">'+fmtCur(staking.playerNet)+'</div></div>';
     html += '</div>';
-    if (staking.packageName) html += '<div style="font-family:var(--mono);font-size:10px;color:var(--gold);margin-top:.65rem">PACKAGE: '+staking.packageName+'</div>';
+    if (staking.packageName) html += '<div style="font-family:var(--mono);font-size:10px;color:var(--gold);margin-top:.65rem">PACKAGE: '+esc(staking.packageName)+'</div>';
     html += '</div>';
   }
   html += '<div id="sd-debrief-wrap" style="margin-bottom:1rem"></div>';
@@ -278,9 +278,9 @@ function viewSessionDetail(sid, fromLog) {
       var rc = {won:'#2DB87A',lost:'#E85C5C',fold:'rgba(255,255,255,.3)'}[h.result] || 'rgba(255,255,255,.3)';
       var rl = {won:'WON',lost:'LOST',fold:'FOLD'}[h.result] || 'FOLD';
       html += '<div style="background:var(--bg3);border-radius:8px;padding:.75rem;margin-bottom:.5rem">';
-      html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.35rem"><span style="font-size:13px;font-weight:500;color:#fff">'+h.title+'</span><div style="display:flex;align-items:center;gap:.45rem;flex-wrap:wrap"><button class="sec-action" style="padding:.25rem .6rem;font-size:10px" onclick="closeModal(\'modal-session-detail\');openHandReplay('+h.id+')">REPLAY</button><span style="font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:20px;background:rgba(0,0,0,.3);color:'+rc+'">'+rl+'</span></div></div>';
-      if (h.desc) html += '<div style="font-size:12px;color:rgba(255,255,255,.45);line-height:1.6;margin-bottom:.35rem">'+h.desc+'</div>';
-      if (h.lesson) html += '<div style="font-size:11px;color:var(--gold);font-family:var(--mono)">💡 '+h.lesson+'</div>';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.35rem"><span style="font-size:13px;font-weight:500;color:#fff">'+esc(h.title)+'</span><div style="display:flex;align-items:center;gap:.45rem;flex-wrap:wrap"><button class="sec-action" style="padding:.25rem .6rem;font-size:10px" onclick="closeModal(\'modal-session-detail\');openHandReplay('+h.id+')">REPLAY</button><span style="font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:20px;background:rgba(0,0,0,.3);color:'+rc+'">'+rl+'</span></div></div>';
+      if (h.desc) html += '<div style="font-size:12px;color:rgba(255,255,255,.45);line-height:1.6;margin-bottom:.35rem">'+esc(h.desc)+'</div>';
+      if (h.lesson) html += '<div style="font-size:11px;color:var(--gold);font-family:var(--mono)">💡 '+esc(h.lesson)+'</div>';
       html += '</div>';
     });
   }
@@ -421,7 +421,7 @@ function renderHeatmapBars(elId, data, maxVal) {
     var pct = Math.round((Math.abs(d.val)/max)*100);
     var cls = d.neutral ? 'heat-neutral' : d.val>=0 ? 'heat-pos' : 'heat-neg';
     var textCol = d.neutral ? 'rgba(201,168,76,.9)' : d.val>=0 ? 'rgba(45,184,122,.9)' : 'rgba(232,92,92,.9)';
-    return '<div class="heatmap-row"><div class="heatmap-label" title="'+d.label+'">'+d.label+'</div><div class="heatmap-bar-wrap"><div class="heatmap-bar-fill '+cls+'" style="width:'+Math.max(pct,4)+'%"><span class="heatmap-bar-val" style="color:'+textCol+'">'+d.display+'</span></div></div></div>';
+    return '<div class="heatmap-row"><div class="heatmap-label" title="'+esc(d.label)+'">'+esc(d.label)+'</div><div class="heatmap-bar-wrap"><div class="heatmap-bar-fill '+cls+'" style="width:'+Math.max(pct,4)+'%"><span class="heatmap-bar-val" style="color:'+textCol+'">'+d.display+'</span></div></div></div>';
   }).join('');
 }
 
