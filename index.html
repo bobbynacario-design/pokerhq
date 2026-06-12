@@ -13,8 +13,8 @@
 <title>PokerHQ — Bob's Tournament Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script type="module" src="./js/app.js?v=20260612d"></script>
-<link rel="stylesheet" href="./styles/app.css?v=20260612d">
+<script type="module" src="./js/app.js?v=20260612e"></script>
+<link rel="stylesheet" href="./styles/app.css?v=20260612e">
 </head>
 <body>
 <!-- LOGIN GATE — shown until Firebase auth resolves a signed-in user -->
@@ -682,6 +682,14 @@
       <button class="sec-action" id="ai-openai-clear-btn" style="display:none;border-color:var(--red);color:var(--red)" onclick="clearOpenAIKey()">CLEAR KEY</button>
     </div>
     <div id="ai-openai-test-result" style="display:none;font-family:var(--mono);font-size:11px;margin-top:.6rem"></div>
+    <div class="form-group" style="margin-top:.75rem;margin-bottom:0">
+      <label class="form-label">Transcription Model</label>
+      <select class="form-input" id="ai-transcribe-model" onchange="onTranscribeModelChange()">
+        <option value="gpt-4o-mini-transcribe">gpt-4o-mini-transcribe — recommended (fast, accurate, cheapest)</option>
+        <option value="gpt-4o-transcribe">gpt-4o-transcribe — highest accuracy (~2× cost)</option>
+        <option value="whisper-1">whisper-1 — classic Whisper</option>
+      </select>
+    </div>
 
     <div class="tip" style="margin-top:1rem">Both keys are stored only on this device — never synced, never shared. The Anthropic key powers 🎙 hand structuring and ✨ debriefs (console.anthropic.com); the OpenAI key powers 🎤 in-app voice recording via Whisper (platform.openai.com, ~$0.006/min). Set a spending limit on each.</div>
   </div>
@@ -1192,21 +1200,21 @@
   </div>
 </div>
 
-<script src="./js/data/config-runtime.js?v=20260612d"></script>
-<script src="./js/features/active-session.js?v=20260612d"></script>
-<script src="./js/features/demo-mode.js?v=20260612d"></script>
-<script src="./js/features/calculator.js?v=20260612d"></script>
-<script src="./js/features/staking.js?v=20260612d"></script>
-<script src="./js/features/package-report.js?v=20260612d"></script>
-<script src="./js/features/review.js?v=20260612d"></script>
-<script src="./js/features/calendar.js?v=20260612d"></script>
-<script src="./js/features/study-loop.js?v=20260612d"></script>
-<script src="./js/features/strategy.js?v=20260612d"></script>
-<script src="./js/features/hands.js?v=20260612d"></script>
-<script src="./js/features/treasury.js?v=20260612d"></script>
-<script src="./js/features/bankroll-chart.js?v=20260612d"></script>
-<script src="./js/features/library.js?v=20260612d"></script>
-<script src="./js/features/onboarding.js?v=20260612d"></script>
+<script src="./js/data/config-runtime.js?v=20260612e"></script>
+<script src="./js/features/active-session.js?v=20260612e"></script>
+<script src="./js/features/demo-mode.js?v=20260612e"></script>
+<script src="./js/features/calculator.js?v=20260612e"></script>
+<script src="./js/features/staking.js?v=20260612e"></script>
+<script src="./js/features/package-report.js?v=20260612e"></script>
+<script src="./js/features/review.js?v=20260612e"></script>
+<script src="./js/features/calendar.js?v=20260612e"></script>
+<script src="./js/features/study-loop.js?v=20260612e"></script>
+<script src="./js/features/strategy.js?v=20260612e"></script>
+<script src="./js/features/hands.js?v=20260612e"></script>
+<script src="./js/features/treasury.js?v=20260612e"></script>
+<script src="./js/features/bankroll-chart.js?v=20260612e"></script>
+<script src="./js/features/library.js?v=20260612e"></script>
+<script src="./js/features/onboarding.js?v=20260612e"></script>
 <script>
 // ── PWA INSTALL — captures the browser install prompt like Enclave ──
 var _deferredInstallPrompt = null;

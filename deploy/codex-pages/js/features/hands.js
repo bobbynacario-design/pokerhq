@@ -322,6 +322,28 @@ function setStoredOpenAIKey(key) {
   if (typeof saveLocalOnly === 'function') saveLocalOnly(OPENAI_KEY_LOCAL_STORAGE, key || null);
 }
 
+var TRANSCRIBE_MODEL_LOCAL_STORAGE = 'pokerhq_transcribe_model';
+var DEFAULT_TRANSCRIBE_MODEL = 'gpt-4o-mini-transcribe';
+var TRANSCRIBE_MODEL_OPTIONS = ['gpt-4o-mini-transcribe', 'gpt-4o-transcribe', 'whisper-1'];
+
+// Biases the transcriber toward poker vocabulary so jargon and card names
+// come through correctly. Supported on whisper-1 and the gpt-4o-transcribe models.
+var TRANSCRIBE_PROMPT = "Texas Hold'em tournament poker hand recap. Likely terms: preflop, flop, turn, river, big blind, small blind, button, cutoff, hijack, under the gun, UTG, open, limp, three-bet, four-bet, check-raise, continuation bet, c-bet, all-in, shove, fold, call, pocket aces, pocket kings, pocket queens, ace-king, king-queen suited, offsuit, top pair, top kicker, overpair, set, two pair, flush draw, gutshot, nut flush, full house, bubble, ITM, ICM, final table, stack, big blinds, pot odds, runner-runner. Venues: Solaire, Okada, PokerStars Manila, APPT. Currency: pesos.";
+
+function getTranscribeModel() {
+  var stored = typeof loadLocalOnly === 'function' ? loadLocalOnly(TRANSCRIBE_MODEL_LOCAL_STORAGE, '') : '';
+  return TRANSCRIBE_MODEL_OPTIONS.indexOf(stored) !== -1 ? stored : DEFAULT_TRANSCRIBE_MODEL;
+}
+
+function setTranscribeModel(model) {
+  if (typeof saveLocalOnly === 'function') saveLocalOnly(TRANSCRIBE_MODEL_LOCAL_STORAGE, model || null);
+}
+
+function onTranscribeModelChange() {
+  var sel = document.getElementById('ai-transcribe-model');
+  if (sel) setTranscribeModel(sel.value);
+}
+
 function refreshVoiceKeyRow() {
   var input = document.getElementById('voice-api-key');
   var tip = document.getElementById('voice-key-tip');
@@ -364,6 +386,8 @@ function renderAiSettings() {
       if (oaClear) oaClear.style.display = 'none';
     }
   }
+  var modelSel = document.getElementById('ai-transcribe-model');
+  if (modelSel) modelSel.value = getTranscribeModel();
 }
 
 function setAiTestResult(message, kind, elId) {
@@ -592,9 +616,11 @@ async function transcribeVoiceRecording() {
   setVoiceRecordUi('transcribing', 'Transcribing with Whisper…');
   try {
     var ext = type.indexOf('mp4') !== -1 ? 'mp4' : type.indexOf('ogg') !== -1 ? 'ogg' : type.indexOf('mpeg') !== -1 ? 'mp3' : 'webm';
+    var model = getTranscribeModel();
     var fd = new FormData();
     fd.append('file', blob, 'recording.' + ext);
-    fd.append('model', 'whisper-1');
+    fd.append('model', model);
+    fd.append('prompt', TRANSCRIBE_PROMPT);
     var res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + key },
@@ -608,7 +634,8 @@ async function transcribeVoiceRecording() {
     var text = (data.text || '').trim();
     var ta = document.getElementById('voice-transcript');
     if (text) ta.value = ta.value.trim() ? (ta.value.trim() + ' ' + text) : text;
-    setVoiceRecordUi('idle', text ? 'Transcribed ✓ — review, then Structure with AI' : 'No speech detected');
+    var modelLabel = model.replace('-transcribe', '');
+    setVoiceRecordUi('idle', text ? ('Transcribed ✓ (' + modelLabel + ') — review, then Structure with AI') : 'No speech detected');
   } catch (e) {
     setVoiceRecordUi('idle', '');
     errEl.textContent = 'Could not transcribe: ' + e.message + '. Try again or paste a transcript.';
