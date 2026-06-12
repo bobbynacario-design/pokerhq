@@ -332,7 +332,8 @@
 
   <!-- Log Session Form -->
   <div class="form-card">
-    <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:1rem">Log New Session</div>
+<div id="session-edit-banner" style="display:none;margin-bottom:1rem;padding:.75rem .9rem;background:var(--gold-dim);border:1px solid rgba(212,175,55,.3);border-radius:10px"></div>
+        <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:1rem">Log New Session</div>
     <div class="form-grid">
       <div class="form-group">
         <label class="form-label">Date</label>
@@ -471,7 +472,7 @@
       </div>
     </div>
     <div class="form-row">
-      <button class="sec-action primary" onclick="addSession()">LOG SESSION ↗</button>
+      <button class="sec-action primary" id="session-submit-btn" onclick="addSession()">LOG SESSION ↗</button>
       <button class="sec-action" onclick="clearSessionForm()">CLEAR</button>
     </div>
   </div>
@@ -584,7 +585,7 @@
 <div class="page" id="page-calendar">
   <div class="sec-hdr">
     <div class="sec-title"><span>♣</span>Tournament Calendar</div>
-    <button class="sec-action primary" onclick="openModal('modal-tourney')">+ ADD TOURNAMENT</button>
+    <button class="sec-action primary" onclick="openNewTourneyModal()">+ ADD TOURNAMENT</button>
   </div>
 
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;margin-bottom:1rem">
@@ -715,7 +716,7 @@
 
   <div class="sec-hdr">
     <div class="sec-title"><span>🛰</span>Satellite Log</div>
-    <button class="sec-action primary" onclick="openModal('modal-satellite')">+ LOG SATELLITE</button>
+    <button class="sec-action primary" onclick="openNewSatelliteModal()">+ LOG SATELLITE</button>
   </div>
 
   <!-- Set target form -->
@@ -741,7 +742,7 @@
 <div class="page" id="page-opponents">
   <div class="sec-hdr">
     <div class="sec-title"><span>👤</span>Villain Database</div>
-    <button class="sec-action primary" onclick="openModal('modal-opponent')">+ ADD VILLAIN</button>
+    <button class="sec-action primary" onclick="openNewOpponentModal()">+ ADD VILLAIN</button>
   </div>
   <div class="form-card" style="margin-bottom:1.25rem;padding:.75rem 1rem">
     <input class="form-input" type="text" id="opp-search" placeholder="🔍  Search by name or venue..." oninput="renderOpponents()" style="border:none;background:transparent;padding:0;font-size:14px;width:100%">
@@ -1358,6 +1359,72 @@ function fmtCur(n) { var v=Math.round(n); return (v>=0?'₱':'−₱')+Math.abs(
   if (el) el.addEventListener('change', syncActiveDraftFromForm);
 });
 
+// ── SESSION EDITING ──
+var _editingSessionId = null;
+
+function renderSessionEditBanner() {
+  var el = document.getElementById('session-edit-banner');
+  var btn = document.getElementById('session-submit-btn');
+  if (!el) return;
+  if (_editingSessionId) {
+    var s = sessions.find(function(x){ return x.id===_editingSessionId; });
+    el.style.display = '';
+    el.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap"><div style="font-family:var(--mono);font-size:11px;color:var(--gold)">\u270e EDITING: '+esc(s ? s.name+' \u2014 '+s.date : 'session')+'</div><button class="sec-action" onclick="cancelSessionEdit()">CANCEL EDIT</button></div>';
+    if (btn) btn.textContent = 'SAVE CHANGES \u2197';
+  } else {
+    el.style.display = 'none';
+    el.innerHTML = '';
+    if (btn) btn.textContent = 'LOG SESSION \u2197';
+  }
+}
+
+function backersToText(backers) {
+  return (backers||[]).map(function(b){ return b.name + ' ' + b.sharePct; }).join('\n');
+}
+
+function editSession(id) {
+  var s = sessions.find(function(x){ return x.id===id; });
+  if (!s) return;
+  closeModal('modal-session-detail');
+  _editingSessionId = id;
+  switchGroup('play','sessions');
+  clearRatings();
+  document.getElementById('s-date').value = s.date||'';
+  document.getElementById('s-name').value = s.name||'';
+  document.getElementById('s-venue').value = s.venue||'';
+  document.getElementById('s-buyin').value = s.buyin||'';
+  document.getElementById('s-rebuy').value = s.rebuy||'';
+  document.getElementById('s-field').value = s.field||'';
+  document.getElementById('s-position').value = s.position||'';
+  document.getElementById('s-prize').value = s.prize||'';
+  document.getElementById('s-hours').value = s.hours||'';
+  document.getElementById('s-notes').value = s.notes||'';
+  document.getElementById('s-package').value = s.packageName||'';
+  document.getElementById('s-player-share').value = (typeof s.playerSharePct==='number') ? s.playerSharePct : '';
+  document.getElementById('s-markup').value = (typeof s.markup==='number') ? s.markup : '';
+  document.getElementById('s-backer-count').value = s.backerCount||'';
+  document.getElementById('s-backers').value = backersToText(s.backers);
+  if (s.focus && window.applyRatingValue) applyRatingValue('s-focus','focus-btns', s.focus);
+  if (s.energy && window.applyRatingValue) applyRatingValue('s-energy','energy-btns', s.energy);
+  if (s.sleep && window.applyRatingValue) applyRatingValue('s-sleep','sleep-btns', s.sleep);
+  if (s.fasting) {
+    var fastBtn = document.getElementById('fast-'+s.fasting);
+    if (fastBtn) setFasting(s.fasting, fastBtn);
+  }
+  if (window.renderStakingInputSummary) renderStakingInputSummary();
+  renderSessionEditBanner();
+  setTimeout(function(){
+    var el = document.getElementById('session-edit-banner');
+    if (el) el.scrollIntoView({behavior:'smooth', block:'center'});
+  }, 180);
+}
+
+function cancelSessionEdit() {
+  _editingSessionId = null;
+  clearSessionForm();
+  renderSessionEditBanner();
+}
+
 // ── SESSION CRUD ──
 function addSession() {
   var buyin  = parseFloat(document.getElementById('s-buyin').value)||0;
@@ -1369,6 +1436,45 @@ function addSession() {
   var field  = parseInt(document.getElementById('s-field').value)||0;
   var itm    = field>0 ? Math.ceil(field*0.15) : 0;
   var stakingData = window.collectSessionStakingData ? collectSessionStakingData() : {};
+
+  if (_editingSessionId) {
+    var existing = sessions.find(function(x){ return x.id===_editingSessionId; });
+    if (!existing) { _editingSessionId = null; renderSessionEditBanner(); return; }
+    var oldPnl = existing.pnl || 0;
+    existing.date = document.getElementById('s-date').value || existing.date;
+    existing.name = document.getElementById('s-name').value || 'Tournament';
+    existing.venue = document.getElementById('s-venue').value || '';
+    existing.buyin = buyin; existing.rebuy = rebuy; existing.total = total;
+    existing.field = field; existing.position = pos;
+    existing.prize = prize; existing.pnl = pnl;
+    existing.hours = parseFloat(document.getElementById('s-hours').value)||0;
+    existing.notes = document.getElementById('s-notes').value || '';
+    existing.result = prize>0 ? (pos<=3?'final':'itm') : 'bust';
+    existing.focus = parseFloat(document.getElementById('s-focus').value)||0;
+    existing.energy = parseFloat(document.getElementById('s-energy').value)||0;
+    existing.sleep = parseFloat(document.getElementById('s-sleep').value)||0;
+    existing.fasting = document.getElementById('s-fasting').value||'';
+    ['packageName','playerSharePct','markup','backerCount','backers'].forEach(function(k){ delete existing[k]; });
+    Object.keys(stakingData).forEach(function(k){ existing[k] = stakingData[k]; });
+    var editedLabel = existing.name + ' \u2014 ' + existing.date;
+    hands = hands.map(function(h){ if (h.sessionId===existing.id) h.session = editedLabel; return h; });
+    window.hands = hands;
+    save('hands', hands);
+    save('sessions', sessions);
+    bankroll.amount = Math.max(0, bankroll.amount + (pnl - oldPnl));
+    save('bankroll', bankroll);
+    var editedId = existing.id;
+    _editingSessionId = null;
+    clearSessionForm();
+    renderSessionEditBanner();
+    renderSessionTable();
+    refreshDashboard();
+    if (typeof renderTreasury === 'function') renderTreasury();
+    showSessionToast(fmtCur(pnl), editedId);
+    switchGroup('review','sessions');
+    setTimeout(function(){ viewSessionDetail(editedId); }, 140);
+    return;
+  }
 
   var s = {
     id: Date.now(),
@@ -1460,7 +1566,7 @@ function renderSessionTable() {
   if (!sessions.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="11">No sessions logged yet — add your first tournament above.</td></tr>'; return; }
   tbody.innerHTML = sessions.map(function(s) {
     var pnlCls = s.pnl>0?'profit-pos':s.pnl<0?'profit-neg':'profit-zero';
-    return '<tr style="cursor:pointer" onclick="viewSessionDetail('+s.id+')"><td>'+esc(s.date)+'</td><td>'+esc(s.name)+'</td><td>'+esc(s.venue)+'</td><td>₱'+s.total.toLocaleString()+'</td><td>'+(s.field||'—')+'</td><td>'+(s.position||'—')+'</td><td>'+(s.prize?'₱'+s.prize.toLocaleString():'—')+'</td><td class="'+pnlCls+'">'+fmtCur(s.pnl)+'</td><td>'+(s.hours||'—')+'h</td><td>'+resultBadge(s.result)+'</td><td><button class="del-btn" onclick="event.stopPropagation();deleteSession('+s.id+')">✕</button></td></tr>';
+    return '<tr style="cursor:pointer" onclick="viewSessionDetail('+s.id+')"><td>'+esc(s.date)+'</td><td>'+esc(s.name)+'</td><td>'+esc(s.venue)+'</td><td>₱'+s.total.toLocaleString()+'</td><td>'+(s.field||'—')+'</td><td>'+(s.position||'—')+'</td><td>'+(s.prize?'₱'+s.prize.toLocaleString():'—')+'</td><td class="'+pnlCls+'">'+fmtCur(s.pnl)+'</td><td>'+(s.hours||'—')+'h</td><td>'+resultBadge(s.result)+'</td><td style="white-space:nowrap"><button class="del-btn" title="Edit session" onclick="event.stopPropagation();editSession('+s.id+')">✎</button><button class="del-btn" onclick="event.stopPropagation();deleteSession('+s.id+')">✕</button></td></tr>';
   }).join('');
 }
 

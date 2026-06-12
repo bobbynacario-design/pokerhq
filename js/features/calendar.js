@@ -1,8 +1,87 @@
+var _editingTourneyId = null;
+var MONTH_LONG_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+var MONTH_SHORT_UPPER = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+
+function setTourneyModalTitle(text) {
+  var el = document.querySelector('#modal-tourney .modal-title');
+  if (el) el.textContent = text;
+}
+
+function toDateInputValue(d) {
+  if (!d || isNaN(d.getTime())) return '';
+  var m = String(d.getMonth() + 1);
+  var day = String(d.getDate());
+  return d.getFullYear() + '-' + (m.length < 2 ? '0' + m : m) + '-' + (day.length < 2 ? '0' + day : day);
+}
+
+function tourneyStartDateInputValue(tourney) {
+  var range = parseTourneyDateRange(tourney);
+  if (range && range.start) return toDateInputValue(range.start);
+  // Fall back to a literal yyyy-mm-dd date string from manual entry
+  if (/^\d{4}-\d{2}-\d{2}$/.test(tourney.date || '')) return tourney.date;
+  return '';
+}
+
+function openNewTourneyModal() {
+  _editingTourneyId = null;
+  setTourneyModalTitle('Add Tournament');
+  ['t-date', 't-name', 't-venue', 't-buyin', 't-gtd', 't-notes'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  openModal('modal-tourney');
+}
+
+function editTourney(id) {
+  var tourney = tourneys.find(function(x) { return x.id === id; });
+  if (!tourney) return;
+  document.getElementById('t-date').value = tourneyStartDateInputValue(tourney);
+  document.getElementById('t-name').value = tourney.name || '';
+  document.getElementById('t-venue').value = tourney.venue || '';
+  document.getElementById('t-buyin').value = tourney.buyin || '';
+  document.getElementById('t-gtd').value = tourney.gtd || '';
+  var structureEl = document.getElementById('t-structure');
+  if (structureEl && tourney.structure) structureEl.value = tourney.structure;
+  document.getElementById('t-notes').value = tourney.notes || '';
+  _editingTourneyId = id;
+  setTourneyModalTitle('Edit Tournament');
+  openModal('modal-tourney');
+}
+
 function addTourney() {
   var br = bankroll.amount, rule = bankroll.rule || 15;
   var rec = br / rule, stretch = br / (rule * 0.6);
   var buyin = parseFloat(document.getElementById('t-buyin').value) || 0;
   var status = buyin <= rec ? 'target' : buyin <= stretch ? 'stretch' : 'skip';
+  if (_editingTourneyId) {
+    var existing = tourneys.find(function(x) { return x.id === _editingTourneyId; });
+    if (!existing) { _editingTourneyId = null; return; }
+    var inputDate = document.getElementById('t-date').value;
+    var originalStart = tourneyStartDateInputValue(existing);
+    if (inputDate && inputDate !== originalStart) {
+      // Date actually changed: store a readable single date and refresh list-view fields
+      var parts = inputDate.split('-');
+      var newDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+      existing.date = MONTH_LONG_NAMES[newDate.getMonth()] + ' ' + newDate.getDate() + ', ' + newDate.getFullYear();
+      existing.day = String(newDate.getDate());
+      existing.month = MONTH_SHORT_UPPER[newDate.getMonth()];
+    }
+    existing.name = document.getElementById('t-name').value || 'Tournament';
+    existing.venue = document.getElementById('t-venue').value || '';
+    existing.buyin = buyin;
+    existing.gtd = document.getElementById('t-gtd').value || '';
+    existing.structure = document.getElementById('t-structure').value;
+    existing.notes = document.getElementById('t-notes').value || '';
+    existing.status = status;
+    window.tourneys = tourneys;
+    tourneys.sort(function(a, b) { return (a.date || '').localeCompare(b.date || ''); });
+    save('tourneys', tourneys);
+    _editingTourneyId = null;
+    setTourneyModalTitle('Add Tournament');
+    closeModal('modal-tourney');
+    renderCalendar();
+    return;
+  }
 
   var t = {
     id: Date.now(),
@@ -220,6 +299,7 @@ function renderCalendarList() {
       html += '<span class="' + badgeCls + '">' + badgeTxt + '</span>';
       html += '<span class="tourney-status ' + sc + '">' + sl + '</span>';
       html += '<button class="sec-action" style="font-size:10px;padding:3px 9px;margin-top:2px;border-color:var(--green);color:var(--green)" onclick="startSessionFromTourney(' + t.id + ')">▶ START SESSION</button>';
+      html += '<button class="del-btn" title="Edit tournament" onclick="editTourney(' + t.id + ')">✎</button>';
       html += '<button class="del-btn" onclick="deleteTourney(' + t.id + ')">✕</button>';
       html += '</div></div>';
     });

@@ -25,7 +25,61 @@ function setSatTarget() {
   renderSatellites();
 }
 
+var _editingSatId = null;
+
+function setSatelliteModalTitle(text) {
+  var el = document.querySelector('#modal-satellite .modal-title');
+  if (el) el.textContent = text;
+}
+
+function openNewSatelliteModal() {
+  _editingSatId = null;
+  setSatelliteModalTitle('Log Satellite');
+  ['sat-name', 'sat-venue', 'sat-buyin', 'sat-for', 'sat-notes'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  var dateEl = document.getElementById('sat-date');
+  if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
+  var resultEl = document.getElementById('sat-result');
+  if (resultEl) resultEl.value = 'won';
+  openModal('modal-satellite');
+}
+
+function editSatellite(id) {
+  var s = satellites.find(function(x) { return x.id === id; });
+  if (!s) return;
+  document.getElementById('sat-date').value = s.date || '';
+  document.getElementById('sat-name').value = s.name || '';
+  document.getElementById('sat-venue').value = s.venue || '';
+  document.getElementById('sat-buyin').value = s.buyin || '';
+  document.getElementById('sat-result').value = s.result || 'won';
+  document.getElementById('sat-for').value = s.forEvent || '';
+  document.getElementById('sat-notes').value = s.notes || '';
+  _editingSatId = id;
+  setSatelliteModalTitle('Edit Satellite');
+  openModal('modal-satellite');
+}
+
 function addSatellite() {
+  if (_editingSatId) {
+    var existing = satellites.find(function(x) { return x.id === _editingSatId; });
+    if (!existing) { _editingSatId = null; return; }
+    existing.date = document.getElementById('sat-date').value || existing.date;
+    existing.name = document.getElementById('sat-name').value || 'Satellite';
+    existing.venue = document.getElementById('sat-venue').value || '';
+    existing.buyin = parseFloat(document.getElementById('sat-buyin').value) || 0;
+    existing.result = document.getElementById('sat-result').value;
+    existing.forEvent = document.getElementById('sat-for').value || '';
+    existing.notes = document.getElementById('sat-notes').value || '';
+    window.satellites = satellites;
+    save('satellites', satellites);
+    _editingSatId = null;
+    setSatelliteModalTitle('Log Satellite');
+    closeModal('modal-satellite');
+    renderSatellites();
+    return;
+  }
   var s = {
     id: Date.now(),
     date: document.getElementById('sat-date').value || new Date().toISOString().split('T')[0],
@@ -92,7 +146,7 @@ function renderSatellites() {
   el.innerHTML = satellites.map(function(s) {
     var rc = { won: 'sat-won', lost: 'sat-lost', pending: 'sat-pending' }[s.result] || 'sat-lost';
     var rl = { won: '🎟 SEAT WON', lost: 'DID NOT WIN', pending: 'PENDING' }[s.result] || 'DID NOT WIN';
-    return '<div class="sat-card"><div class="sat-card-left"><div class="sat-card-name">' + esc(s.name) + '</div><div class="sat-card-meta"><span>' + esc(s.date) + '</span><span>' + esc(s.venue) + '</span>' + (s.forEvent ? '<span>→ ' + esc(s.forEvent) + '</span>' : '') + (s.notes ? '<span>' + esc(s.notes) + '</span>' : '') + '</div></div><div class="sat-card-right"><div class="sat-buyin">₱' + s.buyin.toLocaleString() + '</div><span class="sat-result-badge ' + rc + '">' + rl + '</span><button class="del-btn" onclick="deleteSatellite(' + s.id + ')">✕</button></div></div>';
+    return '<div class="sat-card"><div class="sat-card-left"><div class="sat-card-name">' + esc(s.name) + '</div><div class="sat-card-meta"><span>' + esc(s.date) + '</span><span>' + esc(s.venue) + '</span>' + (s.forEvent ? '<span>→ ' + esc(s.forEvent) + '</span>' : '') + (s.notes ? '<span>' + esc(s.notes) + '</span>' : '') + '</div></div><div class="sat-card-right"><div class="sat-buyin">₱' + s.buyin.toLocaleString() + '</div><span class="sat-result-badge ' + rc + '">' + rl + '</span><button class="del-btn" title="Edit satellite" onclick="editSatellite(' + s.id + ')">✎</button><button class="del-btn" onclick="deleteSatellite(' + s.id + ')">✕</button></div></div>';
   }).join('');
 }
 
@@ -103,9 +157,66 @@ function toggleOppTag(btn) {
   else _selectedOppTags.push(tag);
 }
 
+var _editingOppId = null;
+
+function setOpponentModalTitle(text) {
+  var el = document.querySelector('#modal-opponent .modal-title');
+  if (el) el.textContent = text;
+}
+
+function applyOpponentTagSelection(tags) {
+  _selectedOppTags = (tags || []).slice();
+  document.querySelectorAll('.tag-toggle').forEach(function(b) {
+    b.classList.toggle('selected', _selectedOppTags.indexOf(b.dataset.tag) !== -1);
+  });
+}
+
+function openNewOpponentModal() {
+  _editingOppId = null;
+  setOpponentModalTitle('Add Villain');
+  ['opp-name', 'opp-venue', 'opp-notes'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  applyOpponentTagSelection([]);
+  openModal('modal-opponent');
+}
+
+function editOpponent(id) {
+  var o = opponents.find(function(x) { return x.id === id; });
+  if (!o) return;
+  document.getElementById('opp-name').value = o.name || '';
+  document.getElementById('opp-venue').value = o.venue || '';
+  document.getElementById('opp-notes').value = o.notes || '';
+  applyOpponentTagSelection(o.tags);
+  _editingOppId = id;
+  setOpponentModalTitle('Edit Villain');
+  openModal('modal-opponent');
+}
+
 function addOpponent() {
   var name = document.getElementById('opp-name').value.trim();
   if (!name) return;
+  if (_editingOppId) {
+    var existing = opponents.find(function(x) { return x.id === _editingOppId; });
+    if (!existing) { _editingOppId = null; return; }
+    existing.name = name;
+    existing.venue = document.getElementById('opp-venue').value || '';
+    existing.tags = _selectedOppTags.slice();
+    existing.notes = document.getElementById('opp-notes').value || '';
+    window.opponents = opponents;
+    save('opponents', opponents);
+    document.getElementById('opp-name').value = '';
+    document.getElementById('opp-venue').value = '';
+    document.getElementById('opp-notes').value = '';
+    applyOpponentTagSelection([]);
+    _editingOppId = null;
+    setOpponentModalTitle('Add Villain');
+    closeModal('modal-opponent');
+    renderOpponents();
+    if (typeof renderActiveSessionSurface === 'function') renderActiveSessionSurface();
+    return;
+  }
   var o = {
     id: Date.now(),
     name: name,
@@ -149,7 +260,7 @@ function renderOpponents() {
   }
   el.innerHTML = filtered.map(function(o) {
     var tagHTML = (o.tags || []).map(function(t) { return '<span class="opp-tag ' + esc(t) + '">' + esc(t) + '</span>'; }).join('');
-    return '<div class="opp-card"><div class="opp-top"><div><div class="opp-name">' + esc(o.name) + '</div><div class="opp-venue">' + esc(o.venue) + (o.added ? ' · Added ' + esc(o.added) : '') + '</div></div><button class="del-btn" onclick="deleteOpponent(' + o.id + ')">✕</button></div>' + (tagHTML ? '<div class="opp-tags">' + tagHTML + '</div>' : '') + (o.notes ? '<div class="opp-notes">' + esc(o.notes) + '</div>' : '') + '</div>';
+    return '<div class="opp-card"><div class="opp-top"><div><div class="opp-name">' + esc(o.name) + '</div><div class="opp-venue">' + esc(o.venue) + (o.added ? ' · Added ' + esc(o.added) : '') + '</div></div><button class="del-btn" title="Edit villain" onclick="editOpponent(' + o.id + ')">✎</button><button class="del-btn" onclick="deleteOpponent(' + o.id + ')">✕</button></div>' + (tagHTML ? '<div class="opp-tags">' + tagHTML + '</div>' : '') + (o.notes ? '<div class="opp-notes">' + esc(o.notes) + '</div>' : '') + '</div>';
   }).join('');
 }
 

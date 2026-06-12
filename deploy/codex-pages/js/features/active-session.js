@@ -113,6 +113,7 @@ function clearActiveSessionDraft() {
 }
 
 function syncActiveDraftFromForm() {
+  if (window._editingSessionId) return;
   if (!_activeSessionDraft) return;
   _activeSessionDraft.date = document.getElementById('s-date').value || _activeSessionDraft.date || new Date().toISOString().split('T')[0];
   _activeSessionDraft.name = document.getElementById('s-name').value || _activeSessionDraft.name || '';
@@ -127,6 +128,7 @@ function syncActiveDraftFromForm() {
 }
 
 function hydrateSessionFormFromDraft(force) {
+  if (window._editingSessionId) return;
   if (!_activeSessionDraft) return;
   var map = [
     ['s-date', _activeSessionDraft.date || new Date().toISOString().split('T')[0]],
@@ -414,6 +416,8 @@ function updateBulletCount(delta) {
 
 function openActiveOpponentCapture() {
   ensureActiveSessionDraft();
+  if (typeof _editingOppId !== 'undefined') _editingOppId = null;
+  if (typeof setOpponentModalTitle === 'function') setOpponentModalTitle('Add Villain');
   openModal('modal-opponent');
   var venue = document.getElementById('opp-venue');
   var notes = document.getElementById('opp-notes');

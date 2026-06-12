@@ -11,6 +11,45 @@ function populateSessionDropdowns() {
   });
 }
 
+var _editingHandId = null;
+
+function setHandModalTitle(text) {
+  var el = document.querySelector('#modal-hand .modal-title');
+  if (el) el.textContent = text;
+}
+
+function editHand(id) {
+  var h = hands.find(function(x) { return x.id === id; });
+  if (!h) return;
+  populateSessionDropdowns();
+  var sessionLinkEl = document.getElementById('h-session-link');
+  var sessionLabelEl = document.getElementById('h-session');
+  var pendingKeyEl = document.getElementById('h-pending-session-key');
+  if (sessionLinkEl) sessionLinkEl.value = h.sessionId ? String(h.sessionId) : '';
+  if (sessionLabelEl) sessionLabelEl.value = h.session || '';
+  if (pendingKeyEl) pendingKeyEl.value = h.pendingSessionKey || '';
+  var fields = { 'h-title': h.title || '', 'h-desc': h.desc || '', 'h-lesson': h.lesson || '' };
+  Object.keys(fields).forEach(function(fid) {
+    var el = document.getElementById(fid);
+    if (el) el.value = fields[fid];
+  });
+  var resultEl = document.getElementById('h-result');
+  if (resultEl) resultEl.value = h.result || 'lost';
+  resetHandReplayFields('h-');
+  var replay = h.replay || {};
+  var replayIds = {
+    heroPosition: 'h-hero-pos', villainPosition: 'h-villain-pos', stacks: 'h-stacks',
+    board: 'h-board', preflop: 'h-preflop', flop: 'h-flop', turn: 'h-turn', river: 'h-river'
+  };
+  Object.keys(replayIds).forEach(function(key) {
+    var el = document.getElementById(replayIds[key]);
+    if (el && replay[key]) el.value = replay[key];
+  });
+  _editingHandId = id;
+  setHandModalTitle('Edit Hand');
+  openModal('modal-hand');
+}
+
 function toMultilineHtml(text) {
   return esc(text || '').replace(/\n/g, '<br>');
 }
@@ -138,6 +177,8 @@ function resetHandReplayFields(prefix) {
 }
 
 function prepareNewHandForm(context) {
+  _editingHandId = null;
+  setHandModalTitle('Log Notable Hand');
   var opts = context || {};
   var sessionLinkEl = document.getElementById('h-session-link');
   var sessionLabelEl = document.getElementById('h-session');
@@ -177,6 +218,28 @@ function addHand() {
   if (sessionId) {
     var linked = sessions.find(function(s) { return s.id === sessionId; });
     if (linked) sessionLabel = linked.name + ' — ' + linked.date;
+  }
+  if (_editingHandId) {
+    var existing = hands.find(function(x) { return x.id === _editingHandId; });
+    if (!existing) { _editingHandId = null; return; }
+    existing.sessionId = sessionId;
+    existing.session = sessionLabel || document.getElementById('h-session').value || existing.session;
+    existing.pendingSessionKey = sessionId ? '' : (pendingKeyEl ? pendingKeyEl.value || '' : '');
+    existing.title = document.getElementById('h-title').value || 'Hand';
+    existing.desc = document.getElementById('h-desc').value || '';
+    existing.lesson = document.getElementById('h-lesson').value || '';
+    existing.result = document.getElementById('h-result').value;
+    var editedReplay = collectReplayFields('h-');
+    if (editedReplay) existing.replay = editedReplay;
+    else delete existing.replay;
+    save('hands', hands);
+    _editingHandId = null;
+    setHandModalTitle('Log Notable Hand');
+    closeModal('modal-hand');
+    populateSessionDropdowns();
+    renderHands();
+    renderActiveSessionSurface();
+    return;
   }
   var h = {
     id: Date.now(),
@@ -222,7 +285,7 @@ function renderHands() {
     var resultMeta = getHandResultMeta(h.result);
     var linkedSession = h.sessionId ? sessions.find(function(s) { return s.id === h.sessionId; }) : null;
     var sessionBadge = linkedSession ? '<span style="font-family:var(--mono);font-size:9px;background:var(--gold-dim);color:var(--gold);border:1px solid rgba(201,168,76,.25);border-radius:20px;padding:2px 7px;margin-left:.4rem">' + esc(linkedSession.name) + '</span>' : '';
-    return '<div class="hand-card"><div class="hand-top"><div style="flex:1"><div class="hand-meta">' + esc(h.session) + sessionBadge + '</div><div class="hand-title">' + esc(h.title) + '</div></div><div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;justify-content:flex-end"><button class="sec-action" style="padding:.32rem .7rem;font-size:10px" onclick="event.stopPropagation();openHandReplay(' + h.id + ')">REPLAY</button><span class="hand-result ' + resultMeta.className + '">' + resultMeta.label + '</span><button class="del-btn" onclick="event.stopPropagation();deleteHand(' + h.id + ')">✕</button></div></div>' + (h.desc ? '<div class="hand-body">' + esc(h.desc) + '</div>' : '') + (h.lesson ? '<div style="margin-top:.6rem;font-size:11px;color:var(--gold);font-family:var(--mono)">💡 ' + esc(h.lesson) + '</div>' : '') + '</div>';
+    return '<div class="hand-card"><div class="hand-top"><div style="flex:1"><div class="hand-meta">' + esc(h.session) + sessionBadge + '</div><div class="hand-title">' + esc(h.title) + '</div></div><div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;justify-content:flex-end"><button class="sec-action" style="padding:.32rem .7rem;font-size:10px" onclick="event.stopPropagation();editHand(' + h.id + ')">EDIT</button><button class="sec-action" style="padding:.32rem .7rem;font-size:10px" onclick="event.stopPropagation();openHandReplay(' + h.id + ')">REPLAY</button><span class="hand-result ' + resultMeta.className + '">' + resultMeta.label + '</span><button class="del-btn" onclick="event.stopPropagation();deleteHand(' + h.id + ')">✕</button></div></div>' + (h.desc ? '<div class="hand-body">' + esc(h.desc) + '</div>' : '') + (h.lesson ? '<div style="margin-top:.6rem;font-size:11px;color:var(--gold);font-family:var(--mono)">💡 ' + esc(h.lesson) + '</div>' : '') + '</div>';
   }).join('');
 }
 
