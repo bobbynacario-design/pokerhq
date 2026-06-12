@@ -16,5 +16,8 @@
       "sizes": "512x512",
       "type": "image/png"
     }
-  ]
+  ],
+  "id": "./",
+  "scope": "./",
+  "description": "PokerHQ \u2014 live tournament poker command center: plan, play, review, improve."
 }

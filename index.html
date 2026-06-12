@@ -41,6 +41,7 @@
       </svg>
       <span>Sign in with Google</span>
     </button>
+    <button class="login-install" id="login-install-btn" style="display:none" onclick="pokerhqInstallApp()">&#10515; Install as desktop app</button>
   </div>
 </div>
 
@@ -79,6 +80,7 @@
       <div class="clock-nav" id="sync-status" style="letter-spacing:.04em">○ Loading...</div>
       <div class="demo-badge" id="demo-badge">👁 DEMO</div>
       <button class="btn-demo-clear" id="demo-clear-btn" onclick="clearDemoMode()">✕ CLEAR DEMO</button>
+      <button class="btn-pdf" id="install-app-btn" style="display:none" onclick="pokerhqInstallApp()" title="Install PokerHQ as a desktop app">&#10515; INSTALL APP</button>
       <button class="btn-pdf" onclick="exportPDF()">⬇ WEEKLY REPORT</button>
     </div>
   </div>
@@ -1148,6 +1150,33 @@
 <script src="./js/features/library.js?v=20260612a"></script>
 <script src="./js/features/onboarding.js?v=20260612a"></script>
 <script>
+// ── PWA INSTALL — captures the browser install prompt like Enclave ──
+var _deferredInstallPrompt = null;
+function refreshInstallButtons() {
+  var standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  var show = _deferredInstallPrompt && !standalone;
+  ['install-app-btn','login-install-btn'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = show ? '' : 'none';
+  });
+}
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  _deferredInstallPrompt = e;
+  refreshInstallButtons();
+});
+window.addEventListener('appinstalled', function() {
+  _deferredInstallPrompt = null;
+  refreshInstallButtons();
+});
+function pokerhqInstallApp() {
+  if (!_deferredInstallPrompt || typeof _deferredInstallPrompt.prompt !== 'function') return;
+  _deferredInstallPrompt.prompt();
+  _deferredInstallPrompt.userChoice.then(function() {
+    _deferredInstallPrompt = null;
+    refreshInstallButtons();
+  });
+}
 // ── STORAGE — with offline queue ──
 function getProfileConfigApi() { return window.PokerHQConfig || {}; }
 function resolveScopedLocalKey(key) {
@@ -1575,6 +1604,7 @@ hydrateSessionFormFromDraft(false);
 renderActiveSessionSurface();
 renderReliability();
 renderBuildBadge();
+refreshInstallButtons();
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
   navigator.serviceWorker.register('./sw.js').catch(function() {});
 }

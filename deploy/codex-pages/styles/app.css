@@ -865,3 +865,6 @@ body.light .login-card{background:#fff;border-color:var(--rim2)}
 body.light .login-title{color:#1A1A1A}
 body.light .login-desc{color:rgba(0,0,0,.5)}
 body.light .login-status{color:rgba(0,0,0,.4)}
+.login-install{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;background:transparent;color:rgba(255,255,255,.45);border:1px solid var(--rim2);border-radius:10px;padding:11px 16px;font-size:12px;font-family:var(--mono);letter-spacing:.05em;cursor:pointer;margin-top:.75rem;transition:all .15s;text-transform:uppercase}
+.login-install:hover{color:var(--gold);border-color:rgba(212,175,55,.4)}
+body.light .login-install{color:rgba(0,0,0,.45)}
