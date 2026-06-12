@@ -13,8 +13,8 @@
 <title>PokerHQ — Bob's Tournament Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script type="module" src="./js/app.js?v=20260612b"></script>
-<link rel="stylesheet" href="./styles/app.css?v=20260612b">
+<script type="module" src="./js/app.js?v=20260612c"></script>
+<link rel="stylesheet" href="./styles/app.css?v=20260612c">
 </head>
 <body>
 <!-- LOGIN GATE — shown until Firebase auth resolves a signed-in user -->
@@ -648,6 +648,26 @@
 
   <div id="strategy-nudge-wrap"></div>
 
+  <!-- AI Assistant settings -->
+  <div class="form-card" id="ai-settings-card">
+    <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.85rem">
+      <span style="font-size:15px">🤖</span>
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--gold);text-transform:uppercase">AI Assistant</div>
+    </div>
+    <div id="ai-key-status" style="font-family:var(--mono);font-size:12px;margin-bottom:.9rem">○ No API key set — AI features are disabled</div>
+    <div class="form-group" style="margin-bottom:.75rem">
+      <label class="form-label">Anthropic API Key</label>
+      <input class="form-input" type="password" id="ai-key-input" autocomplete="off" placeholder="sk-ant-...">
+    </div>
+    <div style="display:flex;gap:.55rem;flex-wrap:wrap">
+      <button class="sec-action primary" onclick="saveAiKeyFromSettings()">SAVE KEY</button>
+      <button class="sec-action" onclick="testAiKey()">TEST CONNECTION</button>
+      <button class="sec-action" id="ai-key-clear-btn" style="display:none;border-color:var(--red);color:var(--red)" onclick="clearAiKey()">CLEAR KEY</button>
+    </div>
+    <div id="ai-key-test-result" style="display:none;font-family:var(--mono);font-size:11px;margin-top:.7rem"></div>
+    <div class="tip" style="margin-top:.9rem">Stored only on this device — never synced, never shared. Unlocks 🎙 voice-to-hand (Hands tab) and ✨ AI session debriefs (Review). Create a key at console.anthropic.com — you can set a spending limit there too.</div>
+  </div>
+
   <div class="strategy-paste">
     <div class="form-label" style="margin-bottom:.65rem">IMPORT WEEKLY INTELLIGENCE BRIEFING</div>
     <textarea id="strategy-raw" placeholder="Paste your weekly briefing here — calendar, news, and strategy update automatically..."></textarea>
@@ -1154,21 +1174,21 @@
   </div>
 </div>
 
-<script src="./js/data/config-runtime.js?v=20260612b"></script>
-<script src="./js/features/active-session.js?v=20260612b"></script>
-<script src="./js/features/demo-mode.js?v=20260612b"></script>
-<script src="./js/features/calculator.js?v=20260612b"></script>
-<script src="./js/features/staking.js?v=20260612b"></script>
-<script src="./js/features/package-report.js?v=20260612b"></script>
-<script src="./js/features/review.js?v=20260612b"></script>
-<script src="./js/features/calendar.js?v=20260612b"></script>
-<script src="./js/features/study-loop.js?v=20260612b"></script>
-<script src="./js/features/strategy.js?v=20260612b"></script>
-<script src="./js/features/hands.js?v=20260612b"></script>
-<script src="./js/features/treasury.js?v=20260612b"></script>
-<script src="./js/features/bankroll-chart.js?v=20260612b"></script>
-<script src="./js/features/library.js?v=20260612b"></script>
-<script src="./js/features/onboarding.js?v=20260612b"></script>
+<script src="./js/data/config-runtime.js?v=20260612c"></script>
+<script src="./js/features/active-session.js?v=20260612c"></script>
+<script src="./js/features/demo-mode.js?v=20260612c"></script>
+<script src="./js/features/calculator.js?v=20260612c"></script>
+<script src="./js/features/staking.js?v=20260612c"></script>
+<script src="./js/features/package-report.js?v=20260612c"></script>
+<script src="./js/features/review.js?v=20260612c"></script>
+<script src="./js/features/calendar.js?v=20260612c"></script>
+<script src="./js/features/study-loop.js?v=20260612c"></script>
+<script src="./js/features/strategy.js?v=20260612c"></script>
+<script src="./js/features/hands.js?v=20260612c"></script>
+<script src="./js/features/treasury.js?v=20260612c"></script>
+<script src="./js/features/bankroll-chart.js?v=20260612c"></script>
+<script src="./js/features/library.js?v=20260612c"></script>
+<script src="./js/features/onboarding.js?v=20260612c"></script>
 <script>
 // ── PWA INSTALL — captures the browser install prompt like Enclave ──
 var _deferredInstallPrompt = null;

@@ -82,6 +82,7 @@ function deleteSpotlight(id) {
 
 function renderStrategy() {
   renderStrategyNudge();
+  if (typeof renderAiSettings === 'function') renderAiSettings();
   var newsEl = document.getElementById('gemini-news-list');
   var newsSec = document.getElementById('gemini-news-section');
   if (newsEl && newsItems.length) {

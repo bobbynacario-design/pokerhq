@@ -323,6 +323,98 @@ function refreshVoiceKeyRow() {
     : "Stored only in this device's local storage — never synced. Create a key at console.anthropic.com.";
 }
 
+// ── AI SETTINGS PANEL ──
+function maskAnthropicKey(key) {
+  var k = String(key || '');
+  if (k.length < 12) return '••••••';
+  return k.slice(0, 7) + '…' + k.slice(-4);
+}
+
+function renderAiSettings() {
+  var statusEl = document.getElementById('ai-key-status');
+  var clearBtn = document.getElementById('ai-key-clear-btn');
+  if (!statusEl) return;
+  var key = getStoredAnthropicKey();
+  if (key) {
+    statusEl.innerHTML = '<span style="color:var(--green)">✓ API key saved on this device</span> · <span style="font-family:var(--mono);color:rgba(255,255,255,.55)">' + esc(maskAnthropicKey(key)) + '</span>';
+    if (clearBtn) clearBtn.style.display = '';
+  } else {
+    statusEl.innerHTML = '<span style="color:rgba(255,255,255,.5)">○ No API key set — AI features are disabled</span>';
+    if (clearBtn) clearBtn.style.display = 'none';
+  }
+}
+
+function setAiTestResult(message, kind) {
+  var el = document.getElementById('ai-key-test-result');
+  if (!el) return;
+  if (!message) { el.style.display = 'none'; el.textContent = ''; return; }
+  var color = kind === 'ok' ? 'var(--green)' : kind === 'error' ? 'var(--red)' : 'rgba(255,255,255,.5)';
+  el.style.display = 'block';
+  el.style.color = color;
+  el.textContent = message;
+}
+
+function saveAiKeyFromSettings() {
+  var input = document.getElementById('ai-key-input');
+  if (!input) return;
+  var typed = input.value.trim();
+  if (!typed) {
+    setAiTestResult('Paste a key first.', 'error');
+    return;
+  }
+  setStoredAnthropicKey(typed);
+  input.value = '';
+  setAiTestResult('', null);
+  renderAiSettings();
+  refreshVoiceKeyRow();
+  if (typeof showUndoToast === 'function') {
+    // Reuse the toast surface as a lightweight confirmation (no undo action needed).
+  }
+  setAiTestResult('Key saved on this device. Tip: run Test Connection to confirm it works.', 'muted');
+}
+
+function clearAiKey() {
+  setStoredAnthropicKey(null);
+  var input = document.getElementById('ai-key-input');
+  if (input) input.value = '';
+  setAiTestResult('Key cleared from this device.', 'muted');
+  renderAiSettings();
+  refreshVoiceKeyRow();
+}
+
+async function testAiKey() {
+  // Use a key just typed (unsaved) if present, otherwise the stored one.
+  var input = document.getElementById('ai-key-input');
+  var typed = input ? input.value.trim() : '';
+  var key = typed || getStoredAnthropicKey();
+  if (!key) {
+    setAiTestResult('No key to test — paste one above first.', 'error');
+    return;
+  }
+  setAiTestResult('Testing connection…', 'muted');
+  try {
+    // GET /v1/models validates the key without spending any tokens.
+    var res = await fetch('https://api.anthropic.com/v1/models?limit=1', {
+      method: 'GET',
+      headers: {
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      }
+    });
+    if (res.ok) {
+      if (typed) { setStoredAnthropicKey(typed); if (input) input.value = ''; renderAiSettings(); refreshVoiceKeyRow(); }
+      setAiTestResult('✓ Connection works — AI features are ready.', 'ok');
+    } else if (res.status === 401) {
+      setAiTestResult('✗ Key rejected (401). Check the key and try again.', 'error');
+    } else {
+      setAiTestResult('✗ Anthropic API error (' + res.status + ').', 'error');
+    }
+  } catch (e) {
+    setAiTestResult('✗ Could not reach Anthropic: ' + e.message, 'error');
+  }
+}
+
 function resolveVoiceApiKey() {
   var input = document.getElementById('voice-api-key');
   var typed = input ? input.value.trim() : '';
