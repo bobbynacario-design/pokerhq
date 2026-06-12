@@ -1,0 +1,149 @@
+function buildBankrollTimelineEvents() {
+  var events = [];
+  (window.sessions || []).forEach(function(s) {
+    var d = new Date((s.date || '') + 'T00:00:00');
+    if (isNaN(d.getTime())) return;
+    events.push({ time: d.getTime(), delta: s.pnl || 0, label: s.name || 'Session', id: s.id || 0 });
+  });
+  if (typeof getWalletTransactionDeltas === 'function') {
+    (window.walletLedger || []).forEach(function(entry) {
+      if (!entry || typeof entry !== 'object') return;
+      var deltas = getWalletTransactionDeltas(entry.type, entry.amount);
+      if (!deltas || !deltas.bankrollDelta) return;
+      var d = new Date((entry.date || '') + 'T00:00:00');
+      if (isNaN(d.getTime())) return;
+      var label = typeof formatWalletTypeLabel === 'function' ? formatWalletTypeLabel(entry.type) : 'Treasury';
+      events.push({ time: d.getTime(), delta: deltas.bankrollDelta, label: label, id: entry.id || 0 });
+    });
+  }
+  events.sort(function(a, b) { return a.time - b.time || a.id - b.id; });
+  return events;
+}
+
+function buildBankrollTimelinePoints() {
+  var events = buildBankrollTimelineEvents();
+  if (!events.length) return [];
+  // Walk backwards from the live balance so the last point always matches the app.
+  var running = (window.bankroll && window.bankroll.amount) || 0;
+  var points = new Array(events.length);
+  for (var i = events.length - 1; i >= 0; i--) {
+    points[i] = { time: events[i].time, balance: running, label: events[i].label, delta: events[i].delta };
+    running -= events[i].delta;
+  }
+  var dayMs = 24 * 60 * 60 * 1000;
+  points.unshift({ time: events[0].time - dayMs, balance: running, label: 'Starting bankroll', delta: 0 });
+  return points;
+}
+
+function bankrollChartNiceStep(rough) {
+  if (rough <= 0) return 1;
+  var mag = Math.pow(10, Math.floor(Math.log(rough) / Math.LN10));
+  var candidates = [1, 2, 2.5, 5, 10];
+  for (var i = 0; i < candidates.length; i++) {
+    if (candidates[i] * mag >= rough) return candidates[i] * mag;
+  }
+  return 10 * mag;
+}
+
+function bankrollChartDateLabel(time) {
+  return new Date(time).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' });
+}
+
+function renderBankrollChart() {
+  var wrap = document.getElementById('bankroll-chart');
+  if (!wrap) return;
+  var points = buildBankrollTimelinePoints();
+  if (points.length < 2) {
+    wrap.innerHTML = '<div style="color:rgba(255,255,255,.2);font-family:var(--mono);font-size:11px;width:100%;text-align:center;padding:2rem 0">Log sessions or treasury transfers to see your bankroll curve</div>';
+    return;
+  }
+
+  var W = 820, H = 280, padL = 70, padR = 20, padT = 16, padB = 34;
+  var plotW = W - padL - padR, plotH = H - padT - padB;
+
+  var minT = points[0].time, maxT = points[points.length - 1].time;
+  var spanT = Math.max(1, maxT - minT);
+  var minB = Infinity, maxB = -Infinity;
+  points.forEach(function(p) {
+    if (p.balance < minB) minB = p.balance;
+    if (p.balance > maxB) maxB = p.balance;
+  });
+  var yStep = bankrollChartNiceStep((maxB - minB || Math.max(1, maxB)) / 4);
+  var yMin = Math.floor(minB / yStep) * yStep;
+  var yMax = Math.ceil(maxB / yStep) * yStep;
+  if (yMin === yMax) yMax = yMin + yStep;
+
+  function px(t) { return padL + ((t - minT) / spanT) * plotW; }
+  function py(b) { return padT + (1 - (b - yMin) / (yMax - yMin)) * plotH; }
+
+  var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Bankroll over time">';
+
+  for (var b = yMin; b <= yMax + 0.001; b += yStep) {
+    var gy = py(b);
+    svg += '<line class="bk-grid-line" x1="' + padL + '" y1="' + gy + '" x2="' + (W - padR) + '" y2="' + gy + '"/>';
+    svg += '<text class="bk-axis-label" x="' + (padL - 8) + '" y="' + (gy + 3) + '" text-anchor="end">' + (b < 0 ? fmtCur(b) : '₱' + fmt(b)) + '</text>';
+  }
+  var tickCount = Math.min(5, points.length);
+  for (var ti = 0; ti < tickCount; ti++) {
+    var tt = minT + (spanT * ti) / (tickCount - 1 || 1);
+    svg += '<text class="bk-axis-label" x="' + px(tt) + '" y="' + (H - 12) + '" text-anchor="middle">' + bankrollChartDateLabel(tt) + '</text>';
+  }
+
+  var lineCoords = points.map(function(p) { return px(p.time).toFixed(1) + ',' + py(p.balance).toFixed(1); });
+  var baseY = py(yMin);
+  svg += '<path class="bk-area" d="M' + px(points[0].time).toFixed(1) + ',' + baseY.toFixed(1) + ' L' + lineCoords.join(' L') + ' L' + px(points[points.length - 1].time).toFixed(1) + ',' + baseY.toFixed(1) + ' Z"/>';
+  svg += '<polyline class="bk-line" points="' + lineCoords.join(' ') + '"/>';
+  svg += '<line class="bk-guide" id="bk-guide" x1="0" y1="' + padT + '" x2="0" y2="' + (padT + plotH) + '"/>';
+  points.forEach(function(p, idx) {
+    var current = idx === points.length - 1;
+    svg += '<circle class="bk-dot' + (current ? ' bk-dot-current' : '') + '" data-idx="' + idx + '" cx="' + px(p.time).toFixed(1) + '" cy="' + py(p.balance).toFixed(1) + '" r="' + (current ? 5 : 3.5) + '"/>';
+  });
+  svg += '</svg>';
+
+  wrap.innerHTML = svg + '<div class="bk-tooltip" id="bk-tooltip"></div>';
+
+  var svgEl = wrap.querySelector('svg');
+  var tooltip = document.getElementById('bk-tooltip');
+  var guide = document.getElementById('bk-guide');
+
+  function showPoint(clientX) {
+    var rect = svgEl.getBoundingClientRect();
+    var vx = ((clientX - rect.left) / rect.width) * W;
+    var best = 0, bestDist = Infinity;
+    points.forEach(function(p, idx) {
+      var d = Math.abs(px(p.time) - vx);
+      if (d < bestDist) { bestDist = d; best = idx; }
+    });
+    var p = points[best];
+    var deltaHtml = p.delta
+      ? '<div style="color:' + (p.delta >= 0 ? 'var(--green)' : 'var(--red)') + '">' + fmtCur(p.delta) + '</div>'
+      : '';
+    tooltip.innerHTML =
+      '<div style="opacity:.55;margin-bottom:.2rem">' + bankrollChartDateLabel(p.time) + '</div>' +
+      '<div style="margin-bottom:.2rem">' + esc(p.label) + '</div>' +
+      deltaHtml +
+      '<div style="margin-top:.25rem;font-size:12px;color:var(--gold)">₱' + fmt(p.balance) + '</div>';
+    tooltip.style.display = 'block';
+    var dotX = (px(p.time) / W) * rect.width;
+    var dotY = (py(p.balance) / H) * rect.height;
+    var tipW = tooltip.offsetWidth || 150;
+    var left = dotX + 14;
+    if (left + tipW > rect.width) left = dotX - tipW - 14;
+    tooltip.style.left = Math.max(0, left) + 'px';
+    tooltip.style.top = Math.max(0, dotY - 20) + 'px';
+    guide.setAttribute('x1', px(p.time));
+    guide.setAttribute('x2', px(p.time));
+    guide.style.display = 'block';
+  }
+
+  function hidePoint() {
+    tooltip.style.display = 'none';
+    guide.style.display = 'none';
+  }
+
+  svgEl.addEventListener('mousemove', function(e) { showPoint(e.clientX); });
+  svgEl.addEventListener('mouseleave', hidePoint);
+  svgEl.addEventListener('touchstart', function(e) {
+    if (e.touches && e.touches.length) showPoint(e.touches[0].clientX);
+  }, { passive: true });
+}

@@ -252,6 +252,11 @@
   </div>
 
   <div class="chart-wrap">
+    <div class="chart-title">Bankroll Over Time</div>
+    <div id="bankroll-chart"></div>
+  </div>
+
+  <div class="chart-wrap">
     <div class="chart-title">Cumulative P&amp;L — Last 10 Sessions</div>
     <div class="bar-chart" id="pnl-chart"></div>
   </div>
@@ -1150,6 +1155,7 @@
 <script src="./js/features/strategy.js?v=20260612a"></script>
 <script src="./js/features/hands.js?v=20260612a"></script>
 <script src="./js/features/treasury.js?v=20260612a"></script>
+<script src="./js/features/bankroll-chart.js?v=20260612a"></script>
 <script src="./js/features/library.js?v=20260612a"></script>
 <script src="./js/features/onboarding.js?v=20260612a"></script>
 <script>
@@ -1617,6 +1623,7 @@ function refreshDashboard() {
     return '<tr style="cursor:pointer" onclick="viewSessionDetail('+s.id+')"><td>'+esc(s.date)+'</td><td>'+esc(s.name)+'</td><td>₱'+s.total.toLocaleString()+'</td><td>'+(s.position||'—')+'</td><td>'+(s.prize?'₱'+s.prize.toLocaleString():'—')+'</td><td class="'+pnlCls+'">'+fmtCur(s.pnl)+'</td><td>'+resultBadge(s.result)+'</td></tr>';
   }).join('');
 
+  if (typeof renderBankrollChart === 'function') renderBankrollChart();
   // P&L chart
   var chart = document.getElementById('pnl-chart');
   var last10 = sessions.slice(0,10).reverse();

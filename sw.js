@@ -3,7 +3,7 @@
    half-applied (fresh HTML must pair with fresh JS/CSS); the cache is the
    offline fallback. Cross-origin CDN assets (fonts, jspdf, gstatic modules)
    are stale-while-revalidate. Sync/API traffic is never cached. */
-var CACHE_NAME = 'pokerhq-shell-v3';
+var CACHE_NAME = 'pokerhq-shell-v5';
 
 var PRECACHE = [
   './',
@@ -25,6 +25,7 @@ var PRECACHE = [
   './js/features/strategy.js',
   './js/features/hands.js',
   './js/features/treasury.js',
+  './js/features/bankroll-chart.js',
   './js/features/library.js',
   './js/features/onboarding.js',
   './assets/icons/icon-192.png',
@@ -68,8 +69,13 @@ self.addEventListener('fetch', function(event) {
   if (BYPASS_HOSTS.indexOf(url.hostname) !== -1) return;
 
   if (req.mode === 'navigate' || url.origin === self.location.origin) {
+    // Revalidate with the server so the HTTP cache can't pin a stale asset
+    // (navigation Requests can't be cloned with a cache override, so they keep req).
+    var networkFetch = req.mode === 'navigate'
+      ? fetch(req)
+      : fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' });
     event.respondWith(
-      fetch(req).then(function(res) {
+      networkFetch.then(function(res) {
         if (res && res.status === 200) {
           var copy = res.clone();
           caches.open(CACHE_NAME).then(function(cache) { cache.put(req, copy); });

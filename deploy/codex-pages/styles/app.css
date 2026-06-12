@@ -868,3 +868,18 @@ body.light .login-status{color:rgba(0,0,0,.4)}
 .login-install{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;background:transparent;color:rgba(255,255,255,.45);border:1px solid var(--rim2);border-radius:10px;padding:11px 16px;font-size:12px;font-family:var(--mono);letter-spacing:.05em;cursor:pointer;margin-top:.75rem;transition:all .15s;text-transform:uppercase}
 .login-install:hover{color:var(--gold);border-color:rgba(212,175,55,.4)}
 body.light .login-install{color:rgba(0,0,0,.45)}
+/* -- BANKROLL LINE CHART -- */
+#bankroll-chart{position:relative}
+#bankroll-chart svg{width:100%;height:auto;display:block}
+.bk-grid-line{stroke:var(--rim);stroke-width:1}
+.bk-axis-label{fill:rgba(255,255,255,.35);font-family:'DM Mono',monospace;font-size:10px}
+body.light .bk-axis-label{fill:rgba(0,0,0,.4)}
+.bk-area{fill:var(--gold);opacity:.1}
+.bk-line{stroke:var(--gold);stroke-width:2;fill:none;stroke-linejoin:round}
+.bk-dot{fill:var(--bg2);stroke:var(--gold);stroke-width:2;cursor:pointer}
+.bk-dot-current{fill:var(--gold)}
+body.light .bk-dot{fill:#fff}
+.bk-guide{stroke:rgba(255,255,255,.18);stroke-width:1;stroke-dasharray:3 3;display:none}
+body.light .bk-guide{stroke:rgba(0,0,0,.2)}
+.bk-tooltip{position:absolute;pointer-events:none;background:var(--bg4);border:1px solid var(--rim2);border-radius:8px;padding:.55rem .75rem;font-family:'DM Mono',monospace;font-size:10px;color:#fff;display:none;z-index:5;min-width:140px;line-height:1.5}
+body.light .bk-tooltip{color:#1A1A1A;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,.12)}
