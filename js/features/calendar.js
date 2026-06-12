@@ -103,9 +103,19 @@ function addTourney() {
 }
 
 function deleteTourney(id) {
+  var idx = tourneys.findIndex(function(x) { return x.id === id; });
+  if (idx === -1) return;
+  var removed = tourneys[idx];
   tourneys = tourneys.filter(function(x) { return x.id !== id; });
+  window.tourneys = tourneys;
   save('tourneys', tourneys);
   renderCalendar();
+  if (typeof showUndoToast === 'function') showUndoToast('Tournament deleted: ' + (removed.name || ''), function() {
+    tourneys.splice(Math.min(idx, tourneys.length), 0, removed);
+    window.tourneys = tourneys;
+    save('tourneys', tourneys);
+    renderCalendar();
+  });
 }
 
 function renderCalendar() {

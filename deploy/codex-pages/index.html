@@ -13,10 +13,10 @@
 <title>PokerHQ — Bob's Tournament Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="./profile-override.js?v=20260612a"></script>
-<script type="module" src="./js/app.js?v=20260612a"></script>
-<link rel="stylesheet" href="./styles/app.css?v=20260612a">
-<link rel="stylesheet" href="./styles/test-overrides.css?v=20260612a">
+<script src="./profile-override.js?v=20260612b"></script>
+<script type="module" src="./js/app.js?v=20260612b"></script>
+<link rel="stylesheet" href="./styles/app.css?v=20260612b">
+<link rel="stylesheet" href="./styles/test-overrides.css?v=20260612b">
 </head>
 <body>
 <!-- LOGIN GATE — shown until Firebase auth resolves a signed-in user -->
@@ -495,9 +495,22 @@
   </div>
 
   <!-- Full Session Table -->
+  <div class="session-filter-bar">
+    <input class="form-input" type="text" id="sf-search" placeholder="Search name, venue, notes..." oninput="onSessionFilterChange()">
+    <select class="form-input" id="sf-result" onchange="onSessionFilterChange()">
+      <option value="">All results</option>
+      <option value="final">Final Table</option>
+      <option value="itm">ITM</option>
+      <option value="bust">Bust</option>
+    </select>
+    <input class="form-input" type="date" id="sf-from" onchange="onSessionFilterChange()" title="From date">
+    <input class="form-input" type="date" id="sf-to" onchange="onSessionFilterChange()" title="To date">
+    <button class="sec-action" id="sf-clear" style="display:none" onclick="clearSessionFilters()">CLEAR</button>
+    <div class="session-filter-count" id="sf-count"></div>
+  </div>
   <div class="table-wrap">
     <table class="tbl">
-      <thead><tr><th>Date</th><th>Tournament</th><th>Venue</th><th>Buy-in</th><th>Field</th><th>Position</th><th>Prize</th><th>P&L</th><th>Hours</th><th>Result</th><th></th></tr></thead>
+      <thead><tr><th class="th-sort" id="th-date" onclick="setSessionSort('date')">Date</th><th class="th-sort" id="th-name" onclick="setSessionSort('name')">Tournament</th><th class="th-sort" id="th-venue" onclick="setSessionSort('venue')">Venue</th><th class="th-sort" id="th-total" onclick="setSessionSort('total')">Buy-in</th><th class="th-sort" id="th-field" onclick="setSessionSort('field')">Field</th><th class="th-sort" id="th-position" onclick="setSessionSort('position')">Position</th><th class="th-sort" id="th-prize" onclick="setSessionSort('prize')">Prize</th><th class="th-sort" id="th-pnl" onclick="setSessionSort('pnl')">P&L</th><th class="th-sort" id="th-hours" onclick="setSessionSort('hours')">Hours</th><th class="th-sort" id="th-result" onclick="setSessionSort('result')">Result</th><th></th></tr></thead>
       <tbody id="session-tbody"></tbody>
     </table>
   </div>
@@ -1143,21 +1156,21 @@
   </div>
 </div>
 
-<script src="./js/data/config-runtime.js?v=20260612a"></script>
-<script src="./js/features/active-session.js?v=20260612a"></script>
-<script src="./js/features/demo-mode.js?v=20260612a"></script>
-<script src="./js/features/calculator.js?v=20260612a"></script>
-<script src="./js/features/staking.js?v=20260612a"></script>
-<script src="./js/features/package-report.js?v=20260612a"></script>
-<script src="./js/features/review.js?v=20260612a"></script>
-<script src="./js/features/calendar.js?v=20260612a"></script>
-<script src="./js/features/study-loop.js?v=20260612a"></script>
-<script src="./js/features/strategy.js?v=20260612a"></script>
-<script src="./js/features/hands.js?v=20260612a"></script>
-<script src="./js/features/treasury.js?v=20260612a"></script>
-<script src="./js/features/bankroll-chart.js?v=20260612a"></script>
-<script src="./js/features/library.js?v=20260612a"></script>
-<script src="./js/features/onboarding.js?v=20260612a"></script>
+<script src="./js/data/config-runtime.js?v=20260612b"></script>
+<script src="./js/features/active-session.js?v=20260612b"></script>
+<script src="./js/features/demo-mode.js?v=20260612b"></script>
+<script src="./js/features/calculator.js?v=20260612b"></script>
+<script src="./js/features/staking.js?v=20260612b"></script>
+<script src="./js/features/package-report.js?v=20260612b"></script>
+<script src="./js/features/review.js?v=20260612b"></script>
+<script src="./js/features/calendar.js?v=20260612b"></script>
+<script src="./js/features/study-loop.js?v=20260612b"></script>
+<script src="./js/features/strategy.js?v=20260612b"></script>
+<script src="./js/features/hands.js?v=20260612b"></script>
+<script src="./js/features/treasury.js?v=20260612b"></script>
+<script src="./js/features/bankroll-chart.js?v=20260612b"></script>
+<script src="./js/features/library.js?v=20260612b"></script>
+<script src="./js/features/onboarding.js?v=20260612b"></script>
 <script>
 // ── PWA INSTALL — captures the browser install prompt like Enclave ──
 var _deferredInstallPrompt = null;
@@ -1365,6 +1378,108 @@ function fmtCur(n) { var v=Math.round(n); return (v>=0?'₱':'−₱')+Math.abs(
   if (el) el.addEventListener('change', syncActiveDraftFromForm);
 });
 
+// ── SESSION HISTORY FILTERS & SORT ──
+var _sessionFilter = { q: '', result: '', from: '', to: '' };
+var _sessionSort = { key: '', dir: 1 };
+
+function onSessionFilterChange() {
+  _sessionFilter.q = (document.getElementById('sf-search').value || '').toLowerCase();
+  _sessionFilter.result = document.getElementById('sf-result').value || '';
+  _sessionFilter.from = document.getElementById('sf-from').value || '';
+  _sessionFilter.to = document.getElementById('sf-to').value || '';
+  renderSessionTable();
+}
+
+function clearSessionFilters() {
+  ['sf-search', 'sf-result', 'sf-from', 'sf-to'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  onSessionFilterChange();
+}
+
+function setSessionSort(key) {
+  if (_sessionSort.key === key) {
+    if (_sessionSort.dir === 1) _sessionSort.dir = -1;
+    else { _sessionSort.key = ''; _sessionSort.dir = 1; }
+  } else {
+    _sessionSort.key = key;
+    _sessionSort.dir = 1;
+  }
+  renderSessionTable();
+}
+
+function getFilteredSessions() {
+  var f = _sessionFilter;
+  var list = sessions.filter(function(s) {
+    if (f.q) {
+      var hay = ((s.name || '') + ' ' + (s.venue || '') + ' ' + (s.notes || '')).toLowerCase();
+      if (hay.indexOf(f.q) === -1) return false;
+    }
+    if (f.result && s.result !== f.result) return false;
+    if (f.from && (s.date || '') < f.from) return false;
+    if (f.to && (s.date || '') > f.to) return false;
+    return true;
+  });
+  if (_sessionSort.key) {
+    var k = _sessionSort.key, dir = _sessionSort.dir;
+    var resultRank = { final: 3, itm: 2, bust: 1 };
+    list = list.slice().sort(function(a, b) {
+      var av, bv;
+      if (k === 'result') { av = resultRank[a.result] || 0; bv = resultRank[b.result] || 0; }
+      else if (k === 'date' || k === 'name' || k === 'venue') { av = String(a[k] || '').toLowerCase(); bv = String(b[k] || '').toLowerCase(); }
+      else { av = a[k] || 0; bv = b[k] || 0; }
+      if (av < bv) return -dir;
+      if (av > bv) return dir;
+      return 0;
+    });
+  }
+  return list;
+}
+
+function updateSessionSortIndicators() {
+  ['date', 'name', 'venue', 'total', 'field', 'position', 'prize', 'pnl', 'hours', 'result'].forEach(function(key) {
+    var th = document.getElementById('th-' + key);
+    if (!th) return;
+    var ind = th.querySelector('.sort-ind');
+    if (ind) ind.remove();
+    if (_sessionSort.key === key) {
+      var span = document.createElement('span');
+      span.className = 'sort-ind';
+      span.textContent = _sessionSort.dir === 1 ? '\u25b2' : '\u25bc';
+      th.appendChild(span);
+    }
+  });
+}
+
+// ── UNDO DELETE ──
+var _undoTimer = null;
+var _undoRestore = null;
+
+function showUndoToast(label, restoreFn) {
+  _undoRestore = restoreFn;
+  var el = document.getElementById('undo-toast');
+  var msg = document.getElementById('undo-toast-label');
+  if (!el) return;
+  if (msg) msg.textContent = label;
+  el.classList.add('show');
+  clearTimeout(_undoTimer);
+  _undoTimer = setTimeout(hideUndoToast, 6000);
+}
+
+function hideUndoToast() {
+  var el = document.getElementById('undo-toast');
+  if (el) el.classList.remove('show');
+  clearTimeout(_undoTimer);
+  _undoRestore = null;
+}
+
+function undoLastDelete() {
+  var fn = _undoRestore;
+  hideUndoToast();
+  if (fn) fn();
+}
+
 // ── SESSION EDITING ──
 var _editingSessionId = null;
 
@@ -1549,14 +1664,27 @@ var satDateEl = document.getElementById('sat-date'); if (satDateEl) satDateEl.va
 }
 
 function deleteSession(id) {
-  if (!confirm('Delete this session?')) return;
-  var s = sessions.find(function(x){ return x.id===id; });
-  if (s) { bankroll.amount -= s.pnl; save('bankroll', bankroll); }
+  var idx = sessions.findIndex(function(x){ return x.id===id; });
+  if (idx === -1) return;
+  var removed = sessions[idx];
+  bankroll.amount -= removed.pnl;
+  save('bankroll', bankroll);
   sessions = sessions.filter(function(x){ return x.id!==id; });
+  window.sessions = sessions;
   save('sessions', sessions);
   renderSessionTable();
   refreshDashboard();
   if (typeof renderTreasury === 'function') renderTreasury();
+  showUndoToast('Session deleted: ' + (removed.name || ''), function() {
+    sessions.splice(Math.min(idx, sessions.length), 0, removed);
+    window.sessions = sessions;
+    save('sessions', sessions);
+    bankroll.amount += removed.pnl;
+    save('bankroll', bankroll);
+    renderSessionTable();
+    refreshDashboard();
+    if (typeof renderTreasury === 'function') renderTreasury();
+  });
 }
 
 function resultBadge(r) {
@@ -1569,8 +1697,20 @@ function renderSessionTable() {
   renderStudyLoop();
   if (window.renderStakingSummary) renderStakingSummary();
   var tbody = document.getElementById('session-tbody');
+  updateSessionSortIndicators();
+  var countEl = document.getElementById('sf-count');
+  var clearBtn = document.getElementById('sf-clear');
+  var filtering = !!(_sessionFilter.q || _sessionFilter.result || _sessionFilter.from || _sessionFilter.to);
+  if (clearBtn) clearBtn.style.display = filtering ? '' : 'none';
+  if (countEl) countEl.textContent = '';
   if (!sessions.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="11">No sessions logged yet — add your first tournament above.</td></tr>'; return; }
-  tbody.innerHTML = sessions.map(function(s) {
+  var list = getFilteredSessions();
+  if (countEl) countEl.textContent = filtering ? list.length + ' of ' + sessions.length + ' sessions' : sessions.length + ' session' + (sessions.length !== 1 ? 's' : '');
+  if (!list.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="11">No sessions match your filters.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(function(s) {
     var pnlCls = s.pnl>0?'profit-pos':s.pnl<0?'profit-neg':'profit-zero';
     return '<tr style="cursor:pointer" onclick="viewSessionDetail('+s.id+')"><td>'+esc(s.date)+'</td><td>'+esc(s.name)+'</td><td>'+esc(s.venue)+'</td><td>₱'+s.total.toLocaleString()+'</td><td>'+(s.field||'—')+'</td><td>'+(s.position||'—')+'</td><td>'+(s.prize?'₱'+s.prize.toLocaleString():'—')+'</td><td class="'+pnlCls+'">'+fmtCur(s.pnl)+'</td><td>'+(s.hours||'—')+'h</td><td>'+resultBadge(s.result)+'</td><td style="white-space:nowrap"><button class="del-btn" title="Edit session" onclick="event.stopPropagation();editSession('+s.id+')">✎</button><button class="del-btn" onclick="event.stopPropagation();deleteSession('+s.id+')">✕</button></td></tr>';
   }).join('');
@@ -1932,6 +2072,12 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
 
 
 <!-- Session Toast -->
+<div id="undo-toast">
+  <span class="toast-msg" id="undo-toast-label"></span>
+  <button class="toast-btn" onclick="undoLastDelete()">↩ UNDO</button>
+  <button class="toast-close" onclick="hideUndoToast()">✕</button>
+</div>
+
 <div id="session-toast">
   <span class="toast-msg">Session logged &nbsp;<span class="toast-pnl" id="toast-pnl"></span></span>
   <button class="toast-btn" id="toast-hand-btn" onclick="logHandFromToast()">🃏 LOG A HAND</button>

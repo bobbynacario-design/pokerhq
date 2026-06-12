@@ -100,10 +100,19 @@ function addSatellite() {
 }
 
 function deleteSatellite(id) {
+  var idx = satellites.findIndex(function(x) { return x.id === id; });
+  if (idx === -1) return;
+  var removed = satellites[idx];
   satellites = satellites.filter(function(x) { return x.id !== id; });
   window.satellites = satellites;
   save('satellites', satellites);
   renderSatellites();
+  if (typeof showUndoToast === 'function') showUndoToast('Satellite deleted: ' + (removed.name || ''), function() {
+    satellites.splice(Math.min(idx, satellites.length), 0, removed);
+    window.satellites = satellites;
+    save('satellites', satellites);
+    renderSatellites();
+  });
 }
 
 function renderSatellites() {
@@ -239,11 +248,21 @@ function addOpponent() {
 }
 
 function deleteOpponent(id) {
+  var idx = opponents.findIndex(function(x) { return x.id === id; });
+  if (idx === -1) return;
+  var removed = opponents[idx];
   opponents = opponents.filter(function(x) { return x.id !== id; });
   window.opponents = opponents;
   save('opponents', opponents);
   renderOpponents();
   if (typeof renderActiveSessionSurface === 'function') renderActiveSessionSurface();
+  if (typeof showUndoToast === 'function') showUndoToast('Villain deleted: ' + (removed.name || ''), function() {
+    opponents.splice(Math.min(idx, opponents.length), 0, removed);
+    window.opponents = opponents;
+    save('opponents', opponents);
+    renderOpponents();
+    if (typeof renderActiveSessionSurface === 'function') renderActiveSessionSurface();
+  });
 }
 
 function renderOpponents() {

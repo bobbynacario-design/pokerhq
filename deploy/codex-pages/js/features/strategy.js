@@ -33,21 +33,51 @@ function addManualStrategy() {
 }
 
 function deleteStrategy(id) {
+  var idx = strategies.findIndex(function(x) { return x.id === id; });
+  if (idx === -1) return;
+  var removed = strategies[idx];
   strategies = strategies.filter(function(x) { return x.id !== id; });
+  window.strategies = strategies;
   save('strategies', strategies);
   renderStrategy();
+  if (typeof showUndoToast === 'function') showUndoToast('Strategy note deleted: ' + (removed.topic || ''), function() {
+    strategies.splice(Math.min(idx, strategies.length), 0, removed);
+    window.strategies = strategies;
+    save('strategies', strategies);
+    renderStrategy();
+  });
 }
 
 function deleteNews(id) {
+  var idx = newsItems.findIndex(function(x) { return x.id === id; });
+  if (idx === -1) return;
+  var removed = newsItems[idx];
   newsItems = newsItems.filter(function(x) { return x.id !== id; });
+  window.newsItems = newsItems;
   save('news', newsItems);
   renderStrategy();
+  if (typeof showUndoToast === 'function') showUndoToast('News story deleted', function() {
+    newsItems.splice(Math.min(idx, newsItems.length), 0, removed);
+    window.newsItems = newsItems;
+    save('news', newsItems);
+    renderStrategy();
+  });
 }
 
 function deleteSpotlight(id) {
+  var idx = spotlights.findIndex(function(x) { return x.id === id; });
+  if (idx === -1) return;
+  var removed = spotlights[idx];
   spotlights = spotlights.filter(function(x) { return x.id !== id; });
+  window.spotlights = spotlights;
   save('spotlights', spotlights);
   renderStrategy();
+  if (typeof showUndoToast === 'function') showUndoToast('Spotlight deleted', function() {
+    spotlights.splice(Math.min(idx, spotlights.length), 0, removed);
+    window.spotlights = spotlights;
+    save('spotlights', spotlights);
+    renderStrategy();
+  });
 }
 
 function renderStrategy() {

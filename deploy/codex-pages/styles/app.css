@@ -883,3 +883,21 @@ body.light .bk-dot{fill:#fff}
 body.light .bk-guide{stroke:rgba(0,0,0,.2)}
 .bk-tooltip{position:absolute;pointer-events:none;background:var(--bg4);border:1px solid var(--rim2);border-radius:8px;padding:.55rem .75rem;font-family:'DM Mono',monospace;font-size:10px;color:#fff;display:none;z-index:5;min-width:140px;line-height:1.5}
 body.light .bk-tooltip{color:#1A1A1A;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,.12)}
+/* -- SESSION HISTORY FILTERS & SORT -- */
+.session-filter-bar{display:flex;gap:.55rem;flex-wrap:wrap;align-items:center;margin-bottom:.9rem}
+.session-filter-bar .form-input{width:auto;flex:0 1 auto}
+#sf-search{flex:1 1 220px;min-width:160px}
+#sf-from,#sf-to{max-width:160px}
+.session-filter-count{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.35);margin-left:auto;white-space:nowrap}
+body.light .session-filter-count{color:rgba(0,0,0,.4)}
+.th-sort{cursor:pointer;user-select:none;white-space:nowrap}
+.th-sort:hover{color:var(--gold)!important}
+.th-sort .sort-ind{opacity:.8;font-size:8px;margin-left:3px;color:var(--gold)}
+
+/* -- UNDO TOAST -- */
+#undo-toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--rim2);border-radius:12px;padding:.85rem 1.25rem;display:flex;align-items:center;gap:1rem;z-index:501;box-shadow:0 8px 32px rgba(0,0,0,.4);font-family:var(--mono);font-size:12px;white-space:nowrap;transition:opacity .3s,transform .3s;opacity:0;pointer-events:none;max-width:90vw}
+#undo-toast.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(-4px)}
+#undo-toast .toast-msg{overflow:hidden;text-overflow:ellipsis}
+body.light #undo-toast{background:#fff}
+body.light #undo-toast .toast-msg{color:rgba(0,0,0,.65)}
+@media(max-width:768px){#undo-toast{bottom:72px;font-size:11px}}

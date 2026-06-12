@@ -264,9 +264,19 @@ function addHand() {
 }
 
 function deleteHand(id) {
+  var idx = hands.findIndex(function(x) { return x.id === id; });
+  if (idx === -1) return;
+  var removed = hands[idx];
   hands = hands.filter(function(x) { return x.id !== id; });
+  window.hands = hands;
   save('hands', hands);
   renderHands();
+  if (typeof showUndoToast === 'function') showUndoToast('Hand deleted: ' + (removed.title || ''), function() {
+    hands.splice(Math.min(idx, hands.length), 0, removed);
+    window.hands = hands;
+    save('hands', hands);
+    renderHands();
+  });
 }
 
 function renderHands() {
