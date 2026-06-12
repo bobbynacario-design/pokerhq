@@ -13,8 +13,8 @@
 <title>PokerHQ — Bob's Tournament Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script type="module" src="./js/app.js?v=20260612c"></script>
-<link rel="stylesheet" href="./styles/app.css?v=20260612c">
+<script type="module" src="./js/app.js?v=20260612d"></script>
+<link rel="stylesheet" href="./styles/app.css?v=20260612d">
 </head>
 <body>
 <!-- LOGIN GATE — shown until Firebase auth resolves a signed-in user -->
@@ -648,14 +648,16 @@
 
   <div id="strategy-nudge-wrap"></div>
 
-  <!-- AI Assistant settings -->
+    <!-- AI Assistant settings -->
   <div class="form-card" id="ai-settings-card">
     <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.85rem">
       <span style="font-size:15px">🤖</span>
       <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--gold);text-transform:uppercase">AI Assistant</div>
     </div>
-    <div id="ai-key-status" style="font-family:var(--mono);font-size:12px;margin-bottom:.9rem">○ No API key set — AI features are disabled</div>
-    <div class="form-group" style="margin-bottom:.75rem">
+
+    <div class="ai-sub-label" style="font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.5rem">Anthropic (Claude) — structuring &amp; debriefs</div>
+    <div id="ai-key-status" style="font-family:var(--mono);font-size:12px;margin-bottom:.7rem">○ No key set — structuring &amp; debriefs disabled</div>
+    <div class="form-group" style="margin-bottom:.6rem">
       <label class="form-label">Anthropic API Key</label>
       <input class="form-input" type="password" id="ai-key-input" autocomplete="off" placeholder="sk-ant-...">
     </div>
@@ -664,11 +666,27 @@
       <button class="sec-action" onclick="testAiKey()">TEST CONNECTION</button>
       <button class="sec-action" id="ai-key-clear-btn" style="display:none;border-color:var(--red);color:var(--red)" onclick="clearAiKey()">CLEAR KEY</button>
     </div>
-    <div id="ai-key-test-result" style="display:none;font-family:var(--mono);font-size:11px;margin-top:.7rem"></div>
-    <div class="tip" style="margin-top:.9rem">Stored only on this device — never synced, never shared. Unlocks 🎙 voice-to-hand (Hands tab) and ✨ AI session debriefs (Review). Create a key at console.anthropic.com — you can set a spending limit there too.</div>
+    <div id="ai-key-test-result" style="display:none;font-family:var(--mono);font-size:11px;margin-top:.6rem"></div>
+
+    <div style="height:1px;background:var(--rim);margin:1.1rem 0"></div>
+
+    <div class="ai-sub-label" style="font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.5rem">OpenAI (Whisper) — in-app voice recording</div>
+    <div id="ai-openai-status" style="font-family:var(--mono);font-size:12px;margin-bottom:.7rem">○ No key set — voice recording disabled</div>
+    <div class="form-group" style="margin-bottom:.6rem">
+      <label class="form-label">OpenAI API Key</label>
+      <input class="form-input" type="password" id="ai-openai-input" autocomplete="off" placeholder="sk-...">
+    </div>
+    <div style="display:flex;gap:.55rem;flex-wrap:wrap">
+      <button class="sec-action primary" onclick="saveOpenAIKeyFromSettings()">SAVE KEY</button>
+      <button class="sec-action" onclick="testOpenAIKey()">TEST CONNECTION</button>
+      <button class="sec-action" id="ai-openai-clear-btn" style="display:none;border-color:var(--red);color:var(--red)" onclick="clearOpenAIKey()">CLEAR KEY</button>
+    </div>
+    <div id="ai-openai-test-result" style="display:none;font-family:var(--mono);font-size:11px;margin-top:.6rem"></div>
+
+    <div class="tip" style="margin-top:1rem">Both keys are stored only on this device — never synced, never shared. The Anthropic key powers 🎙 hand structuring and ✨ debriefs (console.anthropic.com); the OpenAI key powers 🎤 in-app voice recording via Whisper (platform.openai.com, ~$0.006/min). Set a spending limit on each.</div>
   </div>
 
-  <div class="strategy-paste">
+    <div class="strategy-paste">
     <div class="form-label" style="margin-bottom:.65rem">IMPORT WEEKLY INTELLIGENCE BRIEFING</div>
     <textarea id="strategy-raw" placeholder="Paste your weekly briefing here — calendar, news, and strategy update automatically..."></textarea>
     <div class="form-row" style="margin-top:.75rem">
@@ -1174,21 +1192,21 @@
   </div>
 </div>
 
-<script src="./js/data/config-runtime.js?v=20260612c"></script>
-<script src="./js/features/active-session.js?v=20260612c"></script>
-<script src="./js/features/demo-mode.js?v=20260612c"></script>
-<script src="./js/features/calculator.js?v=20260612c"></script>
-<script src="./js/features/staking.js?v=20260612c"></script>
-<script src="./js/features/package-report.js?v=20260612c"></script>
-<script src="./js/features/review.js?v=20260612c"></script>
-<script src="./js/features/calendar.js?v=20260612c"></script>
-<script src="./js/features/study-loop.js?v=20260612c"></script>
-<script src="./js/features/strategy.js?v=20260612c"></script>
-<script src="./js/features/hands.js?v=20260612c"></script>
-<script src="./js/features/treasury.js?v=20260612c"></script>
-<script src="./js/features/bankroll-chart.js?v=20260612c"></script>
-<script src="./js/features/library.js?v=20260612c"></script>
-<script src="./js/features/onboarding.js?v=20260612c"></script>
+<script src="./js/data/config-runtime.js?v=20260612d"></script>
+<script src="./js/features/active-session.js?v=20260612d"></script>
+<script src="./js/features/demo-mode.js?v=20260612d"></script>
+<script src="./js/features/calculator.js?v=20260612d"></script>
+<script src="./js/features/staking.js?v=20260612d"></script>
+<script src="./js/features/package-report.js?v=20260612d"></script>
+<script src="./js/features/review.js?v=20260612d"></script>
+<script src="./js/features/calendar.js?v=20260612d"></script>
+<script src="./js/features/study-loop.js?v=20260612d"></script>
+<script src="./js/features/strategy.js?v=20260612d"></script>
+<script src="./js/features/hands.js?v=20260612d"></script>
+<script src="./js/features/treasury.js?v=20260612d"></script>
+<script src="./js/features/bankroll-chart.js?v=20260612d"></script>
+<script src="./js/features/library.js?v=20260612d"></script>
+<script src="./js/features/onboarding.js?v=20260612d"></script>
 <script>
 // ── PWA INSTALL — captures the browser install prompt like Enclave ──
 var _deferredInstallPrompt = null;
@@ -1973,8 +1991,12 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
 <div class="modal-overlay" id="modal-voice">
   <div class="modal" style="max-width:560px">
     <div class="modal-title">🎙 Voice to Hand</div>
-    <div style="font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.4);margin-bottom:1.25rem;line-height:1.7">
-      Paste your voice transcript below — from iPhone Voice Memos transcription or any speech-to-text. Claude will structure it into a hand log entry automatically.
+    <div class="modal-intro" style="font-family:var(--mono);font-size:11px;margin-bottom:1.25rem;line-height:1.7">
+      Tap 🎤 Record to dictate the hand (transcribed by Whisper), or paste a transcript from any speech-to-text. Claude then structures it into a hand log entry.
+    </div>
+    <div style="display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;margin-bottom:1rem">
+      <button class="sec-action" id="voice-record-btn" onclick="toggleVoiceRecording()" style="font-size:12px">🎤 RECORD</button>
+      <span id="voice-record-status" style="display:none;font-family:var(--mono);font-size:11px;color:var(--gold)"></span>
     </div>
     <div class="form-group" style="margin-bottom:1rem">
       <label class="form-label">Voice Transcript</label>

@@ -312,6 +312,16 @@ function setStoredAnthropicKey(key) {
   if (typeof saveLocalOnly === 'function') saveLocalOnly(ANTHROPIC_KEY_LOCAL_STORAGE, key || null);
 }
 
+var OPENAI_KEY_LOCAL_STORAGE = 'pokerhq_openai_key';
+
+function getStoredOpenAIKey() {
+  return (typeof loadLocalOnly === 'function' ? loadLocalOnly(OPENAI_KEY_LOCAL_STORAGE, '') : '') || '';
+}
+
+function setStoredOpenAIKey(key) {
+  if (typeof saveLocalOnly === 'function') saveLocalOnly(OPENAI_KEY_LOCAL_STORAGE, key || null);
+}
+
 function refreshVoiceKeyRow() {
   var input = document.getElementById('voice-api-key');
   var tip = document.getElementById('voice-key-tip');
@@ -336,16 +346,28 @@ function renderAiSettings() {
   if (!statusEl) return;
   var key = getStoredAnthropicKey();
   if (key) {
-    statusEl.innerHTML = '<span style="color:var(--green)">✓ API key saved on this device</span> · <span style="font-family:var(--mono);color:rgba(255,255,255,.55)">' + esc(maskAnthropicKey(key)) + '</span>';
+    statusEl.innerHTML = '<span style="color:var(--green)">✓ Key saved on this device</span> · <span class="ai-mask">' + esc(maskAnthropicKey(key)) + '</span>';
     if (clearBtn) clearBtn.style.display = '';
   } else {
-    statusEl.innerHTML = '<span style="color:rgba(255,255,255,.5)">○ No API key set — AI features are disabled</span>';
+    statusEl.innerHTML = '<span class="ai-muted">○ No key set — structuring &amp; debriefs disabled</span>';
     if (clearBtn) clearBtn.style.display = 'none';
+  }
+  var oaStatus = document.getElementById('ai-openai-status');
+  var oaClear = document.getElementById('ai-openai-clear-btn');
+  if (oaStatus) {
+    var oaKey = getStoredOpenAIKey();
+    if (oaKey) {
+      oaStatus.innerHTML = '<span style="color:var(--green)">✓ Key saved on this device</span> · <span class="ai-mask">' + esc(maskAnthropicKey(oaKey)) + '</span>';
+      if (oaClear) oaClear.style.display = '';
+    } else {
+      oaStatus.innerHTML = '<span class="ai-muted">○ No key set — voice recording disabled</span>';
+      if (oaClear) oaClear.style.display = 'none';
+    }
   }
 }
 
-function setAiTestResult(message, kind) {
-  var el = document.getElementById('ai-key-test-result');
+function setAiTestResult(message, kind, elId) {
+  var el = document.getElementById(elId || 'ai-key-test-result');
   if (!el) return;
   if (!message) { el.style.display = 'none'; el.textContent = ''; return; }
   var color = kind === 'ok' ? 'var(--green)' : kind === 'error' ? 'var(--red)' : 'rgba(255,255,255,.5)';
@@ -415,6 +437,185 @@ async function testAiKey() {
   }
 }
 
+function saveOpenAIKeyFromSettings() {
+  var input = document.getElementById('ai-openai-input');
+  if (!input) return;
+  var typed = input.value.trim();
+  if (!typed) { setAiTestResult('Paste a key first.', 'error', 'ai-openai-test-result'); return; }
+  setStoredOpenAIKey(typed);
+  input.value = '';
+  renderAiSettings();
+  setAiTestResult('Key saved on this device. Tip: run Test Connection to confirm it works.', 'muted', 'ai-openai-test-result');
+}
+
+function clearOpenAIKey() {
+  setStoredOpenAIKey(null);
+  var input = document.getElementById('ai-openai-input');
+  if (input) input.value = '';
+  renderAiSettings();
+  setAiTestResult('Key cleared from this device.', 'muted', 'ai-openai-test-result');
+}
+
+async function testOpenAIKey() {
+  var input = document.getElementById('ai-openai-input');
+  var typed = input ? input.value.trim() : '';
+  var key = typed || getStoredOpenAIKey();
+  if (!key) { setAiTestResult('No key to test — paste one above first.', 'error', 'ai-openai-test-result'); return; }
+  setAiTestResult('Testing connection…', 'muted', 'ai-openai-test-result');
+  try {
+    // GET /v1/models validates the key without spending anything.
+    var res = await fetch('https://api.openai.com/v1/models', {
+      method: 'GET',
+      headers: { 'Authorization': 'Bearer ' + key }
+    });
+    if (res.ok) {
+      if (typed) { setStoredOpenAIKey(typed); if (input) input.value = ''; renderAiSettings(); }
+      setAiTestResult('✓ Connection works — voice recording is ready.', 'ok', 'ai-openai-test-result');
+    } else if (res.status === 401) {
+      setAiTestResult('✗ Key rejected (401). Check the key and try again.', 'error', 'ai-openai-test-result');
+    } else {
+      setAiTestResult('✗ OpenAI API error (' + res.status + ').', 'error', 'ai-openai-test-result');
+    }
+  } catch (e) {
+    setAiTestResult('✗ Could not reach OpenAI: ' + e.message, 'error', 'ai-openai-test-result');
+  }
+}
+
+// ── IN-APP VOICE RECORDING (mic → OpenAI Whisper) ──
+var _voiceMediaRecorder = null;
+var _voiceChunks = [];
+var _voiceStream = null;
+
+function pickVoiceAudioMime() {
+  if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) return '';
+  var candidates = ['audio/webm', 'audio/mp4', 'audio/ogg', 'audio/mpeg'];
+  for (var i = 0; i < candidates.length; i++) {
+    if (MediaRecorder.isTypeSupported(candidates[i])) return candidates[i];
+  }
+  return '';
+}
+
+function voiceRecordingSupported() {
+  return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && typeof MediaRecorder !== 'undefined');
+}
+
+function setVoiceRecordUi(state, message) {
+  var btn = document.getElementById('voice-record-btn');
+  var status = document.getElementById('voice-record-status');
+  if (btn) {
+    if (state === 'recording') {
+      btn.classList.add('recording');
+      btn.innerHTML = '⏹ STOP &amp; TRANSCRIBE';
+    } else {
+      btn.classList.remove('recording');
+      btn.innerHTML = '🎤 RECORD';
+    }
+    btn.disabled = state === 'transcribing';
+  }
+  if (status) {
+    status.textContent = message || '';
+    status.style.display = message ? 'inline' : 'none';
+  }
+}
+
+function stopVoiceTracks() {
+  if (_voiceStream) {
+    _voiceStream.getTracks().forEach(function(t) { try { t.stop(); } catch (e) {} });
+    _voiceStream = null;
+  }
+}
+
+function cancelVoiceRecording() {
+  if (_voiceMediaRecorder && _voiceMediaRecorder.state === 'recording') {
+    _voiceMediaRecorder.onstop = function() { stopVoiceTracks(); };
+    try { _voiceMediaRecorder.stop(); } catch (e) {}
+  }
+  _voiceMediaRecorder = null;
+  _voiceChunks = [];
+  stopVoiceTracks();
+  setVoiceRecordUi('idle', '');
+}
+
+async function toggleVoiceRecording() {
+  var errEl = document.getElementById('voice-error');
+  if (_voiceMediaRecorder && _voiceMediaRecorder.state === 'recording') {
+    setVoiceRecordUi('transcribing', 'Finishing…');
+    try { _voiceMediaRecorder.stop(); } catch (e) {}
+    return;
+  }
+  if (!voiceRecordingSupported()) {
+    errEl.textContent = 'Recording is not supported in this browser. Paste a transcript instead.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (!getStoredOpenAIKey()) {
+    errEl.textContent = 'Add your OpenAI key first — IMPROVE → Strategy → AI Assistant → OpenAI (Whisper).';
+    errEl.style.display = 'block';
+    return;
+  }
+  errEl.style.display = 'none';
+  try {
+    _voiceStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (e) {
+    errEl.textContent = 'Microphone access was blocked. Allow the mic for this site and try again.';
+    errEl.style.display = 'block';
+    return;
+  }
+  _voiceChunks = [];
+  var mime = pickVoiceAudioMime();
+  try {
+    _voiceMediaRecorder = mime ? new MediaRecorder(_voiceStream, { mimeType: mime }) : new MediaRecorder(_voiceStream);
+  } catch (e) {
+    _voiceMediaRecorder = new MediaRecorder(_voiceStream);
+  }
+  _voiceMediaRecorder.ondataavailable = function(e) { if (e.data && e.data.size) _voiceChunks.push(e.data); };
+  _voiceMediaRecorder.onstop = function() { stopVoiceTracks(); transcribeVoiceRecording(); };
+  _voiceMediaRecorder.start();
+  setVoiceRecordUi('recording', '● Listening — tap stop when done');
+}
+
+async function transcribeVoiceRecording() {
+  var errEl = document.getElementById('voice-error');
+  var key = getStoredOpenAIKey();
+  var recorder = _voiceMediaRecorder;
+  _voiceMediaRecorder = null;
+  if (!key) { setVoiceRecordUi('idle', ''); return; }
+  var type = (recorder && recorder.mimeType) || pickVoiceAudioMime() || 'audio/webm';
+  var blob = new Blob(_voiceChunks, { type: type });
+  _voiceChunks = [];
+  if (!blob.size) {
+    setVoiceRecordUi('idle', '');
+    errEl.textContent = 'No audio was captured — try recording again.';
+    errEl.style.display = 'block';
+    return;
+  }
+  setVoiceRecordUi('transcribing', 'Transcribing with Whisper…');
+  try {
+    var ext = type.indexOf('mp4') !== -1 ? 'mp4' : type.indexOf('ogg') !== -1 ? 'ogg' : type.indexOf('mpeg') !== -1 ? 'mp3' : 'webm';
+    var fd = new FormData();
+    fd.append('file', blob, 'recording.' + ext);
+    fd.append('model', 'whisper-1');
+    var res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + key },
+      body: fd
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new Error('OpenAI key was rejected (401) — re-check it in AI Assistant settings');
+      throw new Error('Whisper error (' + res.status + ')');
+    }
+    var data = await res.json();
+    var text = (data.text || '').trim();
+    var ta = document.getElementById('voice-transcript');
+    if (text) ta.value = ta.value.trim() ? (ta.value.trim() + ' ' + text) : text;
+    setVoiceRecordUi('idle', text ? 'Transcribed ✓ — review, then Structure with AI' : 'No speech detected');
+  } catch (e) {
+    setVoiceRecordUi('idle', '');
+    errEl.textContent = 'Could not transcribe: ' + e.message + '. Try again or paste a transcript.';
+    errEl.style.display = 'block';
+  }
+}
+
 function resolveVoiceApiKey() {
   var input = document.getElementById('voice-api-key');
   var typed = input ? input.value.trim() : '';
@@ -428,6 +629,7 @@ function resolveVoiceApiKey() {
 }
 
 function clearVoiceModal() {
+  cancelVoiceRecording();
   document.getElementById('voice-transcript').value = '';
   document.getElementById('voice-result').style.display = 'none';
   document.getElementById('voice-save-btn').style.display = 'none';

@@ -14,7 +14,7 @@ import {
   FIRESTORE_KEYS,
   resolveProfileConfig,
   resolveLocalStorageKey
-} from "./config.js?v=20260612c";
+} from "./config.js?v=20260612d";
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
