@@ -102,6 +102,80 @@ function addTourney() {
   renderCalendar();
 }
 
+function icsEscape(value) {
+  return String(value === null || typeof value === 'undefined' ? '' : value)
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\r?\n/g, '\\n');
+}
+
+function icsDate(d) {
+  function p(n) { return n < 10 ? '0' + n : '' + n; }
+  return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate());
+}
+
+function icsStamp() {
+  var d = new Date();
+  function p(n) { return n < 10 ? '0' + n : '' + n; }
+  return d.getUTCFullYear() + p(d.getUTCMonth() + 1) + p(d.getUTCDate()) + 'T' +
+    p(d.getUTCHours()) + p(d.getUTCMinutes()) + p(d.getUTCSeconds()) + 'Z';
+}
+
+function exportCalendarICS() {
+  var todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  var upcoming = (window.tourneys || []).filter(function(t) {
+    if (t.status === 'skip') return false; // only playable (target/stretch) events
+    var range = parseTourneyDateRange(t);
+    return range && range.end >= todayStart;
+  });
+  if (!upcoming.length) {
+    if (typeof showUndoToast === 'function') {} // no-op
+    alert('No upcoming target or stretch events to export. Add tournaments graded TARGET/STRETCH first.');
+    return;
+  }
+  var stamp = icsStamp();
+  var lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//PokerHQ//Tournament Calendar//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH'];
+  upcoming.forEach(function(t) {
+    var range = parseTourneyDateRange(t);
+    var start = range.start;
+    var endExclusive = new Date(range.end.getTime() + 24 * 60 * 60 * 1000); // DTEND is exclusive for all-day
+    var statusLabel = { target: 'TARGET', stretch: 'STRETCH' }[t.status] || '';
+    var descParts = [];
+    if (t.buyin) descParts.push('Buy-in ₱' + Number(t.buyin).toLocaleString());
+    if (t.gtd) descParts.push('GTD ' + t.gtd);
+    if (t.structure) descParts.push(t.structure);
+    if (statusLabel) descParts.push(statusLabel);
+    descParts.push('via PokerHQ');
+    lines.push('BEGIN:VEVENT');
+    lines.push('UID:pokerhq-' + (t.id || Math.random().toString(36).slice(2)) + '@pokerhq');
+    lines.push('DTSTAMP:' + stamp);
+    lines.push('DTSTART;VALUE=DATE:' + icsDate(start));
+    lines.push('DTEND;VALUE=DATE:' + icsDate(endExclusive));
+    lines.push('SUMMARY:' + icsEscape((t.buyin ? '♠ ' : '') + (t.name || 'Tournament') + (t.buyin ? ' (₱' + Number(t.buyin).toLocaleString() + ')' : '')));
+    if (t.venue) lines.push('LOCATION:' + icsEscape(t.venue));
+    lines.push('DESCRIPTION:' + icsEscape(descParts.join(' · ')));
+    lines.push('BEGIN:VALARM');
+    lines.push('ACTION:DISPLAY');
+    lines.push('DESCRIPTION:' + icsEscape((t.name || 'Tournament') + ' starts tomorrow'));
+    lines.push('TRIGGER:-P1D');
+    lines.push('END:VALARM');
+    lines.push('END:VEVENT');
+  });
+  lines.push('END:VCALENDAR');
+
+  var blob = new Blob([lines.join('\r\n')], { type: 'text/calendar' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'PokerHQ_Targets_' + new Date().toISOString().split('T')[0] + '.ics';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 function deleteTourney(id) {
   var idx = tourneys.findIndex(function(x) { return x.id === id; });
   if (idx === -1) return;

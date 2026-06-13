@@ -13,10 +13,10 @@
 <title>PokerHQ — Bob's Tournament Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="./profile-override.js?v=20260612g"></script>
-<script type="module" src="./js/app.js?v=20260612g"></script>
-<link rel="stylesheet" href="./styles/app.css?v=20260612g">
-<link rel="stylesheet" href="./styles/test-overrides.css?v=20260612g">
+<script src="./profile-override.js?v=20260612h"></script>
+<script type="module" src="./js/app.js?v=20260612h"></script>
+<link rel="stylesheet" href="./styles/app.css?v=20260612h">
+<link rel="stylesheet" href="./styles/test-overrides.css?v=20260612h">
 </head>
 <body>
 <!-- LOGIN GATE — shown until Firebase auth resolves a signed-in user -->
@@ -255,6 +255,8 @@
       <div class="stat-sub" id="dash-hourly-sub">Log hours to see ₱/hr</div>
     </div>
   </div>
+
+  <div id="monthly-goals"></div>
 
   <div class="chart-wrap">
     <div class="chart-title">Bankroll Over Time</div>
@@ -615,7 +617,10 @@
 <div class="page" id="page-calendar">
   <div class="sec-hdr">
     <div class="sec-title"><span>♣</span>Tournament Calendar</div>
-    <button class="sec-action primary" onclick="openNewTourneyModal()">+ ADD TOURNAMENT</button>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+      <button class="sec-action" onclick="exportCalendarICS()" title="Download target events as a calendar file">⤓ EXPORT .ICS</button>
+      <button class="sec-action primary" onclick="openNewTourneyModal()">+ ADD TOURNAMENT</button>
+    </div>
   </div>
 
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;margin-bottom:1rem">
@@ -1214,21 +1219,21 @@
   </div>
 </div>
 
-<script src="./js/data/config-runtime.js?v=20260612g"></script>
-<script src="./js/features/active-session.js?v=20260612g"></script>
-<script src="./js/features/demo-mode.js?v=20260612g"></script>
-<script src="./js/features/calculator.js?v=20260612g"></script>
-<script src="./js/features/staking.js?v=20260612g"></script>
-<script src="./js/features/package-report.js?v=20260612g"></script>
-<script src="./js/features/review.js?v=20260612g"></script>
-<script src="./js/features/calendar.js?v=20260612g"></script>
-<script src="./js/features/study-loop.js?v=20260612g"></script>
-<script src="./js/features/strategy.js?v=20260612g"></script>
-<script src="./js/features/hands.js?v=20260612g"></script>
-<script src="./js/features/treasury.js?v=20260612g"></script>
-<script src="./js/features/bankroll-chart.js?v=20260612g"></script>
-<script src="./js/features/library.js?v=20260612g"></script>
-<script src="./js/features/onboarding.js?v=20260612g"></script>
+<script src="./js/data/config-runtime.js?v=20260612h"></script>
+<script src="./js/features/active-session.js?v=20260612h"></script>
+<script src="./js/features/demo-mode.js?v=20260612h"></script>
+<script src="./js/features/calculator.js?v=20260612h"></script>
+<script src="./js/features/staking.js?v=20260612h"></script>
+<script src="./js/features/package-report.js?v=20260612h"></script>
+<script src="./js/features/review.js?v=20260612h"></script>
+<script src="./js/features/calendar.js?v=20260612h"></script>
+<script src="./js/features/study-loop.js?v=20260612h"></script>
+<script src="./js/features/strategy.js?v=20260612h"></script>
+<script src="./js/features/hands.js?v=20260612h"></script>
+<script src="./js/features/treasury.js?v=20260612h"></script>
+<script src="./js/features/bankroll-chart.js?v=20260612h"></script>
+<script src="./js/features/library.js?v=20260612h"></script>
+<script src="./js/features/onboarding.js?v=20260612h"></script>
 <script>
 // ── PWA INSTALL — captures the browser install prompt like Enclave ──
 var _deferredInstallPrompt = null;
@@ -1330,6 +1335,7 @@ window.spotlights = load('spotlights', []);
 window.bankroll   = load('bankroll', {amount:0, rule:15});
 window.wallet     = load('wallet', {balance:0});
 window.walletLedger = load('walletLedger', []);
+window.goals     = load('goals', {});
 // Shorthand aliases
 var sessions   = window.sessions;
 var tourneys   = window.tourneys;

@@ -923,3 +923,14 @@ body.light .variance-tile{background:#fff}
 body.light .variance-tile-label{color:rgba(0,0,0,.45)}
 body.light .variance-tile-value{color:#1A1A1A}
 body.light .variance-tile-sub{color:rgba(0,0,0,.4)}
+/* -- MONTHLY GOALS -- */
+.goal-row{margin-top:.9rem}
+.goal-row-top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:.35rem}
+.goal-label{font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:rgba(255,255,255,.7)}
+.goal-figs{font-family:var(--mono);font-size:12px;color:#fff}
+.goal-track{height:8px;border-radius:6px;background:var(--bg4);overflow:hidden}
+.goal-fill{height:100%;border-radius:6px;transition:width .4s ease}
+.goals-edit-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.75rem;margin-top:.6rem}
+body.light .goal-label{color:rgba(0,0,0,.6)}
+body.light .goal-figs{color:#1A1A1A}
+body.light .goal-track{background:var(--bg4)}

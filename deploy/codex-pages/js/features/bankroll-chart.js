@@ -6,8 +6,102 @@ var BUYIN_BREAKDOWN_RANGES = [
   { label: '₱15,000+', min: 15001, max: Infinity }
 ];
 
+var _goalsEditing = false;
+
+function goalsMonthKey() {
+  var d = new Date();
+  var m = String(d.getMonth() + 1);
+  return d.getFullYear() + '-' + (m.length < 2 ? '0' + m : m);
+}
+
+function getMonthlyGoals() {
+  var g = window.goals || {};
+  return {
+    profit: parseFloat(g.profit) || 0,
+    volume: parseInt(g.volume, 10) || 0,
+    study: parseInt(g.study, 10) || 0
+  };
+}
+
+function getMonthlyProgress() {
+  var mk = goalsMonthKey();
+  var monthSessions = (window.sessions || []).filter(function(s) { return String(s.date || '').slice(0, 7) === mk; });
+  var profit = monthSessions.reduce(function(a, s) { return a + (s.pnl || 0); }, 0);
+  var study = (window.strategies || []).filter(function(s) {
+    var d = new Date(s.id);
+    if (isNaN(d.getTime())) return false;
+    var m = String(d.getMonth() + 1);
+    return d.getFullYear() + '-' + (m.length < 2 ? '0' + m : m) === mk;
+  }).length;
+  return { profit: profit, volume: monthSessions.length, study: study };
+}
+
+function goalBar(label, current, target, displayCur, displayTarget, posColor) {
+  var pct = target > 0 ? Math.max(0, Math.min(100, Math.round((current / target) * 100))) : 0;
+  var reached = target > 0 && current >= target;
+  var barCol = reached ? 'var(--green)' : posColor;
+  var html = '<div class="goal-row">';
+  html += '<div class="goal-row-top"><span class="goal-label">' + label + (reached ? ' ✓' : '') + '</span>';
+  html += '<span class="goal-figs">' + displayCur + ' <span style="opacity:.45">/ ' + displayTarget + '</span></span></div>';
+  html += '<div class="goal-track"><div class="goal-fill" style="width:' + pct + '%;background:' + barCol + '"></div></div>';
+  html += '</div>';
+  return html;
+}
+
+function editMonthlyGoals() { _goalsEditing = true; renderMonthlyGoals(); }
+function cancelMonthlyGoals() { _goalsEditing = false; renderMonthlyGoals(); }
+
+function saveMonthlyGoals() {
+  var profit = parseFloat(document.getElementById('goal-profit').value) || 0;
+  var volume = parseInt(document.getElementById('goal-volume').value, 10) || 0;
+  var study = parseInt(document.getElementById('goal-study').value, 10) || 0;
+  window.goals = { profit: profit, volume: volume, study: study };
+  if (typeof save === 'function') save('goals', window.goals);
+  _goalsEditing = false;
+  renderMonthlyGoals();
+}
+
+function renderMonthlyGoals() {
+  var wrap = document.getElementById('monthly-goals');
+  if (!wrap) return;
+  var monthName = new Date().toLocaleDateString('en-PH', { month: 'long', year: 'numeric' });
+  var goals = getMonthlyGoals();
+  var hasGoals = goals.profit || goals.volume || goals.study;
+
+  if (_goalsEditing) {
+    var html = '<div class="chart-wrap"><div class="chart-title">Goals — ' + esc(monthName) + '</div>';
+    html += '<div class="goals-edit-grid">';
+    html += '<div class="form-group"><label class="form-label">Profit Target (₱)</label><input class="form-input" type="number" id="goal-profit" value="' + (goals.profit || '') + '" placeholder="e.g. 50000"></div>';
+    html += '<div class="form-group"><label class="form-label">Tournaments</label><input class="form-input" type="number" id="goal-volume" value="' + (goals.volume || '') + '" placeholder="e.g. 12"></div>';
+    html += '<div class="form-group"><label class="form-label">Study Notes</label><input class="form-input" type="number" id="goal-study" value="' + (goals.study || '') + '" placeholder="e.g. 4"></div>';
+    html += '</div>';
+    html += '<div style="display:flex;gap:.55rem;margin-top:.9rem"><button class="sec-action primary" onclick="saveMonthlyGoals()">SAVE GOALS</button><button class="sec-action" onclick="cancelMonthlyGoals()">CANCEL</button></div>';
+    html += '</div>';
+    wrap.innerHTML = html;
+    return;
+  }
+
+  if (!hasGoals) {
+    wrap.innerHTML = '<div class="chart-wrap"><div class="chart-title">Goals — ' + esc(monthName) + '</div>' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;padding:.4rem 0">' +
+      '<div style="color:rgba(255,255,255,.4);font-family:var(--mono);font-size:12px">Set profit, volume, and study targets to track this month.</div>' +
+      '<button class="sec-action primary" onclick="editMonthlyGoals()">SET GOALS</button></div></div>';
+    return;
+  }
+
+  var prog = getMonthlyProgress();
+  var out = '<div class="chart-wrap"><div class="chart-title" style="display:flex;align-items:center;justify-content:space-between">Goals — ' + esc(monthName) +
+    '<button class="sec-action" style="font-size:10px;padding:.25rem .6rem" onclick="editMonthlyGoals()">EDIT</button></div>';
+  if (goals.profit) out += goalBar('Profit', prog.profit, goals.profit, fmtCur(prog.profit), '₱' + fmt(goals.profit), 'var(--gold)');
+  if (goals.volume) out += goalBar('Tournaments', prog.volume, goals.volume, String(prog.volume), String(goals.volume), 'var(--blue)');
+  if (goals.study) out += goalBar('Study notes', prog.study, goals.study, String(prog.study), String(goals.study), 'var(--purple)');
+  out += '</div>';
+  wrap.innerHTML = out;
+}
+
 function renderDashboardExtras() {
   renderVarianceWidget();
+  renderMonthlyGoals();
   var list = window.sessions || [];
 
   // Hourly rate stat card — only sessions with logged hours count

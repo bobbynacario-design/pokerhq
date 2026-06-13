@@ -20,6 +20,7 @@ export const FIRESTORE_KEYS = [
   "satellites",
   "satTarget",
   "opponents",
+  "goals",
   "timer"
 ];
 

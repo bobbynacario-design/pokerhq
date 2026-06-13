@@ -14,7 +14,7 @@ import {
   FIRESTORE_KEYS,
   resolveProfileConfig,
   resolveLocalStorageKey
-} from "./config.js?v=20260612g";
+} from "./config.js?v=20260612h";
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -50,6 +50,7 @@ function applyLoadedValue(key, value) {
   if (key === "satellites") window.satellites = value;
   if (key === "opponents") window.opponents = value;
   if (key === "satTarget") window.satTarget = value;
+  if (key === "goals") window.goals = value;
   if (window.syncGlobalAliases) window.syncGlobalAliases();
   if (key === "timer" && window.restoreTimerState) window.restoreTimerState(value);
   localStorage.setItem(getLocalStorageKey(key), JSON.stringify(value));
