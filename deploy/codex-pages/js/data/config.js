@@ -21,6 +21,7 @@ export const FIRESTORE_KEYS = [
   "satTarget",
   "opponents",
   "goals",
+  "reminderSettings",
   "timer"
 ];
 

@@ -1,0 +1,16 @@
+{
+  "name": "pokerhq-functions",
+  "description": "PokerHQ scheduled email reminders (separate codebase on shared project)",
+  "scripts": {
+    "deploy": "firebase deploy --only functions:pokerhqEventReminders --project pokerhq-a67e4"
+  },
+  "engines": {
+    "node": "24"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^13.6.0",
+    "firebase-functions": "^7.0.0"
+  },
+  "private": true
+}

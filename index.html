@@ -13,8 +13,8 @@
 <title>PokerHQ — Bob's Tournament Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script type="module" src="./js/app.js?v=20260612h"></script>
-<link rel="stylesheet" href="./styles/app.css?v=20260612h">
+<script type="module" src="./js/app.js?v=20260612i"></script>
+<link rel="stylesheet" href="./styles/app.css?v=20260612i">
 </head>
 <body>
 <!-- LOGIN GATE — shown until Firebase auth resolves a signed-in user -->
@@ -621,6 +621,25 @@
     </div>
   </div>
 
+  <div class="form-card" id="reminder-settings-card" style="margin-bottom:1.25rem">
+    <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem">
+      <span style="font-size:15px">🔔</span>
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--gold);text-transform:uppercase">Email Reminders</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+      <label style="display:flex;align-items:center;gap:.5rem;font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.7);cursor:pointer">
+        <input type="checkbox" id="reminder-enabled" onchange="saveReminderSettings()"> Email me before target events
+      </label>
+      <div style="display:flex;align-items:center;gap:.4rem">
+        <span style="font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.45)">Lead time</span>
+        <input class="form-input" type="number" id="reminder-lead" min="0" max="14" value="1" style="width:64px;padding:.35rem .5rem" onchange="saveReminderSettings()">
+        <span style="font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.45)">days</span>
+      </div>
+    </div>
+    <div class="tip" style="margin-top:.8rem">Sends to <strong id="reminder-email">your account email</strong> via PokerHQ's reminder service — TARGET and STRETCH events only, once each. Requires the email backend to be set up (one-time). The ⤓ EXPORT .ICS button also gives you calendar reminders without any backend.</div>
+    <div id="reminder-saved-note" style="display:none;font-family:var(--mono);font-size:11px;color:var(--green);margin-top:.6rem"></div>
+  </div>
+
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;margin-bottom:1rem">
     <div class="view-toggle">
       <button class="view-btn active" id="vbtn-month" onclick="setView('month')">📅 MONTH</button>
@@ -1217,21 +1236,21 @@
   </div>
 </div>
 
-<script src="./js/data/config-runtime.js?v=20260612h"></script>
-<script src="./js/features/active-session.js?v=20260612h"></script>
-<script src="./js/features/demo-mode.js?v=20260612h"></script>
-<script src="./js/features/calculator.js?v=20260612h"></script>
-<script src="./js/features/staking.js?v=20260612h"></script>
-<script src="./js/features/package-report.js?v=20260612h"></script>
-<script src="./js/features/review.js?v=20260612h"></script>
-<script src="./js/features/calendar.js?v=20260612h"></script>
-<script src="./js/features/study-loop.js?v=20260612h"></script>
-<script src="./js/features/strategy.js?v=20260612h"></script>
-<script src="./js/features/hands.js?v=20260612h"></script>
-<script src="./js/features/treasury.js?v=20260612h"></script>
-<script src="./js/features/bankroll-chart.js?v=20260612h"></script>
-<script src="./js/features/library.js?v=20260612h"></script>
-<script src="./js/features/onboarding.js?v=20260612h"></script>
+<script src="./js/data/config-runtime.js?v=20260612i"></script>
+<script src="./js/features/active-session.js?v=20260612i"></script>
+<script src="./js/features/demo-mode.js?v=20260612i"></script>
+<script src="./js/features/calculator.js?v=20260612i"></script>
+<script src="./js/features/staking.js?v=20260612i"></script>
+<script src="./js/features/package-report.js?v=20260612i"></script>
+<script src="./js/features/review.js?v=20260612i"></script>
+<script src="./js/features/calendar.js?v=20260612i"></script>
+<script src="./js/features/study-loop.js?v=20260612i"></script>
+<script src="./js/features/strategy.js?v=20260612i"></script>
+<script src="./js/features/hands.js?v=20260612i"></script>
+<script src="./js/features/treasury.js?v=20260612i"></script>
+<script src="./js/features/bankroll-chart.js?v=20260612i"></script>
+<script src="./js/features/library.js?v=20260612i"></script>
+<script src="./js/features/onboarding.js?v=20260612i"></script>
 <script>
 // ── PWA INSTALL — captures the browser install prompt like Enclave ──
 var _deferredInstallPrompt = null;
@@ -1334,6 +1353,7 @@ window.bankroll   = load('bankroll', {amount:0, rule:15});
 window.wallet     = load('wallet', {balance:0});
 window.walletLedger = load('walletLedger', []);
 window.goals     = load('goals', {});
+window.reminderSettings = load('reminderSettings', {});
 // Shorthand aliases
 var sessions   = window.sessions;
 var tourneys   = window.tourneys;
@@ -1400,7 +1420,7 @@ function switchTab(id) {
   renderCalendarMonth();
   if (id==='sessions') { loadBankrollForm(); hydrateSessionFormFromDraft(false); renderSessionTable(); renderActiveSessionSurface(); if (window.renderStakingInputSummary) renderStakingInputSummary(); }
   if (id==='wallet' && typeof renderTreasury === 'function') renderTreasury();
-  if (id==='calendar') { renderCalendar(); }
+  if (id==='calendar') { renderCalendar(); if (typeof renderReminderSettings==='function') renderReminderSettings(); }
   if (id==='strategy') renderStrategy();
   if (id==='hands') { populateSessionDropdowns(); renderHands(); }
   if (id==='satellite') renderSatellites();

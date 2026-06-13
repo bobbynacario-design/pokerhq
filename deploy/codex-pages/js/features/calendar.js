@@ -102,6 +102,47 @@ function addTourney() {
   renderCalendar();
 }
 
+function getReminderSettings() {
+  var r = window.reminderSettings || {};
+  return {
+    enabled: r.enabled === true,
+    leadDays: Math.max(0, Math.min(14, parseInt(r.leadDays, 10) || 1)),
+    email: r.email || window.__pokerhqAuthEmail || ''
+  };
+}
+
+function renderReminderSettings() {
+  var card = document.getElementById('reminder-settings-card');
+  if (!card) return;
+  var s = getReminderSettings();
+  var toggle = document.getElementById('reminder-enabled');
+  var lead = document.getElementById('reminder-lead');
+  var emailEl = document.getElementById('reminder-email');
+  if (toggle) toggle.checked = s.enabled;
+  if (lead) lead.value = s.leadDays;
+  if (emailEl) emailEl.textContent = s.email || 'sign in to set';
+}
+
+function saveReminderSettings() {
+  var toggle = document.getElementById('reminder-enabled');
+  var lead = document.getElementById('reminder-lead');
+  var settings = {
+    enabled: !!(toggle && toggle.checked),
+    leadDays: Math.max(0, Math.min(14, parseInt(lead && lead.value, 10) || 1)),
+    email: window.__pokerhqAuthEmail || (window.reminderSettings && window.reminderSettings.email) || ''
+  };
+  window.reminderSettings = settings;
+  if (typeof save === 'function') save('reminderSettings', settings);
+  var note = document.getElementById('reminder-saved-note');
+  if (note) {
+    note.textContent = settings.enabled
+      ? '✓ Saved — you\'ll be emailed ' + settings.leadDays + ' day' + (settings.leadDays !== 1 ? 's' : '') + ' before target events.'
+      : '✓ Saved — email reminders are off.';
+    note.style.display = 'block';
+  }
+  renderReminderSettings();
+}
+
 function icsEscape(value) {
   return String(value === null || typeof value === 'undefined' ? '' : value)
     .replace(/\\/g, '\\\\')
