@@ -913,3 +913,13 @@ body.light .ai-mask{color:rgba(0,0,0,.5)}
 body.light .ai-muted{color:rgba(0,0,0,.5)}
 .modal-intro{color:rgba(255,255,255,.45)}
 body.light .modal-intro{color:rgba(0,0,0,.5)}
+/* -- VARIANCE & DOWNSWING WIDGET -- */
+.variance-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.variance-tile{background:var(--bg3);border:1px solid var(--rim);border-radius:10px;padding:.8rem .9rem}
+.variance-tile-label{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:.35rem}
+.variance-tile-value{font-family:var(--mono);font-size:16px;font-weight:500;color:#fff}
+.variance-tile-sub{font-family:var(--mono);font-size:9.5px;color:rgba(255,255,255,.35);margin-top:.25rem}
+body.light .variance-tile{background:#fff}
+body.light .variance-tile-label{color:rgba(0,0,0,.45)}
+body.light .variance-tile-value{color:#1A1A1A}
+body.light .variance-tile-sub{color:rgba(0,0,0,.4)}

@@ -7,6 +7,7 @@ var BUYIN_BREAKDOWN_RANGES = [
 ];
 
 function renderDashboardExtras() {
+  renderVarianceWidget();
   var list = window.sessions || [];
 
   // Hourly rate stat card — only sessions with logged hours count
@@ -63,6 +64,102 @@ function renderDashboardExtras() {
     html += '<tr><td>' + r.label + '</td><td>' + r.count + '</td><td>' + r.itmPct + '%</td><td>₱' + fmt(r.invested) + '</td><td class="' + cls + '">' + fmtCur(r.pnl) + '</td><td class="' + cls + '">' + r.roi + '%</td><td>' + (r.perHour === null ? '—' : fmtCur(Math.round(r.perHour)) + '/hr') + '</td></tr>';
   });
   html += '</tbody></table></div>';
+  wrap.innerHTML = html;
+}
+
+function renderVarianceWidget() {
+  var wrap = document.getElementById('variance-widget');
+  if (!wrap) return;
+  var list = window.sessions || [];
+  var points = buildBankrollTimelinePoints();
+  if (list.length < 2 || points.length < 2) { wrap.innerHTML = ''; return; }
+
+  // Peak, current drawdown, and worst-ever drawdown from the bankroll timeline
+  var peak = -Infinity, runPeak = -Infinity, worstDD = 0;
+  points.forEach(function(p) {
+    if (p.balance > peak) peak = p.balance;
+    if (p.balance > runPeak) runPeak = p.balance;
+    var dd = runPeak - p.balance;
+    if (dd > worstDD) worstDD = dd;
+  });
+  var current = points[points.length - 1].balance;
+  var drawdown = Math.max(0, peak - current);
+  var ddPct = peak > 0 ? Math.round((drawdown / peak) * 1000) / 10 : 0;
+
+  // Stake yardstick: average buy-in across all sessions
+  var totalIn = 0, totalOut = 0;
+  list.forEach(function(s) { totalIn += s.total || 0; totalOut += s.prize || 0; });
+  var avgBuyin = list.length ? totalIn / list.length : 0;
+  var ddBuyins = avgBuyin > 0 ? Math.round((drawdown / avgBuyin) * 10) / 10 : 0;
+  var worstBuyins = avgBuyin > 0 ? Math.round((worstDD / avgBuyin) * 10) / 10 : 0;
+  var runwayBuyins = avgBuyin > 0 ? Math.floor(current / avgBuyin) : 0;
+
+  // Current streak (sessions array is newest-first)
+  var streak = 0, streakDir = 0;
+  for (var i = 0; i < list.length; i++) {
+    var pnl = list[i].pnl || 0;
+    if (!pnl) break;
+    var dir = pnl > 0 ? 1 : -1;
+    if (!streakDir) streakDir = dir;
+    if (dir !== streakDir) break;
+    streak++;
+  }
+
+  // Risk of ruin — same model as the Calc page risk engine, fed with live ROI.
+  var roiDec = totalIn > 0 ? (totalOut - totalIn) / totalIn : 0;
+  var sigma = (typeof _calcRiskVarianceMap !== 'undefined' && _calcRiskVarianceMap.standard) ? _calcRiskVarianceMap.standard.sigma : 1.5;
+  var ruinText = '—', ruinSub = 'Needs a winning sample';
+  if (list.length >= 10 && roiDec > 0 && runwayBuyins > 0) {
+    var ruin = Math.exp((-2 * roiDec * runwayBuyins) / (sigma * sigma));
+    ruin = Math.min(0.999, Math.max(0.001, ruin));
+    ruinText = ruin < 0.01 ? '<1%' : Math.round(ruin * 100) + '%';
+    ruinSub = 'If current ROI holds';
+  } else if (roiDec <= 0) {
+    ruinSub = 'ROI is negative — model needs a winning sample';
+  } else {
+    ruinSub = 'Needs 10+ sessions';
+  }
+
+  // Status read
+  var cls, title, detail;
+  if (drawdown < 1) {
+    cls = 'normal';
+    title = 'At your bankroll peak';
+    detail = 'No drawdown right now — keep the same game selection and discipline that got you here.';
+  } else if (ddBuyins < 5) {
+    cls = 'blue';
+    title = 'Normal variance';
+    detail = fmtCur(-drawdown) + ' off peak is ' + ddBuyins + ' average buy-ins — well inside normal MTT swing. No adjustment needed.';
+  } else if (ddBuyins < 10) {
+    cls = 'amber';
+    title = 'Moderate downswing';
+    detail = ddBuyins + ' buy-ins below peak. Stick to the BRM rule, lean on qualifiers over direct entries, and protect the mental game.';
+  } else {
+    cls = 'shove';
+    title = 'Deep downswing';
+    detail = ddBuyins + ' buy-ins below peak. Strong case to drop a stake level and rebuild through satellites until the curve turns.';
+  }
+  if (runwayBuyins > 0 && runwayBuyins < 10 && cls !== 'shove') {
+    cls = 'amber';
+    detail += ' Note: only ' + runwayBuyins + ' average buy-ins of runway left — shot selection matters more than usual.';
+  }
+
+  var streakTile = streak
+    ? '<div class="variance-tile-value" style="color:' + (streakDir > 0 ? 'var(--green)' : 'var(--red)') + '">' + streak + ' ' + (streakDir > 0 ? 'won' : 'lost') + '</div><div class="variance-tile-sub">Consecutive sessions</div>'
+    : '<div class="variance-tile-value">—</div><div class="variance-tile-sub">No current streak</div>';
+
+  var html = '<div class="chart-wrap">';
+  html += '<div class="chart-title">Variance &amp; Downswing</div>';
+  html += '<div class="variance-grid">';
+  html += '<div class="variance-tile"><div class="variance-tile-label">Peak bankroll</div><div class="variance-tile-value">₱' + fmt(peak) + '</div><div class="variance-tile-sub">All-time high</div></div>';
+  html += '<div class="variance-tile"><div class="variance-tile-label">Off peak</div><div class="variance-tile-value" style="color:' + (drawdown < 1 ? 'var(--green)' : 'var(--red)') + '">' + (drawdown < 1 ? 'At peak' : fmtCur(-drawdown)) + '</div><div class="variance-tile-sub">' + (drawdown < 1 ? 'Drawdown 0%' : ddPct + '% · ' + ddBuyins + ' avg buy-ins') + '</div></div>';
+  html += '<div class="variance-tile"><div class="variance-tile-label">Worst downswing</div><div class="variance-tile-value">' + (worstDD > 0 ? fmtCur(-worstDD) : '—') + '</div><div class="variance-tile-sub">' + (worstDD > 0 ? worstBuyins + ' avg buy-ins, survived' : 'None recorded') + '</div></div>';
+  html += '<div class="variance-tile"><div class="variance-tile-label">Streak</div>' + streakTile + '</div>';
+  html += '<div class="variance-tile"><div class="variance-tile-label">Runway</div><div class="variance-tile-value">' + (runwayBuyins || '—') + (runwayBuyins ? '×' : '') + '</div><div class="variance-tile-sub">Avg buy-ins at ₱' + fmt(avgBuyin) + '</div></div>';
+  html += '<div class="variance-tile"><div class="variance-tile-label">Risk of ruin</div><div class="variance-tile-value">' + ruinText + '</div><div class="variance-tile-sub">' + ruinSub + '</div></div>';
+  html += '</div>';
+  html += '<div class="calc-rec-banner ' + cls + '" style="margin-top:1rem"><div class="rec-label">Variance read</div><div class="rec-action">' + title + '</div><div class="rec-detail">' + detail + '</div></div>';
+  html += '</div>';
   wrap.innerHTML = html;
 }
 
