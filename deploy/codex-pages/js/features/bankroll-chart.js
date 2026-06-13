@@ -1,3 +1,71 @@
+var BUYIN_BREAKDOWN_RANGES = [
+  { label: '₱0 – ₱2,999', min: 0, max: 2999 },
+  { label: '₱3,000 – ₱5,999', min: 3000, max: 5999 },
+  { label: '₱6,000 – ₱9,999', min: 6000, max: 9999 },
+  { label: '₱10,000 – ₱15,000', min: 10000, max: 15000 },
+  { label: '₱15,000+', min: 15001, max: Infinity }
+];
+
+function renderDashboardExtras() {
+  var list = window.sessions || [];
+
+  // Hourly rate stat card — only sessions with logged hours count
+  var hourlyEl = document.getElementById('dash-hourly');
+  var hourlySubEl = document.getElementById('dash-hourly-sub');
+  if (hourlyEl) {
+    var timed = list.filter(function(s) { return (s.hours || 0) > 0; });
+    var hoursTotal = timed.reduce(function(sum, s) { return sum + s.hours; }, 0);
+    var pnlTimed = timed.reduce(function(sum, s) { return sum + (s.pnl || 0); }, 0);
+    if (hoursTotal > 0) {
+      var rate = pnlTimed / hoursTotal;
+      hourlyEl.textContent = fmtCur(rate) + '/hr';
+      hourlyEl.className = 'stat-val ' + (rate > 0 ? 'stat-up' : rate < 0 ? 'stat-down' : '');
+      if (hourlySubEl) hourlySubEl.textContent = (Math.round(hoursTotal * 10) / 10) + 'h across ' + timed.length + ' session' + (timed.length !== 1 ? 's' : '');
+    } else {
+      hourlyEl.textContent = '—';
+      hourlyEl.className = 'stat-val';
+      if (hourlySubEl) hourlySubEl.textContent = 'Log hours to see ₱/hr';
+    }
+  }
+
+  // Performance by buy-in level
+  var wrap = document.getElementById('buyin-breakdown');
+  if (!wrap) return;
+  if (!list.length) {
+    wrap.innerHTML = '<div style="color:rgba(255,255,255,.2);font-family:var(--mono);font-size:11px;width:100%;text-align:center;padding:1.6rem 0;background:var(--bg2);border:1px solid var(--rim);border-radius:12px">Log sessions to compare buy-in levels</div>';
+    return;
+  }
+  var rows = BUYIN_BREAKDOWN_RANGES.map(function(range) {
+    var inRange = list.filter(function(s) { return (s.total || 0) >= range.min && (s.total || 0) <= range.max; });
+    if (!inRange.length) return null;
+    var invested = 0, returned = 0, hours = 0, itm = 0;
+    inRange.forEach(function(s) {
+      invested += s.total || 0;
+      returned += s.prize || 0;
+      hours += s.hours || 0;
+      if (s.result === 'itm' || s.result === 'final') itm++;
+    });
+    var pnl = returned - invested;
+    return {
+      label: range.label,
+      count: inRange.length,
+      itmPct: Math.round((itm / inRange.length) * 100),
+      invested: invested,
+      pnl: pnl,
+      roi: invested > 0 ? Math.round((pnl / invested) * 1000) / 10 : 0,
+      perHour: hours > 0 ? pnl / hours : null
+    };
+  }).filter(Boolean);
+
+  var html = '<div class="table-wrap"><table class="tbl"><thead><tr><th>Buy-in level</th><th>Sessions</th><th>ITM</th><th>Invested</th><th>P&amp;L</th><th>ROI</th><th>₱/hr</th></tr></thead><tbody>';
+  rows.forEach(function(r) {
+    var cls = r.pnl > 0 ? 'profit-pos' : r.pnl < 0 ? 'profit-neg' : 'profit-zero';
+    html += '<tr><td>' + r.label + '</td><td>' + r.count + '</td><td>' + r.itmPct + '%</td><td>₱' + fmt(r.invested) + '</td><td class="' + cls + '">' + fmtCur(r.pnl) + '</td><td class="' + cls + '">' + r.roi + '%</td><td>' + (r.perHour === null ? '—' : fmtCur(Math.round(r.perHour)) + '/hr') + '</td></tr>';
+  });
+  html += '</tbody></table></div>';
+  wrap.innerHTML = html;
+}
+
 function buildBankrollTimelineEvents() {
   var events = [];
   (window.sessions || []).forEach(function(s) {
