@@ -961,3 +961,8 @@ body.light .research-badge-ok{ color:#1B7A43; }
 body.light .research-badge-warn{ color:#8A5A0A; }
 .research-quote{ margin-top:.45rem; padding-left:.6rem; border-left:2px solid var(--rim2); font-size:11px; line-height:1.5; color:rgba(255,255,255,.5); font-style:italic; }
 body.light .research-quote{ color:rgba(0,0,0,.55); }
+
+/* Nav toggle buttons need an explicit color — UA button text defaults to black, */
+/* which makes the monochrome sign-out glyph invisible on the dark nav. */
+.theme-toggle{ color:rgba(255,255,255,.85); }
+body.light .theme-toggle{ color:#1A1A1A; }
