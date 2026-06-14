@@ -3,7 +3,7 @@
    half-applied (fresh HTML must pair with fresh JS/CSS); the cache is the
    offline fallback. Cross-origin CDN assets (fonts, jspdf, gstatic modules)
    are stale-while-revalidate. Sync/API traffic is never cached. */
-var CACHE_NAME = 'pokerhq-shell-v11';
+var CACHE_NAME = 'pokerhq-shell-v12';
 
 var PRECACHE = [
   './',
@@ -43,11 +43,17 @@ var BYPASS_HOSTS = [
 ];
 
 self.addEventListener('install', function(event) {
+  // Do NOT skipWaiting here — a new version waits until the user clicks
+  // "Reload" in the in-app update banner, which posts SKIP_WAITING.
   event.waitUntil(
     caches.open(CACHE_NAME).then(function(cache) {
       return cache.addAll(PRECACHE);
-    }).then(function() { return self.skipWaiting(); })
+    })
   );
+});
+
+self.addEventListener('message', function(event) {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', function(event) {
