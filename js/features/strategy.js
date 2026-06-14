@@ -353,7 +353,7 @@ async function runPokerResearch() {
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-8',
         max_tokens: 6000,
         tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 8 }],
         messages: [{ role: 'user', content: buildResearchPrompt() }]
