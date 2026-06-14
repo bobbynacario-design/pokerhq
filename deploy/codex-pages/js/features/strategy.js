@@ -326,9 +326,10 @@ function buildResearchPrompt() {
     + 'Prioritise items from roughly the last 1-2 months: recent tournament results and records, upcoming notable festivals / series with their dates and venues, and significant strategy or industry developments. '
     + 'Base every factual claim, date, and result strictly on what your web searches return — do not rely on prior knowledge, and do not include anything you did not find in a search result.\n\n'
     + 'Then respond with ONLY a single valid JSON object — no preamble, no explanation, no markdown code fences. Use exactly this shape:\n'
-    + '{"asOf":"' + today + '","items":[{"category":"news|event|strategy","headline":"short headline","summary":"2-3 sentence summary of what happened or what is coming, and why it matters to a tournament player","date":"approx date or date range","source":"publication or organiser name","url":"https://..."}]}\n'
+    + '{"asOf":"' + today + '","items":[{"category":"news|event|strategy","headline":"specific, informative headline","summary":"a detailed 4-6 sentence brief: the concrete specifics (names, dates, venues, buy-ins or guarantees, key results or numbers) AND why it matters to a tournament player","date":"approx date or date range","source":"publication or organiser name","url":"https://..."}]}\n'
+    + 'Make each summary genuinely useful and substantive — not a one-liner. Include the concrete figures and details a player would want.\n'
     + 'The "url" for each item MUST be copied exactly from one of the result URLs your searches returned — never invent, guess, or construct a URL. '
-    + 'Quality over quantity: return up to 8 items, but only ones you can directly support with a search result. Fewer well-sourced items is far better than a padded list; if you found nothing verifiable, return an empty items array.';
+    + 'Run several searches across different sources and aim for 6 to 8 substantive, well-sourced items — do not stop at two or three. Only drop an item if you genuinely cannot verify it from a search result; prefer finding and sourcing more over returning a thin list.';
 }
 
 async function runPokerResearch() {
@@ -353,8 +354,8 @@ async function runPokerResearch() {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 3000,
-        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 5 }],
+        max_tokens: 6000,
+        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 8 }],
         messages: [{ role: 'user', content: buildResearchPrompt() }]
       })
     });
