@@ -272,6 +272,21 @@ function parseGeminiJSON() {
 // news / notable events, then returns a compact JSON the user can file into the
 // existing news feed and strategy notes. Reuses the device-local Anthropic key.
 var _lastResearch = [];
+var _lastResearchMeta = {};
+
+// Normalise a URL to host+path (drop protocol/www/query/hash/trailing slash) so
+// the source URL Claude reports can be matched against what its searches actually
+// retrieved — strict on purpose: a false "verified" is worse than a false "unverified".
+function _normUrl(u) {
+  var s = String(u || '').trim();
+  if (!s) return '';
+  try {
+    var x = new URL(s);
+    return x.hostname.replace(/^www\./i, '').toLowerCase() + x.pathname.replace(/\/+$/, '').toLowerCase();
+  } catch (e) {
+    return s.toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/[#?].*$/, '').replace(/\/+$/, '');
+  }
+}
 
 function onResearchFocusChange() {
   var sel = document.getElementById('ai-research-focus');
@@ -309,10 +324,11 @@ function buildResearchPrompt() {
   return 'You are a poker intelligence researcher for a serious tournament player. Today is ' + today + '. '
     + 'Use web search to find the most current and noteworthy updates about ' + scope + '. '
     + 'Prioritise items from roughly the last 1-2 months: recent tournament results and records, upcoming notable festivals / series with their dates and venues, and significant strategy or industry developments. '
-    + 'Verify every fact against your search results and include a real source URL for each item.\n\n'
+    + 'Base every factual claim, date, and result strictly on what your web searches return — do not rely on prior knowledge, and do not include anything you did not find in a search result.\n\n'
     + 'Then respond with ONLY a single valid JSON object — no preamble, no explanation, no markdown code fences. Use exactly this shape:\n'
     + '{"asOf":"' + today + '","items":[{"category":"news|event|strategy","headline":"short headline","summary":"2-3 sentence summary of what happened or what is coming, and why it matters to a tournament player","date":"approx date or date range","source":"publication or organiser name","url":"https://..."}]}\n'
-    + 'Return 5 to 8 items, most relevant and most recent first. Omit anything you cannot verify from your searches.';
+    + 'The "url" for each item MUST be copied exactly from one of the result URLs your searches returned — never invent, guess, or construct a URL. '
+    + 'Quality over quantity: return up to 8 items, but only ones you can directly support with a search result. Fewer well-sourced items is far better than a padded list; if you found nothing verifiable, return an empty items array.';
 }
 
 async function runPokerResearch() {
@@ -347,6 +363,29 @@ async function runPokerResearch() {
       throw new Error('Claude API error (' + response.status + ')');
     }
     var data = await response.json();
+    // Ground-truth guard against hallucination: collect the URLs Claude's searches
+    // ACTUALLY retrieved (web_search_tool_result blocks) + cited (citations). Any
+    // item whose URL is not in this set is flagged unverified; if no search ran at
+    // all, every item is unverified.
+    var verifySet = {}, citedByUrl = {}, ageByUrl = {}, searchErrors = [], searchCount = 0;
+    (data.content || []).forEach(function(b) {
+      if (b.type === 'server_tool_use' && b.name === 'web_search') searchCount++;
+      if (b.type === 'web_search_tool_result') {
+        var c = b.content;
+        if (c && c.type === 'web_search_tool_result_error') { if (c.error_code) searchErrors.push(c.error_code); return; }
+        (Array.isArray(c) ? c : []).forEach(function(r) {
+          if (r && r.url) { var k = _normUrl(r.url); verifySet[k] = true; if (r.page_age && !ageByUrl[k]) ageByUrl[k] = r.page_age; }
+        });
+      }
+      if (b.type === 'text' && Array.isArray(b.citations)) {
+        b.citations.forEach(function(ct) {
+          if (ct && ct.url) { var k = _normUrl(ct.url); verifySet[k] = true; if (ct.cited_text && !citedByUrl[k]) citedByUrl[k] = ct.cited_text; }
+        });
+      }
+    });
+    if (data.usage && data.usage.server_tool_use && typeof data.usage.server_tool_use.web_search_requests === 'number') {
+      searchCount = data.usage.server_tool_use.web_search_requests;
+    }
     // The web-search loop runs server-side; the response interleaves search blocks
     // with text. We only need Claude's final synthesised JSON, so join text blocks.
     var text = (data.content || [])
@@ -361,8 +400,15 @@ async function runPokerResearch() {
     if (!parsed || !parsed.items || !parsed.items.length) {
       throw new Error('No usable results came back. Try again or narrow the focus.');
     }
-    renderResearchResults(parsed.items, parsed.asOf);
-    setResearchStatus('✓ Found ' + parsed.items.length + ' update(s). Save the ones worth keeping.', 'ok');
+    parsed.items.forEach(function(it) {
+      var k = _normUrl(it.url || '');
+      it._verified = !!(k && verifySet[k]);
+      it._cited = it._verified ? (citedByUrl[k] || '') : '';
+      it._age = it._verified ? (ageByUrl[k] || '') : '';
+    });
+    renderResearchResults(parsed.items, parsed.asOf, { searchCount: searchCount, errors: searchErrors });
+    var vCount = parsed.items.filter(function(it) { return it._verified; }).length;
+    setResearchStatus('✓ ' + parsed.items.length + ' update(s) · ' + vCount + ' with a verified source. Review before saving.', vCount ? 'ok' : 'muted');
   } catch (e) {
     setResearchStatus('✗ ' + e.message, 'error');
   }
@@ -375,31 +421,53 @@ function researchCategoryMeta(cat) {
   return { label: 'NEWS', color: 'var(--blue)' };
 }
 
-function renderResearchResults(items, asOf) {
+function renderResearchResults(items, asOf, meta) {
   var el = document.getElementById('ai-research-results');
   if (!el) return;
+  meta = meta || {};
   _lastResearch = items.slice();
+  _lastResearchMeta = meta;
+  var verifiedCount = _lastResearch.filter(function(it) { return it._verified; }).length;
+
+  var banner = '';
+  if (!meta.searchCount) {
+    banner = '<div class="research-warn">⚠ Claude returned these without searching the web — treat every item as unverified and open the sources before trusting them.</div>';
+  } else if ((meta.errors || []).length) {
+    banner = '<div class="research-warn">⚠ A web search was capped or rate-limited (' + esc((meta.errors || []).join(', ')) + ') — results may be incomplete.</div>';
+  }
+
   var head = '<div style="display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-bottom:.6rem;flex-wrap:wrap">'
     + '<div style="font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--muted-strong)">RESEARCH RESULTS' + (asOf ? ' · ' + esc(asOf) : '') + '</div>'
     + '<div style="display:flex;gap:.4rem;flex-wrap:wrap">'
-    + '<button class="sec-action" onclick="saveAllPokerResearch()">SAVE ALL ↓</button>'
+    + '<button class="sec-action" onclick="saveAllPokerResearch()">SAVE ALL VERIFIED' + (verifiedCount ? ' (' + verifiedCount + ')' : '') + ' ↓</button>'
     + '<button class="sec-action" onclick="dismissPokerResearch()">DISMISS</button>'
     + '</div></div>';
+
   var cards = _lastResearch.map(function(it, i) {
-    var meta = researchCategoryMeta(it.category);
+    var cat = researchCategoryMeta(it.category);
     var urlOk = /^https?:\/\//i.test(it.url || '');
-    return '<div class="hand-card" style="border-left:4px solid ' + meta.color + ';border-radius:0 12px 12px 0;border-top:1px solid var(--rim);border-right:1px solid var(--rim);border-bottom:1px solid var(--rim);margin-bottom:.6rem">'
-      + '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.35rem">'
-      + '<span style="font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:' + meta.color + '">' + meta.label + '</span>'
-      + (it.date ? '<span style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.3)">' + esc(it.date) + '</span>' : '')
+    var border = it._verified ? cat.color : '#F0A832';
+    var badge = it._verified
+      ? '<span class="research-badge research-badge-ok">✓ VERIFIED SOURCE</span>'
+      : '<span class="research-badge research-badge-warn">⚠ UNVERIFIED</span>';
+    var dateBits = [];
+    if (it.date) dateBits.push(esc(it.date));
+    if (it._age) dateBits.push('src ' + esc(it._age));
+    return '<div class="hand-card" style="border-left:4px solid ' + border + ';border-radius:0 12px 12px 0;border-top:1px solid var(--rim);border-right:1px solid var(--rim);border-bottom:1px solid var(--rim);margin-bottom:.6rem' + (it._verified ? '' : ';opacity:.9') + '">'
+      + '<div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.35rem">'
+      + '<span style="font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:' + cat.color + '">' + cat.label + '</span>'
+      + badge
+      + (dateBits.length ? '<span style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.3)">' + dateBits.join(' · ') + '</span>' : '')
       + '</div>'
       + '<div class="hand-title">' + esc(it.headline) + '</div>'
       + '<div class="hand-body" style="margin-top:.4rem">' + esc(it.summary) + '</div>'
+      + (it._cited ? '<div class="research-quote">“' + esc(String(it._cited).slice(0, 160)) + '”</div>' : '')
       + (it.source || urlOk ? '<div style="margin-top:.5rem;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.35)">📍 ' + (urlOk ? '<a href="' + esc(it.url) + '" target="_blank" rel="noopener noreferrer" style="color:var(--blue)">' + esc(it.source || it.url) + '</a>' : esc(it.source)) + '</div>' : '')
-      + '<button class="sec-action primary" style="margin-top:.55rem" onclick="savePokerResearchItem(' + i + ')">+ SAVE</button>'
+      + '<button class="sec-action primary" style="margin-top:.55rem" onclick="savePokerResearchItem(' + i + ')">+ SAVE' + (it._verified ? '' : ' ANYWAY') + '</button>'
       + '</div>';
   }).join('');
-  el.innerHTML = head + cards;
+
+  el.innerHTML = banner + head + cards;
   el.style.display = 'block';
 }
 
@@ -450,11 +518,22 @@ function savePokerResearchItem(i) {
 
 function saveAllPokerResearch() {
   if (!_lastResearch.length) return;
+  var verified = _lastResearch.filter(function(it) { return it._verified; });
+  if (!verified.length) {
+    setResearchStatus('Nothing has a verified source — open the links and use “Save anyway” for any you trust.', 'muted');
+    return;
+  }
   var n = 0;
-  _lastResearch.forEach(function(it) { if (_commitResearchItem(it)) n++; });
-  dismissPokerResearch();
+  verified.forEach(function(it) { if (_commitResearchItem(it)) n++; });
+  var remaining = _lastResearch.filter(function(it) { return !it._verified; });
   renderStrategy();
-  setResearchStatus('✓ Saved ' + n + ' item(s) to your feed.', 'ok');
+  if (remaining.length) {
+    renderResearchResults(remaining, null, _lastResearchMeta);
+    setResearchStatus('✓ Saved ' + n + ' verified item(s). ' + remaining.length + ' unverified left below — review and save any you trust.', 'ok');
+  } else {
+    dismissPokerResearch();
+    setResearchStatus('✓ Saved ' + n + ' verified item(s) to your feed.', 'ok');
+  }
 }
 
 function dismissPokerResearch() {

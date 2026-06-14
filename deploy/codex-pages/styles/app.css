@@ -950,3 +950,14 @@ body.light .update-banner-close{color:rgba(0,0,0,.4)}
 body.light{ --muted-strong:rgba(0,0,0,.5); }
 .ai-research-intro{ color:rgba(255,255,255,.6); font-size:12px; line-height:1.5; margin-bottom:.85rem; }
 body.light .ai-research-intro{ color:rgba(0,0,0,.62); }
+
+/* AI Poker Research — source verification */
+.research-warn{ background:rgba(240,168,50,.12); border:1px solid rgba(240,168,50,.35); color:#F0A832; border-radius:8px; padding:.55rem .7rem; font-size:11px; line-height:1.45; margin-bottom:.7rem; }
+body.light .research-warn{ color:#8A5A0A; background:rgba(240,168,50,.16); border-color:rgba(138,90,10,.35); }
+.research-badge{ font-family:var(--mono); font-size:8px; letter-spacing:.06em; padding:.12rem .4rem; border-radius:5px; }
+.research-badge-ok{ color:var(--green); background:rgba(46,204,113,.14); }
+.research-badge-warn{ color:#F0A832; background:rgba(240,168,50,.16); }
+body.light .research-badge-ok{ color:#1B7A43; }
+body.light .research-badge-warn{ color:#8A5A0A; }
+.research-quote{ margin-top:.45rem; padding-left:.6rem; border-left:2px solid var(--rim2); font-size:11px; line-height:1.5; color:rgba(255,255,255,.5); font-style:italic; }
+body.light .research-quote{ color:rgba(0,0,0,.55); }
