@@ -13,8 +13,8 @@
 <title>PokerHQ — Bob's Tournament Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script type="module" src="./js/app.js?v=20260612j"></script>
-<link rel="stylesheet" href="./styles/app.css?v=20260612j">
+<script type="module" src="./js/app.js?v=20260612k"></script>
+<link rel="stylesheet" href="./styles/app.css?v=20260612k">
 </head>
 <body>
 <!-- LOGIN GATE — shown until Firebase auth resolves a signed-in user -->
@@ -730,6 +730,31 @@
     <div class="tip" style="margin-top:1rem">Both keys are stored only on this device — never synced, never shared. The Anthropic key powers 🎙 hand structuring and ✨ debriefs (console.anthropic.com); the OpenAI key powers 🎤 in-app voice recording via Whisper (platform.openai.com, ~$0.006/min). Set a spending limit on each.</div>
   </div>
 
+  <!-- AI Poker Research -->
+  <div class="form-card" id="ai-research-card">
+    <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.55rem">
+      <span style="font-size:15px">🔎</span>
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--gold);text-transform:uppercase">AI Poker Research</div>
+    </div>
+    <div class="ai-research-intro">Claude searches the web for the latest poker news, results, and notable upcoming events — then files them into your news feed and strategy notes. Uses your saved Anthropic key (web search adds a small per-search cost).</div>
+    <div class="form-group" style="margin-bottom:.6rem">
+      <label class="form-label">Focus</label>
+      <select class="form-input" id="ai-research-focus" onchange="onResearchFocusChange()">
+        <option value="apac">Philippines &amp; APAC circuit (+ major global)</option>
+        <option value="global">Global tournament scene</option>
+        <option value="strategy">Strategy &amp; training trends</option>
+        <option value="custom">Custom topic…</option>
+      </select>
+    </div>
+    <div class="form-group" id="ai-research-custom-row" style="display:none;margin-bottom:.6rem">
+      <label class="form-label">Custom topic</label>
+      <input class="form-input" type="text" id="ai-research-custom" placeholder="e.g. WSOP Paradise schedule, GGPoker updates, ICM tools">
+    </div>
+    <button class="sec-action primary" id="ai-research-btn" onclick="runPokerResearch()">🔎 RESEARCH LATEST UPDATES</button>
+    <div id="ai-research-status" style="display:none;font-family:var(--mono);font-size:11px;margin-top:.6rem"></div>
+    <div id="ai-research-results" style="display:none;margin-top:.9rem"></div>
+  </div>
+
     <div class="strategy-paste">
     <div class="form-label" style="margin-bottom:.65rem">IMPORT WEEKLY INTELLIGENCE BRIEFING</div>
     <textarea id="strategy-raw" placeholder="Paste your weekly briefing here — calendar, news, and strategy update automatically..."></textarea>
@@ -1236,21 +1261,21 @@
   </div>
 </div>
 
-<script src="./js/data/config-runtime.js?v=20260612j"></script>
-<script src="./js/features/active-session.js?v=20260612j"></script>
-<script src="./js/features/demo-mode.js?v=20260612j"></script>
-<script src="./js/features/calculator.js?v=20260612j"></script>
-<script src="./js/features/staking.js?v=20260612j"></script>
-<script src="./js/features/package-report.js?v=20260612j"></script>
-<script src="./js/features/review.js?v=20260612j"></script>
-<script src="./js/features/calendar.js?v=20260612j"></script>
-<script src="./js/features/study-loop.js?v=20260612j"></script>
-<script src="./js/features/strategy.js?v=20260612j"></script>
-<script src="./js/features/hands.js?v=20260612j"></script>
-<script src="./js/features/treasury.js?v=20260612j"></script>
-<script src="./js/features/bankroll-chart.js?v=20260612j"></script>
-<script src="./js/features/library.js?v=20260612j"></script>
-<script src="./js/features/onboarding.js?v=20260612j"></script>
+<script src="./js/data/config-runtime.js?v=20260612k"></script>
+<script src="./js/features/active-session.js?v=20260612k"></script>
+<script src="./js/features/demo-mode.js?v=20260612k"></script>
+<script src="./js/features/calculator.js?v=20260612k"></script>
+<script src="./js/features/staking.js?v=20260612k"></script>
+<script src="./js/features/package-report.js?v=20260612k"></script>
+<script src="./js/features/review.js?v=20260612k"></script>
+<script src="./js/features/calendar.js?v=20260612k"></script>
+<script src="./js/features/study-loop.js?v=20260612k"></script>
+<script src="./js/features/strategy.js?v=20260612k"></script>
+<script src="./js/features/hands.js?v=20260612k"></script>
+<script src="./js/features/treasury.js?v=20260612k"></script>
+<script src="./js/features/bankroll-chart.js?v=20260612k"></script>
+<script src="./js/features/library.js?v=20260612k"></script>
+<script src="./js/features/onboarding.js?v=20260612k"></script>
 <script>
 // ── PWA INSTALL — captures the browser install prompt like Enclave ──
 var _deferredInstallPrompt = null;

@@ -944,3 +944,9 @@ body.light .goal-track{background:var(--bg4)}
 body.light #update-banner{background:#fff}
 body.light .update-banner-text{color:#1A1A1A}
 body.light .update-banner-close{color:rgba(0,0,0,.4)}
+
+/* AI Poker Research */
+:root{ --muted-strong:rgba(255,255,255,.5); }
+body.light{ --muted-strong:rgba(0,0,0,.5); }
+.ai-research-intro{ color:rgba(255,255,255,.6); font-size:12px; line-height:1.5; margin-bottom:.85rem; }
+body.light .ai-research-intro{ color:rgba(0,0,0,.62); }
