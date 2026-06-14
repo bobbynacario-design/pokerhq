@@ -199,6 +199,40 @@ function addWalletTransaction() {
   renderTreasury();
 }
 
+function applyWalletState(nextWallet, nextLedger) {
+  window.wallet = nextWallet;
+  window.walletLedger = nextLedger;
+  wallet = window.wallet;
+  walletLedger = window.walletLedger;
+  save('wallet', window.wallet);
+  save('walletLedger', window.walletLedger);
+  if (typeof loadBankrollForm === 'function') loadBankrollForm();
+  if (typeof updateBRMTip === 'function') updateBRMTip();
+  if (typeof refreshDashboard === 'function') refreshDashboard();
+  renderTreasury();
+}
+
+function resetWallet() {
+  var balance = (window.wallet && typeof window.wallet.balance === 'number') ? window.wallet.balance : 0;
+  var ledger = Array.isArray(window.walletLedger) ? window.walletLedger : [];
+  if (!balance && !ledger.length) {
+    alert('The wallet is already at ₱0 with no transactions — nothing to reset.');
+    return;
+  }
+  if (!confirm('Reset the wallet?\n\nThis sets the wallet balance to ₱0 and clears the transaction ledger. Your bankroll and session history are NOT affected.\n\nYou can undo this right after.')) {
+    return;
+  }
+  // Snapshot for undo before wiping.
+  var prevWallet = JSON.parse(JSON.stringify(window.wallet || { balance: 0 }));
+  var prevLedger = ledger.slice();
+  applyWalletState({ balance: 0 }, []);
+  if (typeof showUndoToast === 'function') {
+    showUndoToast('Wallet reset to ₱0 · ledger cleared', function() {
+      applyWalletState(prevWallet, prevLedger);
+    });
+  }
+}
+
 function renderTreasury() {
   wallet = window.wallet || { balance: 0 };
   walletLedger = Array.isArray(window.walletLedger) ? window.walletLedger : [];
