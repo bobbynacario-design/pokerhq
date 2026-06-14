@@ -13,10 +13,10 @@
 <title>PokerHQ — Tournament Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="./profile-override.js?v=20260612p"></script>
-<script type="module" src="./js/app.js?v=20260612p"></script>
-<link rel="stylesheet" href="./styles/app.css?v=20260612p">
-<link rel="stylesheet" href="./styles/test-overrides.css?v=20260612p">
+<script src="./profile-override.js?v=20260612q"></script>
+<script type="module" src="./js/app.js?v=20260612q"></script>
+<link rel="stylesheet" href="./styles/app.css?v=20260612q">
+<link rel="stylesheet" href="./styles/test-overrides.css?v=20260612q">
 </head>
 <body>
 <!-- LOGIN GATE — shown until Firebase auth resolves a signed-in user -->
@@ -507,6 +507,10 @@
   </div>
 
   <!-- Full Session Table -->
+  <div class="sec-hdr" style="margin-bottom:.85rem">
+    <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:rgba(255,255,255,.4);text-transform:uppercase">Session History</div>
+    <button class="sec-action" id="clear-sessions-btn" style="border-color:var(--red);color:var(--red)" onclick="clearAllSessions()">↺ CLEAR ALL SESSIONS</button>
+  </div>
   <div class="session-filter-bar">
     <input class="form-input" type="text" id="sf-search" placeholder="Search name, venue, notes..." oninput="onSessionFilterChange()">
     <select class="form-input" id="sf-result" onchange="onSessionFilterChange()">
@@ -1264,21 +1268,21 @@
   </div>
 </div>
 
-<script src="./js/data/config-runtime.js?v=20260612p"></script>
-<script src="./js/features/active-session.js?v=20260612p"></script>
-<script src="./js/features/demo-mode.js?v=20260612p"></script>
-<script src="./js/features/calculator.js?v=20260612p"></script>
-<script src="./js/features/staking.js?v=20260612p"></script>
-<script src="./js/features/package-report.js?v=20260612p"></script>
-<script src="./js/features/review.js?v=20260612p"></script>
-<script src="./js/features/calendar.js?v=20260612p"></script>
-<script src="./js/features/study-loop.js?v=20260612p"></script>
-<script src="./js/features/strategy.js?v=20260612p"></script>
-<script src="./js/features/hands.js?v=20260612p"></script>
-<script src="./js/features/treasury.js?v=20260612p"></script>
-<script src="./js/features/bankroll-chart.js?v=20260612p"></script>
-<script src="./js/features/library.js?v=20260612p"></script>
-<script src="./js/features/onboarding.js?v=20260612p"></script>
+<script src="./js/data/config-runtime.js?v=20260612q"></script>
+<script src="./js/features/active-session.js?v=20260612q"></script>
+<script src="./js/features/demo-mode.js?v=20260612q"></script>
+<script src="./js/features/calculator.js?v=20260612q"></script>
+<script src="./js/features/staking.js?v=20260612q"></script>
+<script src="./js/features/package-report.js?v=20260612q"></script>
+<script src="./js/features/review.js?v=20260612q"></script>
+<script src="./js/features/calendar.js?v=20260612q"></script>
+<script src="./js/features/study-loop.js?v=20260612q"></script>
+<script src="./js/features/strategy.js?v=20260612q"></script>
+<script src="./js/features/hands.js?v=20260612q"></script>
+<script src="./js/features/treasury.js?v=20260612q"></script>
+<script src="./js/features/bankroll-chart.js?v=20260612q"></script>
+<script src="./js/features/library.js?v=20260612q"></script>
+<script src="./js/features/onboarding.js?v=20260612q"></script>
 <script>
 // ── PWA INSTALL — captures the browser install prompt like Enclave ──
 var _deferredInstallPrompt = null;
@@ -1801,6 +1805,39 @@ function resultBadge(r) {
   if (r==='final') return '<span class="badge badge-final">Final Table</span>';
   if (r==='itm')   return '<span class="badge badge-itm">ITM</span>';
   return '<span class="badge badge-bust">Bust</span>';
+}
+
+function clearAllSessions() {
+  if (!sessions.length) { alert('No sessions to clear.'); return; }
+  var totalPnl = sessions.reduce(function(sum, s){ return sum + (s.pnl || 0); }, 0);
+  var prevBankroll = bankroll.amount || 0;
+  var nextBankroll = Math.max(0, prevBankroll - totalPnl);
+  var n = sessions.length;
+  if (!confirm('Clear all ' + n + ' session' + (n !== 1 ? 's' : '') + '? This removes them from your history and reverses their net effect on your bankroll (' + fmtCur(-totalPnl) + '), leaving the bankroll at ' + fmtCur(nextBankroll) + '. Linked hands are kept, and you can undo right after.')) return;
+  var prevSessions = sessions.slice();
+  sessions = [];
+  window.sessions = sessions;
+  bankroll.amount = nextBankroll;
+  save('sessions', sessions);
+  save('bankroll', bankroll);
+  refreshAfterSessionBulkChange();
+  showUndoToast('Cleared ' + n + ' session' + (n !== 1 ? 's' : ''), function() {
+    sessions = prevSessions;
+    window.sessions = sessions;
+    bankroll.amount = prevBankroll;
+    save('sessions', sessions);
+    save('bankroll', bankroll);
+    refreshAfterSessionBulkChange();
+  });
+}
+
+function refreshAfterSessionBulkChange() {
+  renderSessionTable();
+  refreshDashboard();
+  if (typeof loadBankrollForm === 'function') loadBankrollForm();
+  if (typeof populateSessionDropdowns === 'function') populateSessionDropdowns();
+  if (typeof renderActiveSessionSurface === 'function') renderActiveSessionSurface();
+  if (typeof renderTreasury === 'function') renderTreasury();
 }
 
 function renderSessionTable() {
