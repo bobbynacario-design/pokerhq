@@ -104,13 +104,15 @@
     if (!wrap) return;
 
     var br = (window.bankroll && window.bankroll.amount) || 0;
-    var rule = (window.bankroll && window.bankroll.rule) || 15;
+    var rule = (window.bankroll && window.bankroll.rule) || 10;
     var rec = rule ? br / rule : 0;
     var stretch = rule ? br / (rule * 0.6) : 0;
     var shots = rec > 0 ? Math.floor(br / rec) : 0;
 
     var next = nextEvent();
     var timer = timerInfo();
+    // Grade live against the current bankroll (shared with calendar.js).
+    var nextGrade = next ? ((typeof gradeBuyin === 'function') ? gradeBuyin(next.buyin) : (next.status || 'skip')) : null;
 
     var label, cls, sub;
     if (timer.open) {
@@ -122,7 +124,7 @@
       label = 'SET BANKROLL'; cls = 'tg-skip';
       sub = 'Add a Treasury deposit so buy-ins can be graded.';
     } else if (next) {
-      var g = next.status || 'skip';
+      var g = nextGrade;
       label = g === 'target' ? 'GO' : g === 'stretch' ? 'STRETCH' : 'SKIP';
       cls = g === 'target' ? 'tg-target' : g === 'stretch' ? 'tg-stretch' : 'tg-skip';
       var wl = whenLabel(next);
@@ -134,8 +136,8 @@
 
     var gradeChip = '';
     if (next) {
-      var gl = { target: 'TARGET', stretch: 'STRETCH', skip: 'SKIP' }[next.status || 'skip'] || 'SKIP';
-      gradeChip = '<span class="tg-grade tg-grade-' + (next.status || 'skip') + '">' + gl + '</span>';
+      var gl = { target: 'TARGET', stretch: 'STRETCH', skip: 'SKIP' }[nextGrade] || 'SKIP';
+      gradeChip = '<span class="tg-grade tg-grade-' + nextGrade + '">' + gl + '</span>';
     }
 
     // Tapping the verdict or "next up" jumps to that event's calendar row.

@@ -338,9 +338,9 @@
       <div class="form-group">
         <label class="form-label">BRM Rule</label>
         <select class="form-input" id="br-rule" onchange="saveBankroll()">
-          <option value="20">Conservative — 20 buy-ins</option>
-          <option value="15" selected>Standard — 15 buy-ins</option>
-          <option value="10">Aggressive — 10 buy-ins</option>
+          <option value="15">Conservative — 15 buy-ins</option>
+          <option value="10" selected>Standard — 10 buy-ins</option>
+          <option value="5">Aggressive — 5 buy-ins</option>
         </select>
       </div>
     </div>
@@ -1382,7 +1382,7 @@ window.hands      = load('hands', []);
 window.strategies = load('strategies', []);
 window.newsItems  = load('news', []);
 window.spotlights = load('spotlights', []);
-window.bankroll   = load('bankroll', {amount:0, rule:15});
+window.bankroll   = load('bankroll', {amount:0, rule:10});
 window.wallet     = load('wallet', {balance:0});
 window.walletLedger = load('walletLedger', []);
 window.goals     = load('goals', {});
@@ -1464,7 +1464,7 @@ function switchTab(id) {
 
 // ── BANKROLL ──
 function saveBankroll() {
-  bankroll.rule   = parseInt(document.getElementById('br-rule').value)||15;
+  bankroll.rule   = parseInt(document.getElementById('br-rule').value)||10;
   save('bankroll', bankroll);
   updateBRMTip();
   refreshDashboard();
@@ -1472,7 +1472,7 @@ function saveBankroll() {
 }
 function loadBankrollForm() {
   document.getElementById('br-input').value = '₱' + fmt(bankroll.amount||0);
-  document.getElementById('br-rule').value  = bankroll.rule||15;
+  document.getElementById('br-rule').value  = bankroll.rule||10;
   updateBRMTip();
 }
 function updateBRMTip() {
@@ -1867,7 +1867,7 @@ function renderSessionTable() {
 // ── DASHBOARD ──
 function refreshDashboard() {
   if (typeof renderTodayGlance === 'function') renderTodayGlance();
-  var br = bankroll.amount, rule = bankroll.rule||15;
+  var br = bankroll.amount, rule = bankroll.rule||10;
   var rec = br/rule, stretch = br/(rule*0.6);
 
   var _dbr=document.getElementById('dash-bankroll'); if(_dbr) _dbr.textContent = '₱'+fmt(br);

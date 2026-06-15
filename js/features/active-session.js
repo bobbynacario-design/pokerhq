@@ -150,7 +150,7 @@ function hydrateSessionFormFromDraft(force) {
 
 function getReadinessBankrollFitChoice(buyin) {
   var amount = bankroll && bankroll.amount ? bankroll.amount : 0;
-  var rule = bankroll && bankroll.rule ? bankroll.rule : 15;
+  var rule = bankroll && bankroll.rule ? bankroll.rule : 10;
   if (!amount || !buyin) return '';
   var rec = amount / rule;
   var stretch = amount / (rule * 0.6);

@@ -171,10 +171,8 @@ function parseGeminiJSON() {
   data.sections.forEach(function(sec) {
     if (sec.id === 'ph_calendar' || sec.id === 'apac_calendar') {
       (sec.events || []).forEach(function(ev) {
-        var br = bankroll.amount || 0, rule = bankroll.rule || 15;
-        var rec = br / rule, stretch = br / (rule * 0.6);
         var bi = parseFloat(ev.buyin) || 0;
-        var status = bi <= rec ? 'target' : bi <= stretch ? 'stretch' : 'skip';
+        var status = gradeBuyin(bi);
         var t = {
           id: Date.now() + Math.random(),
           date: ev.date || '',

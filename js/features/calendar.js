@@ -48,11 +48,21 @@ function editTourney(id) {
   openModal('modal-tourney');
 }
 
-function addTourney() {
-  var br = bankroll.amount, rule = bankroll.rule || 15;
+// Grade a buy-in against the CURRENT bankroll/BRM rule — the single source of
+// truth so every grade shown reflects the live bankroll, not a value frozen
+// when the event was added.
+function gradeBuyin(buyin) {
+  var br = (window.bankroll && window.bankroll.amount) || 0;
+  var rule = (window.bankroll && window.bankroll.rule) || 10;
+  if (!br) return 'skip';
   var rec = br / rule, stretch = br / (rule * 0.6);
+  var b = parseFloat(buyin) || 0;
+  return b <= rec ? 'target' : b <= stretch ? 'stretch' : 'skip';
+}
+
+function addTourney() {
   var buyin = parseFloat(document.getElementById('t-buyin').value) || 0;
-  var status = buyin <= rec ? 'target' : buyin <= stretch ? 'stretch' : 'skip';
+  var status = gradeBuyin(buyin);
   if (_editingTourneyId) {
     var existing = tourneys.find(function(x) { return x.id === _editingTourneyId; });
     if (!existing) { _editingTourneyId = null; return; }
@@ -167,7 +177,7 @@ function exportCalendarICS() {
   var todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
   var upcoming = (window.tourneys || []).filter(function(t) {
-    if (t.status === 'skip') return false; // only playable (target/stretch) events
+    if (gradeBuyin(t.buyin) === 'skip') return false; // only playable (target/stretch) events
     var range = parseTourneyDateRange(t);
     return range && range.end >= todayStart;
   });
@@ -182,7 +192,7 @@ function exportCalendarICS() {
     var range = parseTourneyDateRange(t);
     var start = range.start;
     var endExclusive = new Date(range.end.getTime() + 24 * 60 * 60 * 1000); // DTEND is exclusive for all-day
-    var statusLabel = { target: 'TARGET', stretch: 'STRETCH' }[t.status] || '';
+    var statusLabel = { target: 'TARGET', stretch: 'STRETCH' }[gradeBuyin(t.buyin)] || '';
     var descParts = [];
     if (t.buyin) descParts.push('Buy-in ₱' + Number(t.buyin).toLocaleString());
     if (t.gtd) descParts.push('GTD ' + t.gtd);
@@ -358,7 +368,7 @@ function renderCalendarMonth() {
       var isEnd = cellDate.getTime() === r.end.getTime();
       var isSolo = isStart && isEnd;
       var pos = isSolo ? 'solo' : isStart ? 'start' : isEnd ? 'end' : 'mid';
-      var sc = r.t.status || 'skip';
+      var sc = gradeBuyin(r.t.buyin);
       var typeBar = r.t.type === 'main' ? 'main-event-bar' : 'side-event-bar';
       var name = isStart || isSolo ? r.t.name.substring(0, 14) + (r.t.name.length > 14 ? '…' : '') : '';
       html += '<div class="cal-event-bar ' + sc + ' ' + pos + ' ' + typeBar + '" title="' + esc(r.t.name) + ' (' + esc(r.t.series) + ') — ₱' + r.t.buyin.toLocaleString() + '">' + esc(name) + '</div>';
@@ -421,8 +431,9 @@ function renderCalendarList() {
       var rowCls = isMain ? 'event-row main-event' : 'event-row side-event';
       var badgeCls = isMain ? 'event-type-badge main' : 'event-type-badge side';
       var badgeTxt = isMain ? 'MAIN' : 'SIDE';
-      var sc = { target: 'ts-target', stretch: 'ts-stretch', skip: 'ts-skip' }[t.status] || 'ts-skip';
-      var sl = { target: 'TARGET', stretch: 'STRETCH', skip: 'SKIP' }[t.status] || 'SKIP';
+      var liveStatus = gradeBuyin(t.buyin);
+      var sc = { target: 'ts-target', stretch: 'ts-stretch', skip: 'ts-skip' }[liveStatus] || 'ts-skip';
+      var sl = { target: 'TARGET', stretch: 'STRETCH', skip: 'SKIP' }[liveStatus] || 'SKIP';
 
       html += '<div class="' + rowCls + '" id="event-row-' + t.id + '">';
       html += '<div class="event-date-box"><div class="event-date-day">' + esc(day) + '</div><div class="event-date-mon">' + esc(mon) + '</div></div>';
