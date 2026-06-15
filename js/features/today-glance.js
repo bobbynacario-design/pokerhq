@@ -15,20 +15,40 @@
   }
   function today() { return new Date().toISOString().split('T')[0]; }
 
+  // Robust event date — reuse calendar.js's parser so every format the calendar
+  // understands (ranges, "Month DD, YYYY", day+month fields) works here too.
+  // Falls back to Date parsing only if the shared parser isn't available.
+  function eventRange(t) {
+    if (typeof parseTourneyDateRange === 'function') {
+      var r = parseTourneyDateRange(t);
+      if (r && r.start && !isNaN(r.start.getTime())) return r;
+    }
+    var d = t && t.date ? new Date(t.date) : null;
+    return d && !isNaN(d.getTime()) ? { start: d, end: d } : null;
+  }
+  function midnight(d) { var x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
+
   function nextEvent() {
-    var t = today();
-    var list = (window.tourneys || []).filter(function (e) { return e && e.date && e.date >= t; });
-    list.sort(function (a, b) { return (a.date || '').localeCompare(b.date || ''); });
-    return list[0] || null;
+    var now = midnight(new Date());
+    var rows = (window.tourneys || []).map(function (e) {
+      if (!e) return null;
+      var r = eventRange(e);
+      return r ? { e: e, start: r.start, end: r.end } : null;
+    }).filter(Boolean).filter(function (x) {
+      return midnight(x.end) >= now; // upcoming, or a multi-day event still in progress
+    });
+    rows.sort(function (a, b) { return a.start - b.start; });
+    return rows.length ? rows[0].e : null;
   }
 
-  function daysUntil(dateStr) {
-    var d = new Date(dateStr + 'T00:00:00'), now = new Date(today() + 'T00:00:00');
-    return Math.round((d - now) / 86400000);
-  }
-  function whenLabel(dateStr) {
-    var d = daysUntil(dateStr);
-    return d <= 0 ? 'today' : d === 1 ? 'tomorrow' : 'in ' + d + ' days';
+  // Takes the tourney object (not a raw string) so it can use the shared parser.
+  function whenLabel(t) {
+    var r = eventRange(t);
+    if (!r) return '';
+    var now = midnight(new Date()), start = midnight(r.start), end = midnight(r.end);
+    if (start <= now && end >= now) return 'today';
+    var days = Math.round((start - now) / 86400000);
+    return days <= 0 ? 'today' : days === 1 ? 'tomorrow' : 'in ' + days + ' days';
   }
 
   // active-session.js declares these as file-scope vars → globals on window.
@@ -105,7 +125,8 @@
       var g = next.status || 'skip';
       label = g === 'target' ? 'GO' : g === 'stretch' ? 'STRETCH' : 'SKIP';
       cls = g === 'target' ? 'tg-target' : g === 'stretch' ? 'tg-stretch' : 'tg-skip';
-      sub = next.name + ' · ' + money(next.buyin) + ' · ' + whenLabel(next.date);
+      var wl = whenLabel(next);
+      sub = next.name + ' · ' + money(next.buyin) + (wl ? ' · ' + wl : '');
     } else {
       label = 'NO EVENTS'; cls = 'tg-idle';
       sub = 'Add a tournament to your calendar to get a read.';
