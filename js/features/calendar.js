@@ -53,7 +53,7 @@ function editTourney(id) {
 // when the event was added.
 function gradeBuyin(buyin) {
   var br = (window.bankroll && window.bankroll.amount) || 0;
-  var rule = (window.bankroll && window.bankroll.rule) || 10;
+  var rule = (window.bankroll && window.bankroll.rule) || 5;
   if (!br) return 'skip';
   var rec = br / rule, stretch = br / (rule * 0.6);
   var b = parseFloat(buyin) || 0;

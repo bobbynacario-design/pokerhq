@@ -104,7 +104,7 @@
     if (!wrap) return;
 
     var br = (window.bankroll && window.bankroll.amount) || 0;
-    var rule = (window.bankroll && window.bankroll.rule) || 10;
+    var rule = (window.bankroll && window.bankroll.rule) || 5;
     var rec = rule ? br / rule : 0;
     var stretch = rule ? br / (rule * 0.6) : 0;
     var shots = rec > 0 ? Math.floor(br / rec) : 0;
