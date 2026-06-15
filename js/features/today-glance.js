@@ -43,6 +43,42 @@
     return p(Math.floor(s / 3600)) + ':' + p(Math.floor((s % 3600) / 60)) + ':' + p(s % 60);
   }
 
+  function curr(n) { return typeof window.fmtCur === 'function' ? window.fmtCur(n) : money(n); }
+
+  // Compact monthly-goal bar for the card. Mirrors goalBar() in bankroll-chart.js
+  // (same pct/reached logic) but scaled down to fit the glance.
+  function miniGoal(label, cur, target, dispCur, dispTarget, color) {
+    var pct = target > 0 ? Math.max(0, Math.min(100, Math.round((cur / target) * 100))) : 0;
+    var reached = target > 0 && cur >= target;
+    return '<div class="tg-goal">' +
+      '<div class="tg-goal-top"><span class="tg-goal-label">' + label + (reached ? ' ✓' : '') + '</span>' +
+      '<span class="tg-goal-figs">' + dispCur + ' <span class="tg-goal-sep">/ ' + dispTarget + '</span></span></div>' +
+      '<div class="tg-goal-track"><div class="tg-goal-fill" style="width:' + pct + '%;background:' + (reached ? 'var(--green)' : color) + '"></div></div>' +
+      '</div>';
+  }
+
+  function goalsBlock() {
+    if (typeof getMonthlyGoals !== 'function' || typeof getMonthlyProgress !== 'function') return '';
+    var g = getMonthlyGoals(), p = getMonthlyProgress();
+    if (!(g.profit || g.volume || g.study)) {
+      return '<div class="tg-goals tg-goals-empty">' +
+        '<span class="tg-goals-label">This month</span>' +
+        '<button class="tg-btn tg-btn-mini" onclick="tgSetGoals()">SET GOALS</button></div>';
+    }
+    var rows = '';
+    if (g.profit) rows += miniGoal('Profit', p.profit, g.profit, curr(p.profit), money(g.profit), 'var(--gold)');
+    if (g.volume) rows += miniGoal('Tourneys', p.volume, g.volume, String(p.volume), String(g.volume), 'var(--blue)');
+    if (g.study) rows += miniGoal('Study', p.study, g.study, String(p.study), String(g.study), 'var(--purple)');
+    return '<div class="tg-goals"><div class="tg-goals-label">This month</div>' + rows + '</div>';
+  }
+
+  // Open the monthly-goals editor (lower on HOME) and scroll it into view.
+  window.tgSetGoals = function () {
+    if (typeof editMonthlyGoals === 'function') editMonthlyGoals();
+    var m = document.getElementById('monthly-goals');
+    if (m && m.scrollIntoView) m.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
   window.renderTodayGlance = function () {
     var wrap = document.getElementById('today-glance-wrap');
     if (!wrap) return;
@@ -106,6 +142,7 @@
             '<div class="tg-next-label">Next up ' + gradeChip + (next ? '<span class="tg-jump-hint">view in calendar ↗</span>' : '') + '</div>' +
             '<div class="tg-next-body">' + (next ? escape(next.name) + ' — ' + money(next.buyin) + (next.venue ? ' · ' + escape(next.venue) : '') : 'Nothing scheduled') + '</div>' +
           '</div>' +
+          goalsBlock() +
           '<div class="tg-actions">' + primaryBtn +
             '<button class="tg-btn" onclick="startSessionFromHome()">MANUAL SESSION</button>' +
           '</div>' +

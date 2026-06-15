@@ -1013,3 +1013,18 @@ body.light .tg-jump-hint{ color:rgba(0,0,0,.35); }
 /* Flash a calendar event row when jumped to from the Today glance. */
 @keyframes tgEventFlash{ 0%,100%{ box-shadow:0 0 0 0 rgba(212,175,55,0); } 30%{ box-shadow:0 0 0 2px var(--gold) inset; } }
 .event-row-flash{ animation:tgEventFlash 1.8s ease-in-out; }
+
+/* Monthly-goal progress strip inside the Today glance. */
+.tg-goals{ border-top:1px solid var(--rim); padding-top:.7rem; display:flex; flex-direction:column; gap:.5rem; }
+.tg-goals-empty{ flex-direction:row; align-items:center; justify-content:space-between; }
+.tg-goals-label{ font-family:var(--mono); font-size:8.5px; letter-spacing:.1em; text-transform:uppercase; color:rgba(255,255,255,.35); }
+body.light .tg-goals-label{ color:rgba(0,0,0,.4); }
+.tg-goal-top{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:.2rem; }
+.tg-goal-label{ font-size:11px; color:rgba(255,255,255,.7); }
+body.light .tg-goal-label{ color:rgba(0,0,0,.65); }
+.tg-goal-figs{ font-family:var(--mono); font-size:10px; color:rgba(255,255,255,.85); }
+body.light .tg-goal-figs{ color:#1A1A1A; }
+.tg-goal-sep{ opacity:.45; }
+.tg-goal-track{ height:5px; border-radius:99px; background:var(--rim); overflow:hidden; }
+.tg-goal-fill{ height:100%; border-radius:99px; transition:width .4s ease; }
+.tg-btn-mini{ font-size:9px; padding:.3rem .65rem; }
