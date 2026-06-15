@@ -119,6 +119,8 @@
     <div class="surface-badge">Proof Fast</div>
   </div>
 
+  <div id="today-glance-wrap"></div>
+
   <div class="status-grid">
     <div class="status-card">
       <div class="status-label">Next Move</div>
@@ -1281,6 +1283,7 @@
 <script src="./js/features/bankroll-chart.js?v=20260612q"></script>
 <script src="./js/features/library.js?v=20260612q"></script>
 <script src="./js/features/onboarding.js?v=20260612q"></script>
+<script src="./js/features/today-glance.js?v=20260612q"></script>
 <script>
 // ── PWA INSTALL — captures the browser install prompt like Enclave ──
 var _deferredInstallPrompt = null;
@@ -1863,6 +1866,7 @@ function renderSessionTable() {
 
 // ── DASHBOARD ──
 function refreshDashboard() {
+  if (typeof renderTodayGlance === 'function') renderTodayGlance();
   var br = bankroll.amount, rule = bankroll.rule||15;
   var rec = br/rule, stretch = br/(rule*0.6);
 

@@ -966,3 +966,50 @@ body.light .research-quote{ color:rgba(0,0,0,.55); }
 /* which makes the monochrome sign-out glyph invisible on the dark nav. */
 .theme-toggle{ color:rgba(255,255,255,.85); }
 body.light .theme-toggle{ color:#1A1A1A; }
+
+/* ── TODAY GLANCE — the Go/No-Go card at the top of HOME ── */
+.tg-card{ display:grid; grid-template-columns:minmax(180px,1fr) 2fr; gap:0; border:1px solid var(--rim2); border-radius:14px; overflow:hidden; background:var(--bg2); margin-bottom:1.25rem; }
+@media (max-width:720px){ .tg-card{ grid-template-columns:1fr; } }
+.tg-verdict{ padding:1.2rem 1.4rem; display:flex; flex-direction:column; justify-content:center; gap:.35rem; border-right:1px solid var(--rim); }
+@media (max-width:720px){ .tg-verdict{ border-right:none; border-bottom:1px solid var(--rim); } }
+.tg-verdict-label{ font-family:var(--mono); font-size:30px; font-weight:600; letter-spacing:.04em; line-height:1; }
+.tg-verdict-sub{ font-size:12px; line-height:1.4; color:rgba(255,255,255,.6); }
+body.light .tg-verdict-sub{ color:rgba(0,0,0,.55); }
+.tg-target{ background:var(--green-dim); } .tg-target .tg-verdict-label{ color:var(--green); }
+.tg-stretch{ background:var(--gold-dim); } .tg-stretch .tg-verdict-label{ color:var(--gold); }
+.tg-skip{ background:var(--red-dim); } .tg-skip .tg-verdict-label{ color:var(--red); }
+.tg-playing{ background:var(--gold-dim); } .tg-playing .tg-verdict-label{ color:var(--gold2); font-size:24px; }
+.tg-idle .tg-verdict-label{ color:rgba(255,255,255,.4); font-size:22px; }
+body.light .tg-idle .tg-verdict-label{ color:rgba(0,0,0,.4); }
+.tg-body{ padding:1.1rem 1.4rem; display:flex; flex-direction:column; gap:.9rem; }
+.tg-stats{ display:grid; grid-template-columns:repeat(4,1fr); gap:.6rem; }
+@media (max-width:480px){ .tg-stats{ grid-template-columns:repeat(2,1fr); } }
+.tg-stat{ display:flex; flex-direction:column; gap:.15rem; }
+.tg-stat-label{ font-family:var(--mono); font-size:8.5px; letter-spacing:.1em; text-transform:uppercase; color:rgba(255,255,255,.35); }
+body.light .tg-stat-label{ color:rgba(0,0,0,.4); }
+.tg-stat-val{ font-family:var(--mono); font-size:15px; font-weight:500; color:#fff; }
+body.light .tg-stat-val{ color:#1A1A1A; }
+.tg-next{ border-top:1px solid var(--rim); padding-top:.7rem; }
+.tg-next-label{ font-family:var(--mono); font-size:8.5px; letter-spacing:.1em; text-transform:uppercase; color:rgba(255,255,255,.35); margin-bottom:.2rem; }
+body.light .tg-next-label{ color:rgba(0,0,0,.4); }
+.tg-next-body{ font-size:13px; color:rgba(255,255,255,.85); }
+body.light .tg-next-body{ color:#1A1A1A; }
+.tg-grade{ font-family:var(--mono); font-size:8px; letter-spacing:.06em; padding:.1rem .4rem; border-radius:5px; margin-left:.35rem; vertical-align:middle; }
+.tg-grade-target{ color:var(--green); background:var(--green-dim); }
+.tg-grade-stretch{ color:var(--gold); background:var(--gold-dim); }
+.tg-grade-skip{ color:var(--red); background:var(--red-dim); }
+.tg-actions{ display:flex; gap:.5rem; flex-wrap:wrap; }
+.tg-btn{ font-family:var(--mono); font-size:10px; letter-spacing:.04em; padding:.45rem .9rem; border-radius:7px; cursor:pointer; background:transparent; border:1px solid var(--rim2); color:rgba(255,255,255,.6); transition:all .15s; }
+.tg-btn:hover{ border-color:var(--gold); color:var(--gold); background:var(--gold-dim); }
+body.light .tg-btn{ color:rgba(0,0,0,.55); }
+.tg-btn-primary{ background:var(--gold); border-color:var(--gold); color:#0A0A0A; }
+.tg-btn-primary:hover{ background:var(--gold2); border-color:var(--gold2); color:#0A0A0A; }
+.tg-tappable{ cursor:pointer; transition:filter .15s; }
+.tg-tappable:hover{ filter:brightness(1.12); }
+.tg-jump-hint{ font-family:var(--mono); font-size:8px; letter-spacing:.06em; color:rgba(255,255,255,.3); margin-left:.45rem; text-transform:uppercase; }
+body.light .tg-jump-hint{ color:rgba(0,0,0,.35); }
+.tg-next.tg-tappable:hover .tg-jump-hint{ color:var(--gold); }
+
+/* Flash a calendar event row when jumped to from the Today glance. */
+@keyframes tgEventFlash{ 0%,100%{ box-shadow:0 0 0 0 rgba(212,175,55,0); } 30%{ box-shadow:0 0 0 2px var(--gold) inset; } }
+.event-row-flash{ animation:tgEventFlash 1.8s ease-in-out; }

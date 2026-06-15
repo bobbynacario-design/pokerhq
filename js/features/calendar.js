@@ -250,6 +250,20 @@ function setView(v) {
   document.getElementById('vbtn-list').classList.toggle('active', v === 'list');
 }
 
+// Open the calendar's list view, scroll to a specific event, and flash it.
+// Used by the HOME "Today" glance to jump straight to the next event.
+function jumpToCalendarEvent(id) {
+  if (typeof switchGroup === 'function') switchGroup('plan', 'calendar');
+  if (typeof setView === 'function') setView('list');
+  setTimeout(function () {
+    var row = document.getElementById('event-row-' + id);
+    if (!row) return;
+    if (row.scrollIntoView) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    row.classList.add('event-row-flash');
+    setTimeout(function () { row.classList.remove('event-row-flash'); }, 1800);
+  }, 80);
+}
+
 function changeMonth(dir) {
   calMonth += dir;
   if (calMonth > 11) {
@@ -410,7 +424,7 @@ function renderCalendarList() {
       var sc = { target: 'ts-target', stretch: 'ts-stretch', skip: 'ts-skip' }[t.status] || 'ts-skip';
       var sl = { target: 'TARGET', stretch: 'STRETCH', skip: 'SKIP' }[t.status] || 'SKIP';
 
-      html += '<div class="' + rowCls + '">';
+      html += '<div class="' + rowCls + '" id="event-row-' + t.id + '">';
       html += '<div class="event-date-box"><div class="event-date-day">' + esc(day) + '</div><div class="event-date-mon">' + esc(mon) + '</div></div>';
       html += '<div class="event-info">';
       html += '<div class="event-name">' + esc(t.name) + '</div>';
