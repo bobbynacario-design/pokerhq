@@ -3,7 +3,7 @@
    half-applied (fresh HTML must pair with fresh JS/CSS); the cache is the
    offline fallback. Cross-origin CDN assets (fonts, jspdf, gstatic modules)
    are stale-while-revalidate. Sync/API traffic is never cached. */
-var CACHE_NAME = 'pokerhq-shell-v21';
+var CACHE_NAME = 'pokerhq-shell-v22';
 
 var PRECACHE = [
   './',
@@ -28,6 +28,7 @@ var PRECACHE = [
   './js/features/bankroll-chart.js',
   './js/features/library.js',
   './js/features/onboarding.js',
+  './js/features/today-glance.js',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
   './assets/icons/apple-touch-icon-180.png'
