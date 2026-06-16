@@ -1,7 +1,7 @@
 {
   "name": "PokerHQ",
   "short_name": "PokerHQ",
-  "start_url": ".",
+  "start_url": "/pokerhq/",
   "display": "standalone",
   "background_color": "#080A0E",
   "theme_color": "#080A0E",
@@ -17,7 +17,7 @@
       "type": "image/png"
     }
   ],
-  "id": "./",
-  "scope": "./",
+  "id": "/pokerhq/",
+  "scope": "/pokerhq/",
   "description": "PokerHQ \u2014 live tournament poker command center: plan, play, review, improve."
 }
