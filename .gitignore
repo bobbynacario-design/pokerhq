@@ -5,3 +5,4 @@ phase2-inline-check.js
 
 wklyReports/
 functions/node_modules/
+.claude/
