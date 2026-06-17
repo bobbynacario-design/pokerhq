@@ -27,9 +27,17 @@
     return d && !isNaN(d.getTime()) ? { start: d, end: d } : null;
   }
   function midnight(d) { var x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
-  // "HH:MM" → minutes since midnight, or null when there's no usable start time.
+  // Start time as "HH:MM": the structured field when set (manual entry / future
+  // imports), otherwise pulled from a "HH:MM start" phrase in the notes — briefing
+  // imports embed the time there rather than in a dedicated time field.
+  function eventTime(e) {
+    if (e && e.time) return e.time;
+    var m = /(\d{1,2}:\d{2})\s*start/i.exec((e && e.notes) || '');
+    return m ? m[1] : '';
+  }
+  // Start time → minutes since midnight, or null when there's none.
   function timeMins(e) {
-    var m = /^(\d{1,2}):(\d{2})/.exec((e && e.time) || '');
+    var m = /^(\d{1,2}):(\d{2})/.exec(eventTime(e));
     return m ? (parseInt(m[1], 10) * 60 + parseInt(m[2], 10)) : null;
   }
 
@@ -162,7 +170,7 @@
       cls = bestGrade === 'target' ? 'tg-target' : bestGrade === 'stretch' ? 'tg-stretch' : 'tg-skip';
       var wl = dayLabel(day.focus);
       sub = (events.length === 1
-        ? events[0].name + ' · ' + money(events[0].buyin) + (events[0].time ? ' · ' + events[0].time : '')
+        ? events[0].name + ' · ' + money(events[0].buyin) + (eventTime(events[0]) ? ' · ' + eventTime(events[0]) : '')
         : events.length + ' events' + (playableCount ? ' · ' + playableCount + ' playable' : ' · none playable')) +
         (wl ? ' · ' + wl : '');
     } else {
@@ -181,10 +189,11 @@
     var listHtml = shown.map(function (e) {
       var g = gradeOf(e);
       var gl = { target: 'TARGET', stretch: 'STRETCH', skip: 'SKIP' }[g] || 'SKIP';
+      var et = eventTime(e);
       return '<div class="tg-event tg-tappable" onclick="jumpToCalendarEvent(' + e.id + ')">' +
         '<span class="tg-grade tg-grade-' + g + '">' + gl + '</span>' +
         '<span class="tg-event-name">' + escape(e.name) + '</span>' +
-        (e.time ? '<span class="tg-event-time">' + escape(e.time) + '</span>' : '') +
+        (et ? '<span class="tg-event-time">' + escape(et) + '</span>' : '') +
         '<span class="tg-event-buyin">' + money(e.buyin) + '</span>' +
       '</div>';
     }).join('');
