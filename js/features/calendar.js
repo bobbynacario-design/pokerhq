@@ -227,6 +227,36 @@ function exportCalendarICS() {
   URL.revokeObjectURL(url);
 }
 
+function dedupeTourneys() {
+  var list = window.tourneys || [];
+  // Same identity key the weekly-briefing import uses: canonical date + name + venue.
+  var keyOf = (typeof getImportedTourneyFingerprint === 'function')
+    ? getImportedTourneyFingerprint
+    : function(t) { return [(t.date || ''), (t.name || ''), (t.venue || '')].join('|').toLowerCase(); };
+  var seen = {}, kept = [];
+  list.forEach(function(t) {
+    var k = keyOf(t);
+    if (!seen[k]) { seen[k] = true; kept.push(t); }
+  });
+  var removed = list.length - kept.length;
+  if (removed === 0) {
+    alert('No duplicate tournaments found.');
+    return;
+  }
+  if (!confirm('Found ' + removed + ' duplicate tournament(s) — same date, name and venue. Remove them? One copy of each is kept.')) return;
+  kept.sort(function(a, b) { return (a.date || '').localeCompare(b.date || ''); });
+  window.tourneys = kept;
+  tourneys = kept;
+  save('tourneys', tourneys);
+  renderCalendar();
+  if (typeof showUndoToast === 'function') showUndoToast('Removed ' + removed + ' duplicate tournament(s)', function() {
+    window.tourneys = list;
+    tourneys = list;
+    save('tourneys', tourneys);
+    renderCalendar();
+  });
+}
+
 function deleteTourney(id) {
   var idx = tourneys.findIndex(function(x) { return x.id === id; });
   if (idx === -1) return;

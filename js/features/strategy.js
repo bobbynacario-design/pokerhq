@@ -129,16 +129,30 @@ function normalizeImportToken(value) {
   return String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
 }
 
+function canonicalTourneyDate(t) {
+  // Collapse every date shape a briefing might use (full string, range, or
+  // separate day/month fields) into one stable key, so the same real event
+  // doesn't re-import just because the next briefing formatted the date
+  // differently. Falls back to the raw date string when it can't be parsed.
+  if (typeof parseTourneyDateRange === 'function') {
+    var range = parseTourneyDateRange(t);
+    if (range && range.start && typeof toDateInputValue === 'function') {
+      var startKey = toDateInputValue(range.start);
+      if (startKey) return startKey + '..' + (toDateInputValue(range.end) || startKey);
+    }
+  }
+  return normalizeImportToken(t.date);
+}
+
 function getImportedTourneyFingerprint(t) {
+  // Stable identity = when + what + where. Volatile fields (buyin, gtd,
+  // structure, notes, series/type labels, redundant day/month) are
+  // deliberately excluded so a regenerated briefing with cosmetic
+  // differences won't create duplicate calendar events.
   return [
-    normalizeImportToken(t.date),
-    normalizeImportToken(t.day),
-    normalizeImportToken(t.month),
-    normalizeImportToken(t.series),
+    canonicalTourneyDate(t),
     normalizeImportToken(t.name),
-    normalizeImportToken(t.venue),
-    normalizeImportToken(t.type),
-    String(Math.round((parseFloat(t.buyin) || 0) * 100))
+    normalizeImportToken(t.venue)
   ].join('|');
 }
 

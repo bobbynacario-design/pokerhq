@@ -623,6 +623,7 @@
   <div class="sec-hdr">
     <div class="sec-title"><span>♣</span>Tournament Calendar</div>
     <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+      <button class="sec-action" onclick="dedupeTourneys()" title="Remove duplicate tournaments (same date, name and venue)">⧉ DEDUPE</button>
       <button class="sec-action" onclick="exportCalendarICS()" title="Download target events as a calendar file">⤓ EXPORT .ICS</button>
       <button class="sec-action primary" onclick="openNewTourneyModal()">+ ADD TOURNAMENT</button>
     </div>
