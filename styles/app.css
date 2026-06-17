@@ -994,6 +994,16 @@ body.light .tg-stat-val{ color:#1A1A1A; }
 body.light .tg-next-label{ color:rgba(0,0,0,.4); }
 .tg-next-body{ font-size:13px; color:rgba(255,255,255,.85); }
 body.light .tg-next-body{ color:#1A1A1A; }
+.tg-event-list{ display:flex; flex-direction:column; gap:.3rem; }
+.tg-event{ display:flex; align-items:center; gap:.5rem; padding:.3rem 0; border-radius:6px; }
+.tg-event .tg-grade{ margin-left:0; flex:0 0 auto; }
+.tg-event-name{ flex:1 1 auto; min-width:0; font-size:13px; color:rgba(255,255,255,.85); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+body.light .tg-event-name{ color:#1A1A1A; }
+.tg-event-buyin{ flex:0 0 auto; font-family:var(--mono); font-size:12px; color:rgba(255,255,255,.6); }
+body.light .tg-event-buyin{ color:rgba(0,0,0,.55); }
+.tg-event-more{ font-family:var(--mono); font-size:9px; letter-spacing:.06em; text-transform:uppercase; color:rgba(255,255,255,.35); padding-top:.15rem; }
+body.light .tg-event-more{ color:rgba(0,0,0,.4); }
+.tg-event-more:hover{ color:var(--gold); }
 .tg-grade{ font-family:var(--mono); font-size:8px; letter-spacing:.06em; padding:.1rem .4rem; border-radius:5px; margin-left:.35rem; vertical-align:middle; }
 .tg-grade-target{ color:var(--green); background:var(--green-dim); }
 .tg-grade-stretch{ color:var(--gold); background:var(--gold-dim); }

@@ -28,26 +28,33 @@
   }
   function midnight(d) { var x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
 
-  function nextEvent() {
+  // The next relevant day and EVERY event on it: today if anything runs today,
+  // otherwise the next calendar day that has events. Multi-day events that span
+  // the focus day are included. Returns null when nothing is upcoming, so a busy
+  // festival day shows its whole slate instead of just the earliest event.
+  function dayEvents() {
     var now = midnight(new Date());
     var rows = (window.tourneys || []).map(function (e) {
       if (!e) return null;
       var r = eventRange(e);
-      return r ? { e: e, start: r.start, end: r.end } : null;
+      return r ? { e: e, start: midnight(r.start), end: midnight(r.end) } : null;
     }).filter(Boolean).filter(function (x) {
-      return midnight(x.end) >= now; // upcoming, or a multi-day event still in progress
+      return x.end >= now; // upcoming, or a multi-day event still in progress
     });
-    rows.sort(function (a, b) { return a.start - b.start; });
-    return rows.length ? rows[0].e : null;
+    if (!rows.length) return null;
+    var coversToday = rows.some(function (x) { return x.start <= now && x.end >= now; });
+    var focus = coversToday ? now : rows.reduce(function (min, x) {
+      return (min === null || x.start < min) ? x.start : min;
+    }, null);
+    var list = rows.filter(function (x) { return x.start <= focus && x.end >= focus; })
+      .map(function (x) { return x.e; });
+    return { focus: focus, list: list };
   }
 
-  // Takes the tourney object (not a raw string) so it can use the shared parser.
-  function whenLabel(t) {
-    var r = eventRange(t);
-    if (!r) return '';
-    var now = midnight(new Date()), start = midnight(r.start), end = midnight(r.end);
-    if (start <= now && end >= now) return 'today';
-    var days = Math.round((start - now) / 86400000);
+  // Day-relative label from a focus date (today / tomorrow / in N days).
+  function dayLabel(focus) {
+    var now = midnight(new Date());
+    var days = Math.round((focus - now) / 86400000);
     return days <= 0 ? 'today' : days === 1 ? 'tomorrow' : 'in ' + days + ' days';
   }
 
@@ -109,10 +116,26 @@
     var stretch = rule ? br / (rule * 0.6) : 0;
     var shots = rec > 0 ? Math.floor(br / rec) : 0;
 
-    var next = nextEvent();
+    var day = dayEvents();
+    var events = day ? day.list : [];
     var timer = timerInfo();
-    // Grade live against the current bankroll (shared with calendar.js).
-    var nextGrade = next ? ((typeof gradeBuyin === 'function') ? gradeBuyin(next.buyin) : (next.status || 'skip')) : null;
+
+    // Grade every event live against the current bankroll (shared with calendar.js),
+    // so the home read always matches the active BRM rule.
+    function gradeOf(e) {
+      return (typeof gradeBuyin === 'function') ? gradeBuyin(e.buyin) : (e.status || 'skip');
+    }
+    function gradeRank(g) { return g === 'target' ? 0 : g === 'stretch' ? 1 : 2; }
+    // Playable (target, then stretch) first; within a grade, bigger buy-in first.
+    events.sort(function (a, b) {
+      var d = gradeRank(gradeOf(a)) - gradeRank(gradeOf(b));
+      return d !== 0 ? d : ((parseFloat(b.buyin) || 0) - (parseFloat(a.buyin) || 0));
+    });
+    var bestRank = events.reduce(function (acc, e) {
+      var r = gradeRank(gradeOf(e)); return r < acc ? r : acc;
+    }, 3);
+    var bestGrade = ['target', 'stretch', 'skip'][bestRank] || null;
+    var playableCount = events.filter(function (e) { return gradeOf(e) !== 'skip'; }).length;
 
     var label, cls, sub;
     if (timer.open) {
@@ -123,30 +146,46 @@
     } else if (!br) {
       label = 'SET BANKROLL'; cls = 'tg-skip';
       sub = 'Add a Treasury deposit so buy-ins can be graded.';
-    } else if (next) {
-      var g = nextGrade;
-      label = g === 'target' ? 'GO' : g === 'stretch' ? 'STRETCH' : 'SKIP';
-      cls = g === 'target' ? 'tg-target' : g === 'stretch' ? 'tg-stretch' : 'tg-skip';
-      var wl = whenLabel(next);
-      sub = next.name + ' · ' + money(next.buyin) + (wl ? ' · ' + wl : '');
+    } else if (events.length) {
+      label = bestGrade === 'target' ? 'GO' : bestGrade === 'stretch' ? 'STRETCH' : 'SKIP';
+      cls = bestGrade === 'target' ? 'tg-target' : bestGrade === 'stretch' ? 'tg-stretch' : 'tg-skip';
+      var wl = dayLabel(day.focus);
+      sub = (events.length === 1
+        ? events[0].name + ' · ' + money(events[0].buyin)
+        : events.length + ' events' + (playableCount ? ' · ' + playableCount + ' playable' : ' · none playable')) +
+        (wl ? ' · ' + wl : '');
     } else {
       label = 'NO EVENTS'; cls = 'tg-idle';
       sub = 'Add a tournament to your calendar to get a read.';
     }
 
-    var gradeChip = '';
-    if (next) {
-      var gl = { target: 'TARGET', stretch: 'STRETCH', skip: 'SKIP' }[nextGrade] || 'SKIP';
-      gradeChip = '<span class="tg-grade tg-grade-' + nextGrade + '">' + gl + '</span>';
-    }
+    // Tapping the verdict jumps to the top-ranked event's calendar row.
+    var jumpHandler = events.length ? ' onclick="jumpToCalendarEvent(' + events[0].id + ')"' : '';
+    var eventBased = events.length && (cls === 'tg-target' || cls === 'tg-stretch' || cls === 'tg-skip');
 
-    // Tapping the verdict or "next up" jumps to that event's calendar row.
-    var jumpHandler = next ? ' onclick="jumpToCalendarEvent(' + next.id + ')"' : '';
-    var eventBased = next && (cls === 'tg-target' || cls === 'tg-stretch' || cls === 'tg-skip');
+    // The day's full slate — each row graded live and tappable to its calendar row.
+    var MAX_ROWS = 6;
+    var shown = events.slice(0, MAX_ROWS);
+    var moreCount = events.length - shown.length;
+    var listHtml = shown.map(function (e) {
+      var g = gradeOf(e);
+      var gl = { target: 'TARGET', stretch: 'STRETCH', skip: 'SKIP' }[g] || 'SKIP';
+      return '<div class="tg-event tg-tappable" onclick="jumpToCalendarEvent(' + e.id + ')">' +
+        '<span class="tg-grade tg-grade-' + g + '">' + gl + '</span>' +
+        '<span class="tg-event-name">' + escape(e.name) + '</span>' +
+        '<span class="tg-event-buyin">' + money(e.buyin) + '</span>' +
+      '</div>';
+    }).join('');
+    if (moreCount > 0) {
+      listHtml += '<div class="tg-event-more tg-tappable" onclick="switchGroup(\'plan\',\'calendar\')">+' + moreCount + ' more · open calendar ↗</div>';
+    }
+    var dayHeading = events.length
+      ? ((dayLabel(day.focus) === 'today' ? "Today's events" : 'Events ' + dayLabel(day.focus)) + ' · ' + events.length)
+      : 'Next up';
 
     var primaryBtn = timer.open
       ? '<button class="tg-btn tg-btn-primary" onclick="switchGroup(\'play\',\'sessions\')">RESUME SESSION ↗</button>'
-      : '<button class="tg-btn tg-btn-primary" onclick="switchGroup(\'plan\',\'calendar\')">' + (next ? 'OPEN CALENDAR ↗' : 'PLAN AN EVENT ↗') + '</button>';
+      : '<button class="tg-btn tg-btn-primary" onclick="switchGroup(\'plan\',\'calendar\')">' + (events.length ? 'OPEN CALENDAR ↗' : 'PLAN AN EVENT ↗') + '</button>';
 
     wrap.innerHTML =
       '<div class="tg-card">' +
@@ -161,9 +200,9 @@
             '<div class="tg-stat"><span class="tg-stat-label">Stretch</span><span class="tg-stat-val">' + money(stretch) + '</span></div>' +
             '<div class="tg-stat"><span class="tg-stat-label">Shots</span><span class="tg-stat-val">' + (rec > 0 ? shots + 'x' : '—') + '</span></div>' +
           '</div>' +
-          '<div class="tg-next' + (next ? ' tg-tappable' : '') + '"' + (next ? jumpHandler : '') + '>' +
-            '<div class="tg-next-label">Next up ' + gradeChip + (next ? '<span class="tg-jump-hint">view in calendar ↗</span>' : '') + '</div>' +
-            '<div class="tg-next-body">' + (next ? escape(next.name) + ' — ' + money(next.buyin) + (next.venue ? ' · ' + escape(next.venue) : '') : 'Nothing scheduled') + '</div>' +
+          '<div class="tg-next">' +
+            '<div class="tg-next-label">' + dayHeading + (events.length ? '<span class="tg-jump-hint">view in calendar ↗</span>' : '') + '</div>' +
+            (events.length ? '<div class="tg-event-list">' + listHtml + '</div>' : '<div class="tg-next-body">Nothing scheduled</div>') +
           '</div>' +
           goalsBlock() +
           '<div class="tg-actions">' + primaryBtn +
