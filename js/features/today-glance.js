@@ -27,6 +27,11 @@
     return d && !isNaN(d.getTime()) ? { start: d, end: d } : null;
   }
   function midnight(d) { var x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
+  // "HH:MM" → minutes since midnight, or null when there's no usable start time.
+  function timeMins(e) {
+    var m = /^(\d{1,2}):(\d{2})/.exec((e && e.time) || '');
+    return m ? (parseInt(m[1], 10) * 60 + parseInt(m[2], 10)) : null;
+  }
 
   // The next relevant day and EVERY event on it: today if anything runs today,
   // otherwise the next calendar day that has events. Multi-day events that span
@@ -126,10 +131,16 @@
       return (typeof gradeBuyin === 'function') ? gradeBuyin(e.buyin) : (e.status || 'skip');
     }
     function gradeRank(g) { return g === 'target' ? 0 : g === 'stretch' ? 1 : 2; }
-    // Playable (target, then stretch) first; within a grade, bigger buy-in first.
+    // Playable (target, then stretch) first; within a grade, earliest start time
+    // first (timed events ahead of untimed), then bigger buy-in.
     events.sort(function (a, b) {
       var d = gradeRank(gradeOf(a)) - gradeRank(gradeOf(b));
-      return d !== 0 ? d : ((parseFloat(b.buyin) || 0) - (parseFloat(a.buyin) || 0));
+      if (d !== 0) return d;
+      var ta = timeMins(a), tb = timeMins(b);
+      if (ta !== null && tb !== null && ta !== tb) return ta - tb;
+      if (ta !== null && tb === null) return -1;
+      if (ta === null && tb !== null) return 1;
+      return (parseFloat(b.buyin) || 0) - (parseFloat(a.buyin) || 0);
     });
     var bestRank = events.reduce(function (acc, e) {
       var r = gradeRank(gradeOf(e)); return r < acc ? r : acc;
@@ -151,7 +162,7 @@
       cls = bestGrade === 'target' ? 'tg-target' : bestGrade === 'stretch' ? 'tg-stretch' : 'tg-skip';
       var wl = dayLabel(day.focus);
       sub = (events.length === 1
-        ? events[0].name + ' · ' + money(events[0].buyin)
+        ? events[0].name + ' · ' + money(events[0].buyin) + (events[0].time ? ' · ' + events[0].time : '')
         : events.length + ' events' + (playableCount ? ' · ' + playableCount + ' playable' : ' · none playable')) +
         (wl ? ' · ' + wl : '');
     } else {
@@ -173,6 +184,7 @@
       return '<div class="tg-event tg-tappable" onclick="jumpToCalendarEvent(' + e.id + ')">' +
         '<span class="tg-grade tg-grade-' + g + '">' + gl + '</span>' +
         '<span class="tg-event-name">' + escape(e.name) + '</span>' +
+        (e.time ? '<span class="tg-event-time">' + escape(e.time) + '</span>' : '') +
         '<span class="tg-event-buyin">' + money(e.buyin) + '</span>' +
       '</div>';
     }).join('');

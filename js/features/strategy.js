@@ -190,6 +190,7 @@ function parseGeminiJSON() {
         var t = {
           id: Date.now() + Math.random(),
           date: ev.date || '',
+          time: ev.time || '',
           day: ev.day || '',
           month: ev.month || '',
           series: ev.series || ev.name || 'Tournament',

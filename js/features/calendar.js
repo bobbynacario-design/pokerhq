@@ -25,7 +25,7 @@ function tourneyStartDateInputValue(tourney) {
 function openNewTourneyModal() {
   _editingTourneyId = null;
   setTourneyModalTitle('Add Tournament');
-  ['t-date', 't-name', 't-venue', 't-buyin', 't-gtd', 't-notes'].forEach(function(id) {
+  ['t-date', 't-time', 't-name', 't-venue', 't-buyin', 't-gtd', 't-notes'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -36,6 +36,7 @@ function editTourney(id) {
   var tourney = tourneys.find(function(x) { return x.id === id; });
   if (!tourney) return;
   document.getElementById('t-date').value = tourneyStartDateInputValue(tourney);
+  document.getElementById('t-time').value = tourney.time || '';
   document.getElementById('t-name').value = tourney.name || '';
   document.getElementById('t-venue').value = tourney.venue || '';
   document.getElementById('t-buyin').value = tourney.buyin || '';
@@ -77,6 +78,7 @@ function addTourney() {
       existing.month = MONTH_SHORT_UPPER[newDate.getMonth()];
     }
     existing.name = document.getElementById('t-name').value || 'Tournament';
+    existing.time = document.getElementById('t-time').value || '';
     existing.venue = document.getElementById('t-venue').value || '';
     existing.buyin = buyin;
     existing.gtd = document.getElementById('t-gtd').value || '';
@@ -96,6 +98,7 @@ function addTourney() {
   var t = {
     id: Date.now(),
     date: document.getElementById('t-date').value,
+    time: document.getElementById('t-time').value || '',
     name: document.getElementById('t-name').value || 'Tournament',
     venue: document.getElementById('t-venue').value || '',
     buyin: buyin,
