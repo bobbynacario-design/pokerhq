@@ -296,11 +296,32 @@ function setView(v) {
 // Open the calendar's list view, scroll to a specific event, and flash it.
 // Used by the HOME "Today" glance to jump straight to the next event.
 function jumpToCalendarEvent(id) {
+  // Pre-open the target's series group from the event's data, before the list
+  // renders. Switching to the calendar re-renders the list (reading the saved
+  // collapse state), so flipping the state here is what survives — a DOM-only
+  // expand after render gets clobbered by that render. The event would
+  // otherwise be hidden inside a collapsed group and the jump would land on
+  // nothing.
+  var t = (tourneys || []).find(function (e) { return e && e.id === id; });
+  if (t) {
+    var key = t.series || t.name;
+    // Mark expanded regardless of the current state (stored collapse OR the
+    // default-collapse for multi-event groups), so every render path — initial
+    // or a later async one — shows the row rather than re-hiding it.
+    if (key != null && _calCollapsed[key] !== false) { _calCollapsed[key] = false; saveCalCollapsed(); }
+  }
   if (typeof switchGroup === 'function') switchGroup('plan', 'calendar');
   if (typeof setView === 'function') setView('list');
   setTimeout(function () {
     var row = document.getElementById('event-row-' + id);
     if (!row) return;
+    // Backstop: open the group in the DOM too, in case it rendered collapsed.
+    var group = row.closest('.series-group');
+    if (group && group.classList.contains('collapsed')) {
+      group.classList.remove('collapsed');
+      var h = group.querySelector('.series-header');
+      if (h) h.setAttribute('aria-expanded', 'true');
+    }
     if (row.scrollIntoView) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
     row.classList.add('event-row-flash');
     setTimeout(function () { row.classList.remove('event-row-flash'); }, 1800);
