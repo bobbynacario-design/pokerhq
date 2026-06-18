@@ -373,13 +373,22 @@ body.light .view-btn.active{color:var(--gold)}
 }
 
 /* -- SERIES GROUPING -- */
+.series-tools{display:flex;gap:.4rem;margin-bottom:1rem}
 .series-group{margin-bottom:1.75rem}
-.series-header{display:flex;align-items:center;gap:.75rem;padding:.6rem 1rem;background:var(--bg3);border:1px solid var(--rim);border-radius:10px;margin-bottom:.6rem}
+.series-header{display:flex;align-items:center;gap:.75rem;padding:.6rem 1rem;background:var(--bg3);border:1px solid var(--rim);border-radius:10px;margin-bottom:.6rem;cursor:pointer;user-select:none;transition:border-color .15s}
+.series-header:hover{border-color:var(--rim2)}
+.series-header:focus-visible{outline:none;border-color:var(--gold)}
 body.light .series-header{background:var(--bg3)}
+.series-toggle{font-size:10px;color:rgba(255,255,255,.4);transition:transform .15s;flex-shrink:0;width:11px;text-align:center;line-height:1}
+body.light .series-toggle{color:rgba(0,0,0,.4)}
+.series-group.collapsed .series-toggle{transform:rotate(-90deg)}
+.series-group.collapsed .series-header{margin-bottom:0}
+.series-group.collapsed .series-events{display:none}
 .series-icon{font-size:14px}
-.series-name{font-family:var(--serif);font-size:16px;letter-spacing:.04em;color:#fff;flex:1}
+.series-name{font-family:var(--serif);font-size:16px;letter-spacing:.04em;color:#fff;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 body.light .series-name{color:#1A1A1A}
-.series-count{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.3);letter-spacing:.06em}
+.series-range{font-family:var(--mono);font-size:10px;color:var(--gold);letter-spacing:.04em;flex-shrink:0}
+.series-count{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.3);letter-spacing:.06em;flex-shrink:0}
 body.light .series-count{color:rgba(0,0,0,.35)}
 .series-events{display:flex;flex-direction:column;gap:.5rem;padding-left:.75rem;border-left:2px solid var(--rim2)}
 .event-row{background:var(--bg2);border:1px solid var(--rim);border-radius:10px;padding:.75rem 1rem;display:flex;align-items:center;gap:1rem;transition:border-color .15s;position:relative;overflow:hidden}

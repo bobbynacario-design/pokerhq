@@ -412,6 +412,46 @@ function renderCalendarMonth() {
   gridEl.innerHTML = html;
 }
 
+// Collapse state for the list view's series groups, persisted across reloads
+// and keyed by series key (series || name). When a key has never been toggled
+// we fall back to a default: multi-event groups start collapsed so long
+// festival slates open as a compact list of headers, single events stay open.
+var _calCollapsed = (function () {
+  try { return JSON.parse(localStorage.getItem('pokerhq_cal_collapsed') || '{}') || {}; }
+  catch (e) { return {}; }
+})();
+function saveCalCollapsed() {
+  try { localStorage.setItem('pokerhq_cal_collapsed', JSON.stringify(_calCollapsed)); } catch (e) {}
+}
+function isSeriesCollapsed(key, count) {
+  return Object.prototype.hasOwnProperty.call(_calCollapsed, key) ? !!_calCollapsed[key] : count > 1;
+}
+
+// Toggle one group from its header; persist so the choice survives re-renders.
+window.toggleSeriesGroup = function (headerEl) {
+  var group = headerEl.closest('.series-group');
+  if (!group) return;
+  var key = group.getAttribute('data-key');
+  var collapsed = !group.classList.contains('collapsed');
+  group.classList.toggle('collapsed', collapsed);
+  group.querySelector('.series-header').setAttribute('aria-expanded', String(!collapsed));
+  if (key != null) { _calCollapsed[key] = collapsed; saveCalCollapsed(); }
+};
+
+// Expand / collapse every group at once (header buttons in the list view).
+function setAllSeries(collapsed) {
+  document.querySelectorAll('#calendar-list .series-group').forEach(function (g) {
+    var key = g.getAttribute('data-key');
+    g.classList.toggle('collapsed', collapsed);
+    var h = g.querySelector('.series-header');
+    if (h) h.setAttribute('aria-expanded', String(!collapsed));
+    if (key != null) _calCollapsed[key] = collapsed;
+  });
+  saveCalCollapsed();
+}
+window.expandAllSeries = function () { setAllSeries(false); };
+window.collapseAllSeries = function () { setAllSeries(true); };
+
 function renderCalendarList() {
   var el = document.getElementById('calendar-list');
   if (!el) return;
@@ -432,16 +472,36 @@ function renderCalendarList() {
   });
 
   var html = '';
+  if (seriesOrder.length > 1) {
+    html += '<div class="series-tools">';
+    html += '<button class="view-btn" onclick="expandAllSeries()">⊕ EXPAND ALL</button>';
+    html += '<button class="view-btn" onclick="collapseAllSeries()">⊖ COLLAPSE ALL</button>';
+    html += '</div>';
+  }
   seriesOrder.forEach(function(key) {
     var events = seriesMap[key];
     var hasMain = events.some(function(e) { return e.type === 'main'; });
     var icon = hasMain ? '🏆' : '♠';
     var count = events.length;
+    var collapsed = isSeriesCollapsed(key, count);
 
-    html += '<div class="series-group">';
-    html += '<div class="series-header">';
+    // Buy-in range stays visible when the group is collapsed, so the read that
+    // drives grading isn't lost behind a closed header.
+    var buyins = events.map(function(e) { return e.buyin || 0; }).filter(function(n) { return n > 0; });
+    var range = '';
+    if (buyins.length) {
+      var lo = Math.min.apply(null, buyins), hi = Math.max.apply(null, buyins);
+      range = lo === hi ? '₱' + lo.toLocaleString() : '₱' + lo.toLocaleString() + '–₱' + hi.toLocaleString();
+    }
+
+    html += '<div class="series-group' + (collapsed ? ' collapsed' : '') + '" data-key="' + esc(key) + '">';
+    html += '<div class="series-header" role="button" tabindex="0" aria-expanded="' + (!collapsed) + '"' +
+      ' onclick="toggleSeriesGroup(this)"' +
+      ' onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();toggleSeriesGroup(this);}">';
+    html += '<span class="series-toggle" aria-hidden="true">▾</span>';
     html += '<span class="series-icon">' + icon + '</span>';
     html += '<span class="series-name">' + esc(key) + '</span>';
+    if (range) html += '<span class="series-range">' + range + '</span>';
     html += '<span class="series-count">' + count + ' EVENT' + (count > 1 ? 'S' : '') + '</span>';
     html += '</div>';
     html += '<div class="series-events">';
