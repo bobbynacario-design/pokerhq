@@ -1073,3 +1073,89 @@ body.light .tg-goal-figs{ color:#1A1A1A; }
 .tg-goal-track{ height:5px; border-radius:99px; background:var(--rim); overflow:hidden; }
 .tg-goal-fill{ height:100%; border-radius:99px; transition:width .4s ease; }
 .tg-btn-mini{ font-size:9px; padding:.3rem .65rem; }
+
+/* ════════════════════ HELP / USER GUIDE ════════════════════ */
+/* The in-app user guide renders as a self-contained "manual" on a light paper
+   surface in both themes, so its typography, tables, callouts and figures look
+   identical to the standalone guide and never collide with app styles. Every
+   selector is scoped under .help-doc. */
+#page-help { max-width: 1000px; }
+.help-doc {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 15px; line-height: 1.65; color: #1a1a1a;
+  background: #f6f4ee; border: 1px solid #e6e1d4; border-radius: 14px;
+  padding: 30px 36px 44px; overflow: hidden;
+}
+@media (max-width: 768px) { .help-doc { padding: 22px 18px 32px; } }
+.help-doc h1 { font-size: 28px; font-weight: 800; color: #14110a; margin: 0 0 8px; }
+.help-doc h2 { font-size: 20px; font-weight: 700; color: #14110a; margin: 48px 0 16px; padding-bottom: 10px; border-bottom: 2px solid #e6e1d4; scroll-margin-top: 80px; }
+.help-doc h3 { font-size: 15px; font-weight: 700; color: #14110a; margin: 26px 0 10px; }
+.help-doc p { margin: 0 0 14px; color: #393527; }
+.help-doc ul, .help-doc ol { margin: 0 0 14px 22px; color: #393527; }
+.help-doc li { margin-bottom: 6px; }
+.help-doc strong { color: #14110a; }
+.help-doc a { color: #a07820; text-decoration: none; }
+.help-doc a:hover { text-decoration: underline; }
+.help-doc code { font-family: var(--mono), monospace; font-size: 12.5px; background: #f3eede; color: #6b5a28; padding: 1px 6px; border-radius: 4px; }
+
+/* Hero */
+.help-doc .hero { background: linear-gradient(135deg, #14110a 0%, #2a2414 60%, #3a3115 100%); border-radius: 14px; padding: 28px 32px; color: #fff; margin-bottom: 28px; position: relative; overflow: hidden; }
+.help-doc .hero h1 { color: #fff; font-size: 24px; margin-bottom: 6px; }
+.help-doc .hero .kicker { font-family: var(--mono), monospace; font-size: 11px; letter-spacing: .18em; color: #c9a84c; text-transform: uppercase; margin-bottom: 10px; }
+.help-doc .hero p { color: rgba(255,255,255,.82); margin: 0; font-size: 14px; max-width: 640px; }
+.help-doc .hero a { color: #e8c766; }
+.help-doc .hero-mark { position: absolute; right: 24px; top: 50%; transform: translateY(-50%); width: 110px; height: 110px; opacity: .12; color: #c9a84c; }
+
+/* Quick nav chips */
+.help-doc .quicknav { display: flex; flex-wrap: wrap; gap: 7px; margin: 0 0 8px; }
+.help-doc .quicknav a { display: inline-block; padding: 5px 12px; background: #fff; border: 1px solid #e6e1d4; border-radius: 99px; font-size: 12px; color: #4a4534; }
+.help-doc .quicknav a:hover { border-color: #c9a84c; color: #a07820; text-decoration: none; }
+
+/* Callouts */
+.help-doc .callout { border-radius: 10px; padding: 14px 18px; margin: 20px 0; display: flex; gap: 12px; align-items: flex-start; }
+.help-doc .callout-icon { font-size: 18px; line-height: 1.4; flex-shrink: 0; }
+.help-doc .callout-body { font-size: 13.5px; color: #393527; }
+.help-doc .callout-body strong { display: block; margin-bottom: 3px; }
+.help-doc .callout.info { background: #f0f5fb; border-left: 4px solid #3a7bd5; }
+.help-doc .callout.warning { background: #fdf6e7; border-left: 4px solid #e0a800; }
+.help-doc .callout.tip { background: #eef8f1; border-left: 4px solid #2faa5e; }
+
+/* Tables */
+.help-doc table { width: 100%; border-collapse: collapse; margin: 16px 0 24px; font-size: 13.5px; }
+.help-doc th { background: #f7f2e6; color: #4a4534; font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 2px solid #e6dcc2; }
+.help-doc td { padding: 9px 14px; border-bottom: 1px solid #efe9da; color: #393527; vertical-align: top; }
+.help-doc tr:last-child td { border-bottom: none; }
+.help-doc tr:hover td { background: #faf8f1; }
+
+/* Step badge + action list */
+.help-doc .step-badge { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: #c9a84c; color: #14110a; font-size: 13px; font-weight: 800; flex-shrink: 0; }
+.help-doc .action-list { list-style: none; margin: 0 0 20px; padding: 0; }
+.help-doc .action-list li { display: flex; gap: 12px; align-items: flex-start; padding: 10px 14px; background: #fff; border: 1px solid #e6e1d4; border-radius: 8px; margin-bottom: 8px; font-size: 13.5px; color: #393527; }
+.help-doc .action-list li .al-num { width: 22px; height: 22px; border-radius: 50%; background: #f3eede; color: #a07820; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+
+/* Badges */
+.help-doc .badge { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: 11.5px; font-weight: 600; vertical-align: middle; }
+.help-doc .badge-green { background: #dcf3e4; color: #166534; }
+.help-doc .badge-red { background: #fbe2e2; color: #991b1b; }
+.help-doc .badge-yellow { background: #faf0c8; color: #854d0e; }
+.help-doc .badge-blue { background: #dbeafe; color: #1e40af; }
+.help-doc .badge-gray { background: #f0ede4; color: #5a5340; }
+.help-doc .badge-gold { background: #f5ead0; color: #8a6516; }
+.help-doc .badge-purple { background: #ece0fb; color: #6b21a8; }
+
+/* Diagrams (authored for light — keep on a paper card in both themes) */
+.help-doc .diagram-wrap { background: #fff; border: 1px solid #e6e1d4; border-radius: 12px; padding: 22px; margin: 20px 0 30px; box-shadow: 0 2px 12px rgba(20,17,10,.05); }
+.help-doc .diagram-label { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #9a917c; margin-bottom: 14px; }
+.help-doc .diagram-wrap svg { display: block; width: 100%; height: auto; }
+
+/* FAQ */
+.help-doc details { border: 1px solid #e6e1d4; border-radius: 8px; margin-bottom: 10px; background: #fff; }
+.help-doc summary { padding: 13px 18px; font-size: 14px; font-weight: 600; cursor: pointer; color: #14110a; list-style: none; display: flex; align-items: center; justify-content: space-between; }
+.help-doc summary::-webkit-details-marker { display: none; }
+.help-doc summary::after { content: "＋"; font-size: 16px; color: #a07820; }
+.help-doc details[open] summary::after { content: "－"; }
+.help-doc details[open] summary { border-bottom: 1px solid #e6e1d4; }
+.help-doc .faq-body { padding: 14px 18px; font-size: 13.5px; color: #393527; }
+
+/* Footer */
+.help-doc .footer { margin-top: 52px; padding-top: 22px; border-top: 1px solid #e6e1d4; font-size: 12px; color: #9a917c; }

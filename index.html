@@ -13,8 +13,8 @@
 <title>PokerHQ — Tournament Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script type="module" src="./js/app.js?v=20260623b"></script>
-<link rel="stylesheet" href="./styles/app.css?v=20260623b">
+<script type="module" src="./js/app.js?v=20260623c"></script>
+<link rel="stylesheet" href="./styles/app.css?v=20260623c">
 </head>
 <body>
 <!-- LOGIN GATE — shown until Firebase auth resolves a signed-in user -->
@@ -69,6 +69,7 @@
         <button class="group-tab" id="gtab-wallet" onclick="switchGroup('wallet')">TREASURY</button>
         <button class="group-tab" id="gtab-review" onclick="switchGroup('review')">REVIEW</button>
         <button class="group-tab" id="gtab-improve" onclick="switchGroup('improve')">IMPROVE</button>
+        <button class="group-tab" id="gtab-help" onclick="switchGroup('help')">❓ HELP</button>
       </div>
     </div>
     <div class="nav-right">
@@ -873,6 +874,543 @@
   <div id="satellite-list"></div>
 </div>
 
+<!-- ════════════════════ HELP / USER GUIDE ════════════════════ -->
+<div class="page" id="page-help">
+ <div class="help-doc">
+
+  <!-- Hero -->
+  <div class="hero">
+    <svg class="hero-mark" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M50,15 C65,45 80,55 80,68 A15,15 0 0,1 50,72 A15,15 0 0,1 20,68 C20,55 35,45 50,15 Z" fill="currentColor"/>
+      <path d="M45,70 L40,88 L60,88 L55,70 Z" fill="currentColor"/>
+    </svg>
+    <div class="kicker">// Tournament Intelligence</div>
+    <h1>PokerHQ — User Guide</h1>
+    <p>How to plan your slate, run a live session, review what happened, and lock in the next adjustment — the full Plan → Play → Review → Improve loop. Worked example throughout: the <strong>Solaire Sunday Main</strong>, played off a ₱45,000 bankroll.</p>
+  </div>
+
+  <!-- Quick nav -->
+  <nav class="quicknav" aria-label="On this page">
+    <a href="#overview">Overview</a>
+    <a href="#before-you-start">Before you start</a>
+    <a href="#example">Worked example</a>
+    <a href="#loop">The loop</a>
+    <a href="#s2">Bankroll</a>
+    <a href="#s3">Plan the slate</a>
+    <a href="#s4">Sessions</a>
+    <a href="#s5">Hands</a>
+    <a href="#s7">Review</a>
+    <a href="#s8">Improve</a>
+    <a href="#dashboard">Dashboard</a>
+    <a href="#ai">AI &amp; keys</a>
+    <a href="#treasury">Treasury</a>
+    <a href="#backup">Backup</a>
+    <a href="#faq">FAQ</a>
+  </nav>
+
+  <!-- ── OVERVIEW ── -->
+  <h2 id="overview">What PokerHQ does</h2>
+  <p>PokerHQ is a private command center for live tournament poker. It tracks your bankroll, your schedule, your sessions, your key hands, and the lessons you take from them — and ties them together so each run makes the next one sharper. This guide walks the whole app end to end:</p>
+  <ul>
+    <li>Signing in and installing PokerHQ as a desktop or phone app</li>
+    <li>Setting your bankroll rule so every buy-in is auto-graded against it</li>
+    <li>Planning a slate from the calendar, pinning the events you'll actually play, and chasing seats through satellites</li>
+    <li>Running a live session with the timer, hand capture (typed or dictated by voice), and mental check-ins</li>
+    <li>Logging the result, reviewing it with debriefs and heatmaps, and turning it into a study note</li>
+    <li>Letting AI research current poker news and notable events for you — with verifiable sources</li>
+    <li>Reading your dashboard insights — bankroll curve, variance &amp; downswing, hourly rate, monthly goals, and your next planned event</li>
+    <li>Tracking wallet, bankroll, and staking money through the Treasury</li>
+  </ul>
+  <p>Your data lives in your account and syncs across every device automatically — desktop, laptop, and phone all show the same numbers, online or offline.</p>
+
+  <div class="callout info">
+    <span class="callout-icon">♠</span>
+    <div class="callout-body">
+      <strong>The nav groups</strong>
+      Across the top (and along the bottom on a phone) are <strong>HOME</strong>, <strong>PLAN</strong>, <strong>PLAY</strong>, <strong>TREASURY</strong>, <strong>REVIEW</strong>, <strong>IMPROVE</strong>, and <strong>❓ HELP</strong> (this guide). HOME is your dashboard; PLAN through IMPROVE each open a row of sub-tabs. This guide follows them in the order you'd use them for a real event.
+    </div>
+  </div>
+
+  <!-- ── BEFORE YOU START ── -->
+  <h2 id="before-you-start">Before you start</h2>
+  <p>You need very little to get going — PokerHQ runs entirely in the browser with nothing to download from an app store.</p>
+  <table>
+    <thead><tr><th>Item</th><th>Why you need it</th><th>Required?</th></tr></thead>
+    <tbody>
+      <tr><td><strong>A Google account</strong></td><td>PokerHQ is locked to your account — you sign in with Google, and only your account can see your data</td><td><span class="badge badge-red">Required</span></td></tr>
+      <tr><td><strong>A modern browser</strong> — Chrome, Edge, or Safari</td><td>Where the app runs; also lets you install it to your desktop or home screen</td><td><span class="badge badge-red">Required</span></td></tr>
+      <tr><td><strong>Your bankroll figure</strong></td><td>Set once at the start so buy-in recommendations are accurate</td><td><span class="badge badge-yellow">Recommended</span></td></tr>
+      <tr><td><strong>Anthropic API key</strong></td><td>Only for the AI features — hand-structuring, AI debriefs, and AI poker research; everything else works without it</td><td><span class="badge badge-gray">Optional</span></td></tr>
+      <tr><td><strong>OpenAI API key</strong></td><td>Only for the in-app 🎤 voice recorder (Whisper transcription). Typed-hand capture and everything else work without it</td><td><span class="badge badge-gray">Optional</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout tip">
+    <span class="callout-icon">💡</span>
+    <div class="callout-body">
+      <strong>Just want to look around first?</strong>
+      From the dashboard, click <strong>LOAD DEMO DATA</strong>. It fills the app with a realistic set of Philippine MTT sessions, hands, and tournaments so you can walk every screen before entering anything of your own. Demo data is never saved — click <strong>CLEAR DEMO</strong> and it's gone, your real data untouched.
+    </div>
+  </div>
+
+  <!-- ── WORKED EXAMPLE ── -->
+  <h2 id="example">Worked example — the Solaire Sunday Main</h2>
+  <p>Every example in this guide follows one storyline: planning, qualifying for, playing, and reviewing a single tournament off a real bankroll.</p>
+  <table>
+    <thead><tr><th>Detail</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Bankroll</strong></td><td><code>₱45,000</code>, managed on the <strong>Standard — 15 buy-ins</strong> rule</td></tr>
+      <tr><td><strong>Recommended buy-in</strong></td><td><code>₱3,000</code> (bankroll ÷ 15) · <strong>Stretch</strong> <code>₱5,000</code></td></tr>
+      <tr><td><strong>Target event</strong></td><td>Solaire Sunday Main — <code>₱5,500</code> buy-in, ₱2,000,000 GTD</td></tr>
+      <tr><td><strong>The catch</strong></td><td>At ₱5,500 the Main is <em>above</em> the stretch — a direct buy-in would be marked <span class="badge badge-red">SKIP</span></td></tr>
+      <tr><td><strong>The plan</strong></td><td>Win the seat through a <code>₱1,100</code> satellite instead of buying in directly</td></tr>
+      <tr><td><strong>The result</strong></td><td>Finished <strong>8th of 142</strong> for <code>₱18,000</code> — a ₱16,900 profit after the satellite</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ── WORKFLOW OVERVIEW ── -->
+  <h2 id="loop">The PokerHQ loop</h2>
+  <p>The app is built around a four-phase cycle, with a one-time <strong>Setup</strong> feeding into it. Plan what to play, play it well, review what happened, and improve before the next one — then around again.</p>
+
+  <div class="diagram-wrap">
+    <div class="diagram-label">The loop — setup feeds a four-phase cycle</div>
+    <svg viewBox="0 0 760 250" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+      <defs>
+        <marker id="arrA" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#d8c388"/>
+        </marker>
+      </defs>
+      <rect x="10" y="92" width="120" height="66" rx="10" fill="#14110a"/>
+      <text x="70" y="120" text-anchor="middle" fill="#c9a84c" font-size="11" font-weight="700">SETUP</text>
+      <text x="70" y="137" text-anchor="middle" fill="rgba(255,255,255,.75)" font-size="9.5">Sign in · bankroll</text>
+      <path d="M130 125 L158 125" stroke="#d8c388" stroke-width="2" fill="none" marker-end="url(#arrA)"/>
+      <rect x="160" y="20" width="160" height="72" rx="10" fill="#c9a84c"/>
+      <text x="240" y="46" text-anchor="middle" fill="#14110a" font-size="11" font-weight="800">PLAN</text>
+      <text x="240" y="63" text-anchor="middle" fill="rgba(20,17,10,.8)" font-size="10">Calendar · satellites</text>
+      <text x="240" y="79" text-anchor="middle" fill="rgba(20,17,10,.6)" font-size="9.5">grade &amp; pin the slate</text>
+      <path d="M320 56 L360 56 L360 84" stroke="#d8c388" stroke-width="2" fill="none" marker-end="url(#arrA)"/>
+      <rect x="300" y="92" width="160" height="72" rx="10" fill="#c9a84c"/>
+      <text x="380" y="118" text-anchor="middle" fill="#14110a" font-size="11" font-weight="800">PLAY</text>
+      <text x="380" y="135" text-anchor="middle" fill="rgba(20,17,10,.8)" font-size="10">Timer · hands · result</text>
+      <text x="380" y="151" text-anchor="middle" fill="rgba(20,17,10,.6)" font-size="9.5">run the session</text>
+      <path d="M460 128 L500 128 L500 56 L520 56" stroke="#d8c388" stroke-width="2" fill="none" marker-end="url(#arrA)"/>
+      <rect x="440" y="20" width="160" height="72" rx="10" fill="#c9a84c"/>
+      <text x="520" y="46" text-anchor="middle" fill="#14110a" font-size="11" font-weight="800">REVIEW</text>
+      <text x="520" y="63" text-anchor="middle" fill="rgba(20,17,10,.8)" font-size="10">History · heatmaps</text>
+      <text x="520" y="79" text-anchor="middle" fill="rgba(20,17,10,.6)" font-size="9.5">debrief the run</text>
+      <path d="M600 56 L640 56 L640 128 L660 128" stroke="#d8c388" stroke-width="2" fill="none" marker-end="url(#arrA)"/>
+      <rect x="600" y="92" width="150" height="72" rx="10" fill="#c9a84c"/>
+      <text x="675" y="118" text-anchor="middle" fill="#14110a" font-size="11" font-weight="800">IMPROVE</text>
+      <text x="675" y="135" text-anchor="middle" fill="rgba(20,17,10,.8)" font-size="10">Strategy · opponents</text>
+      <text x="675" y="151" text-anchor="middle" fill="rgba(20,17,10,.6)" font-size="9.5">lock the lesson</text>
+      <path d="M675 164 L675 200 L240 200 L240 92" stroke="#d8c388" stroke-width="2" stroke-dasharray="4 4" fill="none" marker-end="url(#arrA)"/>
+      <text x="455" y="216" text-anchor="middle" fill="#9a917c" font-size="10">…and the lesson feeds the next plan</text>
+      <rect x="10" y="228" width="12" height="12" rx="3" fill="#14110a"/>
+      <text x="30" y="238" fill="#9a917c" font-size="10">One-time setup</text>
+      <rect x="150" y="228" width="12" height="12" rx="3" fill="#c9a84c"/>
+      <text x="170" y="238" fill="#9a917c" font-size="10">Repeats every event</text>
+    </svg>
+  </div>
+
+  <!-- STAGE 1 -->
+  <h2 id="s1"><span class="step-badge">1</span>&nbsp; Sign in &amp; install</h2>
+  <p>The first time you open PokerHQ you'll see a login card. Everything behind it is private to your Google account.</p>
+  <ol class="action-list">
+    <li><span class="al-num">1</span><div>Open the app and the PokerHQ login card appears.</div></li>
+    <li><span class="al-num">2</span><div>Click <strong>Sign in with Google</strong> and choose your account. The app loads with your data synced.</div></li>
+    <li><span class="al-num">3</span><div><strong>Install it (optional but recommended):</strong> click <strong>⤓ INSTALL APP</strong> in the top bar — or <strong>Install as desktop app</strong> on the login card. It becomes a standalone window with the spade icon, pinnable to your taskbar or dock.</div></li>
+  </ol>
+  <div class="callout info">
+    <span class="callout-icon">📲</span>
+    <div class="callout-body">
+      <strong>Installing on iPhone</strong>
+      On iOS, open the app in Safari, tap the <strong>Share</strong> icon, then <strong>Add to Home Screen</strong>. It then launches full-screen like a native app and works offline at the casino.
+    </div>
+  </div>
+  <div class="callout warning">
+    <span class="callout-icon">⚠️</span>
+    <div class="callout-body">
+      <strong>Sign in with the same account on every device</strong>
+      Your bankroll, sessions, and hands are tied to your Google account. Use a different account and you'll see an empty app with an "access denied" message — sign out and back in with the right one to restore your data.
+    </div>
+  </div>
+
+  <!-- STAGE 2 -->
+  <h2 id="s2"><span class="step-badge">2</span>&nbsp; Set your bankroll</h2>
+  <p>This is the one number that powers the whole app. Every buy-in on your calendar is auto-graded against it, so set it before you plan anything.</p>
+  <ol class="action-list">
+    <li><span class="al-num">1</span><div>Go to <strong>PLAY → ♦ Log Session</strong> and find the <strong>Bankroll Setup</strong> card at the top.</div></li>
+    <li><span class="al-num">2</span><div>Pick a <strong>BRM Rule</strong> — Conservative (20 buy-ins), <strong>Standard (15)</strong>, or Aggressive (10). This sets how many buy-ins your roll should cover.</div></li>
+    <li><span class="al-num">3</span><div>Your bankroll figure itself is <strong>read-only</strong> here — it moves automatically as you log sessions and make Treasury transfers. To set a starting balance, use a Treasury <strong>Deposit</strong> (see <a href="#treasury">Treasury</a>).</div></li>
+  </ol>
+
+  <div class="diagram-wrap">
+    <div class="diagram-label">How the rule grades a buy-in — worked example at ₱45,000</div>
+    <svg viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+      <rect x="10" y="16" width="230" height="60" rx="9" fill="#fff" stroke="#e6e1d4"/>
+      <text x="125" y="40" text-anchor="middle" fill="#9a917c" font-size="9.5" font-weight="700">RECOMMENDED</text>
+      <text x="125" y="60" text-anchor="middle" fill="#14110a" font-size="13" font-weight="800">₱45,000 ÷ 15 = ₱3,000</text>
+      <rect x="265" y="16" width="230" height="60" rx="9" fill="#fff" stroke="#e6e1d4"/>
+      <text x="380" y="40" text-anchor="middle" fill="#9a917c" font-size="9.5" font-weight="700">STRETCH</text>
+      <text x="380" y="60" text-anchor="middle" fill="#14110a" font-size="13" font-weight="800">₱45,000 ÷ 9 = ₱5,000</text>
+      <rect x="520" y="16" width="230" height="60" rx="9" fill="#fff" stroke="#e6e1d4"/>
+      <text x="635" y="40" text-anchor="middle" fill="#9a917c" font-size="9.5" font-weight="700">SHOTS AT REC STAKE</text>
+      <text x="635" y="60" text-anchor="middle" fill="#14110a" font-size="13" font-weight="800">15×</text>
+      <text x="10" y="108" fill="#4a4534" font-size="11" font-weight="700">Any buy-in is then graded:</text>
+      <rect x="10" y="120" width="240" height="48" rx="8" fill="#dcf3e4"/>
+      <text x="130" y="140" text-anchor="middle" fill="#166534" font-size="11" font-weight="800">TARGET</text>
+      <text x="130" y="158" text-anchor="middle" fill="#166534" font-size="9.5">≤ ₱3,000 (within rule)</text>
+      <rect x="260" y="120" width="240" height="48" rx="8" fill="#faf0c8"/>
+      <text x="380" y="140" text-anchor="middle" fill="#854d0e" font-size="11" font-weight="800">STRETCH</text>
+      <text x="380" y="158" text-anchor="middle" fill="#854d0e" font-size="9.5">₱3,001 – ₱5,000</text>
+      <rect x="510" y="120" width="240" height="48" rx="8" fill="#fbe2e2"/>
+      <text x="630" y="140" text-anchor="middle" fill="#991b1b" font-size="11" font-weight="800">SKIP</text>
+      <text x="630" y="158" text-anchor="middle" fill="#991b1b" font-size="9.5">&gt; ₱5,000 — e.g. the ₱5,500 Main</text>
+    </svg>
+  </div>
+
+  <div class="callout tip">
+    <span class="callout-icon">💡</span>
+    <div class="callout-body">
+      <strong>Read it on the dashboard</strong>
+      HOME shows your current bankroll, the recommended and stretch buy-ins, and how many shots you have at your recommended stake — plus your live bankroll-over-time chart, a variance &amp; downswing read, your hourly rate, this month's goals, and your next planned event. See <a href="#dashboard">Dashboard insights</a> for the full tour.
+    </div>
+  </div>
+
+  <!-- STAGE 3 -->
+  <h2 id="s3"><span class="step-badge">3</span>&nbsp; Plan the slate</h2>
+  <p><strong>PLAN</strong> has two sub-tabs: <strong>📅 Calendar</strong> for events and <strong>🛰 Satellites</strong> for chasing seats you can't afford directly.</p>
+
+  <h3>3.1 — Add an event to the calendar</h3>
+  <ol class="action-list">
+    <li><span class="al-num">1</span><div>Go to <strong>PLAN → 📅 Calendar</strong> and click <strong>+ ADD TOURNAMENT</strong>.</div></li>
+    <li><span class="al-num">2</span><div>Fill in Date, Tournament Name, Venue, Buy-in, GTD, and Structure. <em>This example:</em> <code>Solaire Sunday Main · ₱5,500 · ₱2,000,000 GTD</code>.</div></li>
+    <li><span class="al-num">3</span><div>Save. The event appears in the month grid and the list view, auto-tagged against your bankroll — here, <span class="badge badge-red">SKIP</span>, because ₱5,500 is over the ₱5,000 stretch.</div></li>
+  </ol>
+  <div class="callout info">
+    <span class="callout-icon">🗂</span>
+    <div class="callout-body">
+      <strong>Long festival slates stay tidy</strong>
+      In the list view, events are grouped by series. Tap a series header to collapse or expand that group, or use <strong>⊕ EXPAND ALL</strong> / <strong>⊖ COLLAPSE ALL</strong>. Multi-event series start collapsed so a packed festival opens as a compact list of headers rather than a wall of rows; your collapse choices are remembered.
+    </div>
+  </div>
+
+  <h3>3.2 — Mark the events you're playing</h3>
+  <p>Grading tells you what you can afford; <strong>pinning</strong> records what you've actually decided to play. The two are independent — you might pin a STRETCH event you're committed to, or skip a TARGET you're not traveling for.</p>
+  <ol class="action-list">
+    <li><span class="al-num">1</span><div>In the Calendar <strong>list view</strong>, tap the <strong>☆</strong> on any event row to pin it (it fills to <strong>★</strong>). Tap again to unpin.</div></li>
+    <li><span class="al-num">2</span><div>Pinned events collect in the <strong>★ Playing These</strong> card at the top of the calendar, soonest first, with a running buy-in commitment — e.g. <em>"3 events · ₱50,000 committed"</em> — so you can see your total spend at a glance.</div></li>
+    <li><span class="al-num">3</span><div>Use the <strong>★ PLANNED ONLY</strong> toggle (next to MONTH / LIST) to filter both the month grid and the list down to just your pinned events. Toggle it off to see the full slate again.</div></li>
+  </ol>
+  <div class="callout tip">
+    <span class="callout-icon">★</span>
+    <div class="callout-body">
+      <strong>Your plan surfaces on HOME</strong>
+      The soonest event you've pinned shows in a <strong>"Planning to play"</strong> block on the dashboard — above the day's auto-surfaced slate — so the next thing you've committed to is the first thing you see. Tap it to jump straight to its calendar row.
+    </div>
+  </div>
+
+  <h3>3.3 — Turn a SKIP into a seat with satellites</h3>
+  <p>The Main is graded SKIP at ₱5,500 — but a ₱1,100 satellite is well within your recommended ₱3,000. Track that path under Satellites.</p>
+  <ol class="action-list">
+    <li><span class="al-num">1</span><div>Go to <strong>PLAN → 🛰 Satellites</strong> and set the <strong>target</strong>: the event you're chasing and its direct buy-in — <code>Solaire Sunday Main · ₱5,500</code>.</div></li>
+    <li><span class="al-num">2</span><div>Each time you play a satellite, log it: date, name, buy-in, and result — <strong>Seat Won</strong>, Did Not Win, or Pending. <em>This example:</em> a ₱1,100 satellite, <strong>Seat Won</strong>.</div></li>
+    <li><span class="al-num">3</span><div>The hero stats show satellites played, seats won, total invested, and money <strong>saved versus buying in directly</strong> — here, one ₱1,100 entry bought a ₱5,500 seat, so ₱4,400 saved.</div></li>
+  </ol>
+  <div class="callout tip">
+    <span class="callout-icon">▶</span>
+    <div class="callout-body">
+      <strong>Start straight from the calendar</strong>
+      When an event is live, open the Calendar <strong>list view</strong> and click <strong>▶ START SESSION</strong> on its row. PokerHQ opens an active session pre-filled with that tournament's name, venue, and buy-in — no re-typing.
+    </div>
+  </div>
+
+  <h3>3.4 — Get reminders before events</h3>
+  <p>PokerHQ has two ways to make sure an event doesn't slip past you — use either or both.</p>
+  <ol class="action-list">
+    <li><span class="al-num">1</span><div><strong>In-app email reminders.</strong> On <strong>PLAN → 📅 Calendar</strong>, find the <strong>Email Reminders</strong> card, tick <strong>Email me before target events</strong>, and set how many days ahead. PokerHQ then emails your account address before each upcoming <span class="badge badge-green">TARGET</span> and <span class="badge badge-yellow">STRETCH</span> event — once each, even while the app is closed.</div></li>
+    <li><span class="al-num">2</span><div><strong>Calendar file (.ics).</strong> <strong>⤓ EXPORT .ICS</strong> downloads those same upcoming target and stretch events (SKIP events left out), each with a one-day-ahead reminder built in. Import it into Google or Apple Calendar once and your own calendar handles the rest.</div></li>
+  </ol>
+
+  <!-- STAGE 4 -->
+  <h2 id="s4"><span class="step-badge">4</span>&nbsp; Start a session</h2>
+  <p>An <strong>active session</strong> holds your live context — the timer, your bullet count, your mental state, and quick-capture buttons — so everything you log mid-event stays attached to the result.</p>
+
+  <div class="diagram-wrap">
+    <div class="diagram-label">A live session — what stays attached</div>
+    <svg viewBox="0 0 760 210" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+      <rect width="760" height="210" rx="10" fill="#14110a"/>
+      <text x="24" y="34" fill="#c9a84c" font-size="12" font-weight="800">ACTIVE · Solaire Sunday Main</text>
+      <text x="24" y="52" fill="rgba(255,255,255,.5)" font-size="9.5">Solaire Resort · ₱5,500 seat (won via satellite)</text>
+      <rect x="24" y="68" width="160" height="58" rx="8" fill="#1f1a10"/>
+      <text x="104" y="90" text-anchor="middle" fill="rgba(255,255,255,.45)" font-size="9">TIMER</text>
+      <text x="104" y="112" text-anchor="middle" fill="#fff" font-size="16" font-weight="700" font-family="'Fira Mono',monospace">04:18:22</text>
+      <rect x="196" y="68" width="120" height="58" rx="8" fill="#1f1a10"/>
+      <text x="256" y="90" text-anchor="middle" fill="rgba(255,255,255,.45)" font-size="9">BULLETS</text>
+      <text x="256" y="112" text-anchor="middle" fill="#fff" font-size="16" font-weight="700">1</text>
+      <rect x="328" y="68" width="120" height="58" rx="8" fill="#1f1a10"/>
+      <text x="388" y="90" text-anchor="middle" fill="rgba(255,255,255,.45)" font-size="9">FOCUS</text>
+      <text x="388" y="112" text-anchor="middle" fill="#2faa5e" font-size="16" font-weight="700">8/10</text>
+      <rect x="460" y="68" width="120" height="58" rx="8" fill="#1f1a10"/>
+      <text x="520" y="90" text-anchor="middle" fill="rgba(255,255,255,.45)" font-size="9">ENERGY</text>
+      <text x="520" y="112" text-anchor="middle" fill="#2faa5e" font-size="16" font-weight="700">7/10</text>
+      <rect x="24" y="140" width="150" height="30" rx="6" fill="#c9a84c"/>
+      <text x="99" y="160" text-anchor="middle" fill="#14110a" font-size="10" font-weight="700">CAPTURE HAND</text>
+      <rect x="186" y="140" width="170" height="30" rx="6" fill="#1f1a10" stroke="#3a3320"/>
+      <text x="271" y="160" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="10">CAPTURE VILLAIN</text>
+      <rect x="368" y="140" width="160" height="30" rx="6" fill="#1f1a10" stroke="#3a3320"/>
+      <text x="448" y="160" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="10">MENTAL CHECK-IN</text>
+      <rect x="540" y="140" width="160" height="30" rx="6" fill="#1f1a10" stroke="#3a3320"/>
+      <text x="620" y="160" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="10">LOG TIMER → SESSION</text>
+      <text x="24" y="194" fill="rgba(255,255,255,.4)" font-size="9.5">Quick check-in: ROUGH · STEADY · SHARP   —   one tap sets focus / energy / sleep / food</text>
+    </svg>
+  </div>
+
+  <ol class="action-list">
+    <li><span class="al-num">1</span><div><strong>Start the session</strong> — either <strong>▶ START SESSION</strong> from the calendar, or <strong>MANUAL SESSION</strong> on the dashboard for an unplanned sit-down.</div></li>
+    <li><span class="al-num">2</span><div><strong>Run the timer</strong> from the dashboard widget — START when you sit, STOP on break, and <strong>LOG ↗</strong> to drop the elapsed hours straight into the session.</div></li>
+    <li><span class="al-num">3</span><div><strong>Set your readiness</strong> with one tap — ROUGH / STEADY / SHARP fills focus, energy, sleep, and food in one move, or rate each 1–10 yourself.</div></li>
+    <li><span class="al-num">4</span><div><strong>Track re-entries</strong> with the bullet counter each time you fire again.</div></li>
+  </ol>
+  <div class="callout tip">
+    <span class="callout-icon">🧠</span>
+    <div class="callout-body">
+      <strong>Before you sit — your lessons resurface</strong>
+      The active-session surface shows a <strong>"Before you sit"</strong> prep block: your last few hand lessons and most recent study note, so the things you meant to fix are in front of you at the one moment they matter. If you've tagged opponents at this venue, the <strong>venue scouting</strong> panel lists them right there too.
+    </div>
+  </div>
+
+  <!-- STAGE 5 -->
+  <h2 id="s5"><span class="step-badge">5</span>&nbsp; Capture hands</h2>
+  <p>The best time to record a hand is while it's fresh. Capture it during the session and it links to this run automatically.</p>
+  <h3>5.1 — Log a hand by hand</h3>
+  <ol class="action-list">
+    <li><span class="al-num">1</span><div>From the active session, click <strong>CAPTURE HAND</strong> (or go to <strong>PLAY → 🃏 Hands → + LOG HAND</strong>).</div></li>
+    <li><span class="al-num">2</span><div>Set the <strong>result</strong> (Won / Lost / Fold), a short <strong>title</strong>, the full <strong>description</strong>, and the <strong>lesson</strong> you took from it.</div></li>
+    <li><span class="al-num">3</span><div>Optionally fill the <strong>replay fields</strong> — hero &amp; villain positions, stacks/blinds, board runout, and the action street by street. These power the <strong>REPLAY</strong> view later.</div></li>
+  </ol>
+  <h3>5.2 — Or dictate it (voice to hand)</h3>
+  <p>On the Hands tab, <strong>🎙 VOICE TO HAND</strong> turns a spoken recap into a structured hand — record it right in the app, no separate voice-memo app needed.</p>
+  <ol class="action-list">
+    <li><span class="al-num">1</span><div>Tap <strong>🎤 RECORD</strong>, allow the microphone, and talk through the hand naturally. Tap <strong>⏹ STOP &amp; TRANSCRIBE</strong> — Whisper transcribes your audio straight into the box.</div></li>
+    <li><span class="al-num">2</span><div>Click <strong>✨ STRUCTURE WITH AI</strong> — Claude turns the transcript into result, title, description, and lesson.</div></li>
+    <li><span class="al-num">3</span><div>Review, edit anything, and <strong>SAVE HAND</strong>.</div></li>
+  </ol>
+  <div class="callout info">
+    <span class="callout-icon">🔑</span>
+    <div class="callout-body">
+      <strong>This needs two API keys, set once per device</strong>
+      Recording uses an <strong>OpenAI</strong> key (Whisper); structuring uses an <strong>Anthropic</strong> key (Claude). Add both in <strong>IMPROVE → ♥ Strategy → AI Assistant</strong> — they're stored on that device only, never synced. See <a href="#ai">AI features &amp; keys</a>.
+    </div>
+  </div>
+
+  <!-- STAGE 6 -->
+  <h2 id="s6"><span class="step-badge">6</span>&nbsp; Log the result</h2>
+  <p>When the tournament ends, fill in the result and PokerHQ does the rest — bankroll, stats, and the chart all update.</p>
+  <ol class="action-list">
+    <li><span class="al-num">1</span><div>On <strong>PLAY → ♦ Log Session</strong>, complete the result fields: Buy-in, Rebuys/Add-ons, Field Size, Finish Position, Prize, and Hours.</div></li>
+    <li><span class="al-num">2</span><div>If your action was sold, fill the <strong>staking</strong> fields — Package, Player Share %, Markup, and Named Backers. Optional, and it doesn't change your core log.</div></li>
+    <li><span class="al-num">3</span><div>Click <strong>LOG SESSION ↗</strong>. <em>This example:</em> 8th of 142 for ₱18,000 off a ₱5,500 entry.</div></li>
+  </ol>
+  <div class="callout tip">
+    <span class="callout-icon">✅</span>
+    <div class="callout-body">
+      <strong>What happens on save</strong>
+      Your bankroll moves by the session's profit/loss, the dashboard stats and bankroll chart refresh, any hands you captured link in, and a toast offers to jump straight to the session debrief. The mental ratings are what make the heatmaps meaningful later — worth the ten seconds.
+    </div>
+  </div>
+
+  <!-- STAGE 7 -->
+  <h2 id="s7"><span class="step-badge">7</span>&nbsp; Review the run</h2>
+  <p><strong>REVIEW</strong> has two sub-tabs: <strong>♦ History</strong> for the full session log and <strong>🔥 Heatmap</strong> for patterns across all of them.</p>
+  <h3>7.1 — Find and open a session</h3>
+  <ol class="action-list">
+    <li><span class="al-num">1</span><div>On <strong>REVIEW → ♦ History</strong>, use the <strong>filter bar</strong> — search by name/venue/notes, filter by result, or set a date range.</div></li>
+    <li><span class="al-num">2</span><div>Click any <strong>column header</strong> to sort — tap P&amp;L to bring your biggest swings to the top, tap again to reverse, a third time to reset.</div></li>
+    <li><span class="al-num">3</span><div>Click a row to open the <strong>session detail</strong>: the key stats, staking breakdown, linked hands, and the debrief.</div></li>
+  </ol>
+  <h3>7.2 — Run the debrief</h3>
+  <p>Inside a session, <strong>Session Debrief</strong> reads your result, mental ratings, linked hands, and history at that venue, then writes a short, concrete "what went well / what hurt / what to review next / next-session focus." This part is <strong>free and needs no key</strong>. With an Anthropic key set in <a href="#ai">AI Assistant</a>, <strong>ENHANCE WITH AI</strong> layers a deeper Claude pass on top.</p>
+  <h3>7.3 — Read the heatmaps</h3>
+  <p><strong>🔥 Heatmap</strong> turns your whole history into patterns: P&amp;L by venue, by buy-in range, ITM rate, ROI by event, a 12-month calendar, and — uniquely — results versus your <strong>mental state</strong>. That last one answers questions like "do I actually run worse on low sleep?" with your own data.</p>
+
+  <!-- STAGE 8 -->
+  <h2 id="s8"><span class="step-badge">8</span>&nbsp; Improve</h2>
+  <p><strong>IMPROVE</strong> closes the loop: <strong>♥ Strategy</strong> for notes and weekly briefings, and <strong>👤 Opponents</strong> for villain reads.</p>
+  <h3>8.1 — Capture a lesson</h3>
+  <ol class="action-list">
+    <li><span class="al-num">1</span><div>On <strong>IMPROVE → ♥ Strategy</strong>, add a manual note — give it a week, a topic, and the insight.</div></li>
+    <li><span class="al-num">2</span><div>Or paste a <strong>weekly intelligence briefing</strong> (JSON) into the import box. PokerHQ splits it into calendar events, news, strategy insights, and a spotlight — deduplicating as it goes.</div></li>
+  </ol>
+  <h3>8.2 — Let AI research the poker world</h3>
+  <p>On <strong>IMPROVE → ♥ Strategy</strong>, the <strong>🔎 AI Poker Research</strong> card searches the live web for what's worth knowing and files it into your feeds. Pick a <strong>Focus</strong>, run it, and each result is badged <span class="badge badge-green">✓ Verified source</span> or <span class="badge badge-yellow">⚠ Unverified</span>. <strong>+ Save</strong> an item — or <strong>Save All Verified</strong> — to drop it into your news feed or strategy notes with a clickable source link.</p>
+  <div class="callout info">
+    <span class="callout-icon">🛡️</span>
+    <div class="callout-body">
+      <strong>Why the "verified" badge matters</strong>
+      PokerHQ cross-checks every item's link against the pages Claude actually searched — anything it can't corroborate is marked <span class="badge badge-yellow">⚠ Unverified</span> and left out of <strong>Save All Verified</strong>. A "verified" badge means the page was really fetched, not that the summary is flawless, so click through before relying on anything important. Needs your <strong>Anthropic key</strong>; web search adds a small per-search cost.
+    </div>
+  </div>
+  <h3>8.3 — Keep opponent reads</h3>
+  <ol class="action-list">
+    <li><span class="al-num">1</span><div>On <strong>👤 Opponents</strong>, click <strong>+ ADD VILLAIN</strong> — name, venue, tags (loose, aggressive, calling station…), and a tendency note.</div></li>
+    <li><span class="al-num">2</span><div>When you next start a session at that venue, your tagged players surface automatically in the active-session <strong>venue scouting</strong> panel.</div></li>
+  </ol>
+
+  <!-- DASHBOARD INSIGHTS -->
+  <h2 id="dashboard">Dashboard insights</h2>
+  <p>HOME is more than a summary — it's where your logged data turns into reads you can act on. From top to bottom:</p>
+  <table>
+    <thead><tr><th>Panel</th><th>What it tells you</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Go / No-Go read</strong></td><td>A live verdict for the day — GO / STRETCH / SKIP — based on the next event graded against your bankroll, with the day's full slate listed below</td></tr>
+      <tr><td><strong>Planning to play</strong></td><td>The soonest event you've <strong>pinned</strong> on the calendar (★), with its date, grade, time, and buy-in — your own committed pick, shown above the auto-surfaced slate</td></tr>
+      <tr><td><strong>Bankroll &amp; BRM</strong></td><td>Current bankroll, recommended and stretch buy-ins, and shots available at your stake</td></tr>
+      <tr><td><strong>Career stat cards</strong></td><td>Total P&amp;L, ROI, ITM rate, tournaments, average buy-in, biggest cash — and your <strong>hourly rate</strong></td></tr>
+      <tr><td><strong>Performance by buy-in level</strong></td><td>P&amp;L and ROI broken out by stake range</td></tr>
+      <tr><td><strong>Goals — this month</strong></td><td>Progress bars toward your profit, tournament, and study-note targets for the calendar month</td></tr>
+      <tr><td><strong>Bankroll over time</strong></td><td>A line chart of your bankroll's real journey, with a hover read on every move</td></tr>
+      <tr><td><strong>Variance &amp; downswing</strong></td><td>Peak, current drawdown, worst downswing survived, current streak, runway, and risk of ruin — with a plain-language read</td></tr>
+    </tbody>
+  </table>
+  <div class="callout tip">
+    <span class="callout-icon">📉</span>
+    <div class="callout-body">
+      <strong>Risk of ruin is honest by design</strong>
+      The variance widget only shows a risk-of-ruin number once you have <strong>10+ sessions and a winning sample</strong> — the math assumes your edge holds, so with a losing record it simply says it needs a winning sample rather than printing a scary, meaningless figure.
+    </div>
+  </div>
+
+  <!-- AI FEATURES -->
+  <h2 id="ai">AI features &amp; keys</h2>
+  <p>PokerHQ has four optional AI features. They're powered by your own API keys, managed in one place: <strong>IMPROVE → ♥ Strategy → 🤖 AI Assistant</strong>.</p>
+  <table>
+    <thead><tr><th>Feature</th><th>Where</th><th>Key used</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Voice recording → transcript</strong></td><td>Hands → 🎙 Voice to Hand → 🎤 Record</td><td><span class="badge badge-blue">OpenAI</span> (Whisper)</td></tr>
+      <tr><td><strong>Structure a transcript into a hand</strong></td><td>Voice to Hand → ✨ Structure with AI</td><td><span class="badge badge-purple">Anthropic</span> (Claude)</td></tr>
+      <tr><td><strong>AI-enhanced session debrief</strong></td><td>Review → open a session → ENHANCE WITH AI</td><td><span class="badge badge-purple">Anthropic</span> (Claude)</td></tr>
+      <tr><td><strong>AI poker research</strong></td><td>IMPROVE → ♥ Strategy → 🔎 AI Poker Research</td><td><span class="badge badge-purple">Anthropic</span> (Claude) + web search</td></tr>
+    </tbody>
+  </table>
+  <div class="callout warning">
+    <span class="callout-icon">🔐</span>
+    <div class="callout-body">
+      <strong>Keys are per device, by design</strong>
+      API keys are stored only in that device's local storage — never synced, never shared, never in the cloud. You enter them once on your laptop and once on your phone. Clearing a device's browser data clears its keys, so you'd re-enter them; <strong>TEST CONNECTION</strong> is the quick way to confirm.
+    </div>
+  </div>
+
+  <!-- TREASURY -->
+  <h2 id="treasury">Treasury &amp; staking</h2>
+  <p><strong>TREASURY → 💼</strong> separates your <strong>wallet</strong> (all your poker money) from your <strong>bankroll</strong> (the part in play), and records every movement in a typed ledger.</p>
+  <table>
+    <thead><tr><th>Transaction</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Deposit / Withdrawal</strong></td><td>Money in or out of your wallet — use a Deposit to set your starting balance</td></tr>
+      <tr><td><strong>Bankroll Top-up / Pullout</strong></td><td>Moves money between wallet and the bankroll that's in play</td></tr>
+      <tr><td><strong>Staking Received / Payout</strong></td><td>Backer money in, and settlements out</td></tr>
+      <tr><td><strong>Expense</strong></td><td>Travel, food, hotel — money spent that isn't a buy-in</td></tr>
+      <tr><td><strong>Adjustment</strong></td><td>A manual correction to reconcile the wallet</td></tr>
+    </tbody>
+  </table>
+  <div class="callout tip">
+    <span class="callout-icon">🤝</span>
+    <div class="callout-body">
+      <strong>Backer settlement reports</strong>
+      If you sell action, the staking fields on each session feed a <strong>backer package report</strong> you can export as a PDF — per-backer cost, share, and net for a whole festival package. Find it under the staking summary on the Log Session tab.
+    </div>
+  </div>
+
+  <!-- EDIT & UNDO -->
+  <h2 id="edit">Editing &amp; undo</h2>
+  <p>Nothing in PokerHQ is permanent on a single tap.</p>
+  <ul>
+    <li><strong>Edit anything</strong> — sessions, hands, tournaments, opponents, and satellites all have a <strong>✎</strong> button. Editing a session re-opens the full form with every field pre-filled, and correcting a prize or buy-in <strong>adjusts your bankroll by the difference</strong> automatically.</li>
+    <li><strong>Undo a delete</strong> — deleting anything shows an <strong>↩ UNDO</strong> toast for six seconds. Tap it and the record comes back exactly where it was; for sessions, the bankroll change reverses too.</li>
+    <li><strong>Clear in bulk</strong> — <strong>↺ CLEAR ALL SESSIONS</strong> wipes every session and reverses their combined effect on your bankroll, and <strong>↺ RESET WALLET</strong> zeroes the wallet and its ledger. Both ask first and both show an <strong>↩ UNDO</strong> toast.</li>
+  </ul>
+
+  <!-- BACKUP -->
+  <h2 id="backup">Backup &amp; exports</h2>
+  <table>
+    <thead><tr><th>Export</th><th>Where</th><th>Use it for</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Weekly Report (PDF)</strong></td><td>Top bar — <strong>⬇ WEEKLY REPORT</strong></td><td>A printable snapshot: bankroll, career stats, recent sessions, staking, and notes</td></tr>
+      <tr><td><strong>Sessions (CSV)</strong></td><td>PLAY → Log Session — <strong>EXPORT CSV</strong></td><td>Open your full session log in Excel, Numbers, or Sheets</td></tr>
+      <tr><td><strong>JSON Backup / Restore</strong></td><td>PLAY → Log Session</td><td>A complete, portable copy of your data you can re-import anytime</td></tr>
+      <tr><td><strong>Backer Package (PDF)</strong></td><td>Staking summary</td><td>Per-backer settlement statements for sold action</td></tr>
+      <tr><td><strong>Calendar (.ics)</strong></td><td>PLAN → Calendar — <strong>⤓ EXPORT .ICS</strong></td><td>Import upcoming target events into Google/Apple Calendar for reminders</td></tr>
+    </tbody>
+  </table>
+  <div class="callout info">
+    <span class="callout-icon">☁️</span>
+    <div class="callout-body">
+      <strong>Your data is already backed up</strong>
+      Everything syncs to your account in the cloud and to every device you sign in on. The JSON backup is an extra belt-and-braces copy — handy before a big import or a bulk reset.
+    </div>
+  </div>
+
+  <!-- FAQ -->
+  <h2 id="faq">Common questions</h2>
+
+  <details>
+    <summary>How do I mark which events I'm actually going to play?</summary>
+    <div class="faq-body"><p>In <strong>PLAN → Calendar</strong>, switch to the <strong>list view</strong> and tap the <strong>☆</strong> on any event to pin it (★). Pinned events gather in the <strong>★ Playing These</strong> card at the top of the calendar with a running buy-in total, and the soonest one shows in a <strong>"Planning to play"</strong> block on HOME. Use the <strong>★ PLANNED ONLY</strong> toggle to filter the whole calendar to just your picks.</p></div>
+  </details>
+
+  <details>
+    <summary>What's the difference between a TARGET grade and pinning an event?</summary>
+    <div class="faq-body"><p>They answer different questions. The <strong>grade</strong> (TARGET / STRETCH / SKIP) is automatic and answers <em>"can I afford this under my bankroll rule?"</em> <strong>Pinning</strong> (★) is your own choice and answers <em>"have I decided to play it?"</em> You can pin a STRETCH event you're committed to, or leave a TARGET unpinned if you're not traveling for it. Pinning never changes the grade.</p></div>
+  </details>
+
+  <details>
+    <summary>I pinned an event but it disappeared from the shortlist.</summary>
+    <div class="faq-body"><p>The <strong>★ Playing These</strong> card and the HOME "Planning to play" block only show <strong>upcoming</strong> pinned events — once an event's date has passed it drops off automatically, even though it stays pinned in the full list. The card is meant to show what's still ahead of you.</p></div>
+  </details>
+
+  <details>
+    <summary>How do I get updates — do I need to refresh?</summary>
+    <div class="faq-body"><p>PokerHQ updates itself. When a new version is deployed, a gold <strong>"Update available · Reload"</strong> banner appears in the app — click <strong>Reload</strong> and you're on the latest. You can keep using the current version until you're ready; nothing is lost.</p></div>
+  </details>
+
+  <details>
+    <summary>I signed in but the app is empty / says access denied.</summary>
+    <div class="faq-body"><p>You're signed in with a different Google account than the one your data is under. Click the sign-out button in the top bar and sign back in with the correct account. Your data is safe — it's tied to the right account, not lost.</p></div>
+  </details>
+
+  <details>
+    <summary>Why is my target event graded SKIP?</summary>
+    <div class="faq-body"><p>Its buy-in is above your <strong>stretch</strong> limit (bankroll ÷ 9 on the Standard rule). That's the app telling you a direct buy-in is outside disciplined bankroll management. The move is a satellite — log the cheaper qualifier under <strong>PLAN → Satellites</strong> and chase the seat instead.</p></div>
+  </details>
+
+  <details>
+    <summary>Do I need API keys to use PokerHQ?</summary>
+    <div class="faq-body"><p>No. Everything — planning, sessions, typed hand capture, review, heatmaps, treasury, the local session debrief — works without any key. Keys only power the optional AI features: an <strong>Anthropic</strong> key for hand-structuring and the AI-enhanced debrief, and an <strong>OpenAI</strong> key for the 🎤 voice recorder.</p></div>
+  </details>
+
+  <details>
+    <summary>Can PokerHQ email me before a tournament?</summary>
+    <div class="faq-body"><p>Yes. On <strong>PLAN → Calendar</strong>, open the <strong>Email Reminders</strong> card, tick <strong>Email me before target events</strong>, and choose how many days ahead. PokerHQ emails your account address before each upcoming TARGET and STRETCH event — once each, even when the app is closed. Prefer your own calendar? <strong>⤓ EXPORT .ICS</strong> imports the same events with reminders built in.</p></div>
+  </details>
+
+  <details>
+    <summary>Will it work at the casino with no signal?</summary>
+    <div class="faq-body"><p>Yes. Once loaded (and especially once installed), PokerHQ runs offline. Anything you log while offline is saved on the device and syncs automatically the moment you're back online — the sync indicator in the top bar shows the current state.</p></div>
+  </details>
+
+  <details>
+    <summary>What's the difference between my wallet and my bankroll?</summary>
+    <div class="faq-body"><p>The <strong>wallet</strong> is all your poker money; the <strong>bankroll</strong> is the slice currently in play that buy-in recommendations are based on. Move money between them with Treasury <strong>Top-up</strong> and <strong>Pullout</strong> transactions — for example, pull profit out to your wallet after a big cash to keep your in-play roll disciplined.</p></div>
+  </details>
+
+  <div class="footer">
+    <p>PokerHQ · Tournament Intelligence &nbsp;·&nbsp; Plan → Play → Review → Improve. Load demo data anytime to explore without touching your real numbers.</p>
+  </div>
+
+ </div>
+</div>
+
 <!-- ════════════════════ OPPONENTS PAGE ════════════════════ -->
 <div class="page" id="page-opponents">
   <div class="sec-hdr">
@@ -1277,22 +1815,22 @@
   </div>
 </div>
 
-<script src="./js/data/config-runtime.js?v=20260623b"></script>
-<script src="./js/features/active-session.js?v=20260623b"></script>
-<script src="./js/features/demo-mode.js?v=20260623b"></script>
-<script src="./js/features/calculator.js?v=20260623b"></script>
-<script src="./js/features/staking.js?v=20260623b"></script>
-<script src="./js/features/package-report.js?v=20260623b"></script>
-<script src="./js/features/review.js?v=20260623b"></script>
-<script src="./js/features/calendar.js?v=20260623b"></script>
-<script src="./js/features/study-loop.js?v=20260623b"></script>
-<script src="./js/features/strategy.js?v=20260623b"></script>
-<script src="./js/features/hands.js?v=20260623b"></script>
-<script src="./js/features/treasury.js?v=20260623b"></script>
-<script src="./js/features/bankroll-chart.js?v=20260623b"></script>
-<script src="./js/features/library.js?v=20260623b"></script>
-<script src="./js/features/onboarding.js?v=20260623b"></script>
-<script src="./js/features/today-glance.js?v=20260623b"></script>
+<script src="./js/data/config-runtime.js?v=20260623c"></script>
+<script src="./js/features/active-session.js?v=20260623c"></script>
+<script src="./js/features/demo-mode.js?v=20260623c"></script>
+<script src="./js/features/calculator.js?v=20260623c"></script>
+<script src="./js/features/staking.js?v=20260623c"></script>
+<script src="./js/features/package-report.js?v=20260623c"></script>
+<script src="./js/features/review.js?v=20260623c"></script>
+<script src="./js/features/calendar.js?v=20260623c"></script>
+<script src="./js/features/study-loop.js?v=20260623c"></script>
+<script src="./js/features/strategy.js?v=20260623c"></script>
+<script src="./js/features/hands.js?v=20260623c"></script>
+<script src="./js/features/treasury.js?v=20260623c"></script>
+<script src="./js/features/bankroll-chart.js?v=20260623c"></script>
+<script src="./js/features/library.js?v=20260623c"></script>
+<script src="./js/features/onboarding.js?v=20260623c"></script>
+<script src="./js/features/today-glance.js?v=20260623c"></script>
 <script>
 // ── PWA INSTALL — captures the browser install prompt like Enclave ──
 var _deferredInstallPrompt = null;
@@ -1971,6 +2509,15 @@ function switchGroup(group, page) {
     return;
   }
 
+  // HELP is standalone like HOME — a single guide page, no sub-tab row.
+  if (group === 'help') {
+    document.getElementById('subtab-bar').classList.remove('open');
+    document.getElementById('mobile-subtab-strip').classList.remove('open');
+    switchTab('help');
+    window.scrollTo(0,0);
+    return;
+  }
+
   // Show desktop sub-tab bar and activate this group's sub-tabs
   document.getElementById('subtab-bar').classList.add('open');
   document.querySelectorAll('.subtab-group').forEach(function(g){ g.classList.remove('active'); });
@@ -2305,6 +2852,9 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
   </button>
   <button class="mobile-tab" id="mob-improve" onclick="switchGroup('improve')">
     <span class="mobile-tab-icon">🧠</span>IMPROVE
+  </button>
+  <button class="mobile-tab" id="mob-help" onclick="switchGroup('help')">
+    <span class="mobile-tab-icon">❓</span>HELP
   </button>
 </div>
 
