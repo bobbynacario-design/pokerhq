@@ -21,7 +21,10 @@ function initOpponentFeature() {
 function isSatelliteTourney(t) {
   if (!t) return false;
   var hay = [t.name, t.structure, t.notes].join(' ').toLowerCase();
-  return /satellite|satty|qualif|win (a|your) seat|\bseats?\b|feeder|mega ?sat|super ?sat|\bsats?\b|step \d/.test(hay);
+  // Match only clear satellite/qualifier signals. Deliberately NOT matching a
+  // bare "seat"/"sat" — those leak in side events ("Sat" for Saturday, "12 seats
+  // guaranteed" in notes). A satellite must actually say so.
+  return /satellite|satty|qualif|win (a|your) seat|seat scramble|feeder|mega ?sat\b|super ?sat\b|step \d/.test(hay);
 }
 
 // Calendar events as picker options — deduped by name, soonest first when a date
@@ -49,6 +52,9 @@ function collectEventOptions(predicate) {
 }
 function getCalendarEventOptions() { return collectEventOptions(null); }
 function getSatelliteEventOptions() { return collectEventOptions(isSatelliteTourney); }
+// The inverse: the Main/big events you'd chase a seat into — everything that
+// isn't itself a satellite. Feeds the "Target Event" pickers.
+function getTargetEventOptions() { return collectEventOptions(function (t) { return !isSatelliteTourney(t); }); }
 
 // Render <option>s (value + a ₱buy-in · venue label) for a datalist.
 function eventOptionsHtml(opts) {
@@ -59,22 +65,24 @@ function eventOptionsHtml(opts) {
   }).join('');
 }
 
-// Fill the satellite-events datalist that every event picker on the Satellites
-// tab reads from — satellites/qualifiers only, so the suggestions never include
-// the Main/side events. You can still free-type a custom name in any field.
+// Fill the two datalists the Satellites tab reads from: the Satellite Name field
+// uses satellites/qualifiers only, while the "Target Event" fields use the
+// Main/big events you'd win a seat into. You can still free-type in any field.
 function populateCalendarEventsDatalist() {
   var sdl = document.getElementById('calendar-satellites-list');
   if (sdl) sdl.innerHTML = eventOptionsHtml(getSatelliteEventOptions());
+  var tdl = document.getElementById('calendar-targets-list');
+  if (tdl) tdl.innerHTML = eventOptionsHtml(getTargetEventOptions());
 }
 
-// When the typed/picked target matches a satellite event, pull its buy-in in as
+// When the typed/picked target matches a calendar event, pull its buy-in in as
 // the direct buy-in (the figure the "vs direct" savings is measured against).
 function onSatTargetEventInput() {
   var nameEl = document.getElementById('sat-target-input');
   var buyinEl = document.getElementById('sat-target-buyin-input');
   if (!nameEl || !buyinEl) return;
   var typed = nameEl.value.trim().toLowerCase();
-  var match = getSatelliteEventOptions().filter(function (o) { return o.name.toLowerCase() === typed; })[0];
+  var match = getCalendarEventOptions().filter(function (o) { return o.name.toLowerCase() === typed; })[0];
   if (match && match.buyin) buyinEl.value = match.buyin;
 }
 
