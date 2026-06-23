@@ -20,10 +20,12 @@ function initOpponentFeature() {
 // list only feeders and not the Main/side events they feed into.
 function isSatelliteTourney(t) {
   if (!t) return false;
-  var hay = [t.name, t.structure, t.notes].join(' ').toLowerCase();
-  // Match only clear satellite/qualifier signals. Deliberately NOT matching a
-  // bare "seat"/"sat" — those leak in side events ("Sat" for Saturday, "12 seats
-  // guaranteed" in notes). A satellite must actually say so.
+  // Explicit "Satellite / Qualifier" structure tag wins — the reliable signal.
+  if (/satellite|qualif/i.test(t.structure || '')) return true;
+  // Otherwise fall back to clear name/notes signals (covers imported events).
+  // Deliberately NOT matching a bare "seat"/"sat" — those leak in side events
+  // ("Sat" for Saturday, "12 seats guaranteed" in notes). It must actually say so.
+  var hay = [t.name, t.notes].join(' ').toLowerCase();
   return /satellite|satty|qualif|win (a|your) seat|seat scramble|feeder|mega ?sat\b|super ?sat\b|step \d/.test(hay);
 }
 
