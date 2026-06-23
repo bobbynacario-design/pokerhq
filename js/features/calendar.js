@@ -357,6 +357,29 @@ var calView = 'month';
 var calYear = new Date().getFullYear();
 var calMonth = new Date().getMonth();
 
+// When on, the month and list views show only the events you've pinned (★).
+// The "Playing These" shortlist card is unaffected — it always shows your picks.
+var calPlannedOnly = false;
+
+// The events both calendar views should render — all tourneys, or just the
+// pinned ones when the "Planned only" filter is active.
+function visibleTourneys() {
+  return calPlannedOnly
+    ? (tourneys || []).filter(function (t) { return t && t.planning; })
+    : (tourneys || []);
+}
+
+function togglePlannedOnly() {
+  calPlannedOnly = !calPlannedOnly;
+  var btn = document.getElementById('vbtn-planned');
+  if (btn) {
+    btn.classList.toggle('active', calPlannedOnly);
+    btn.setAttribute('aria-pressed', String(calPlannedOnly));
+  }
+  renderCalendarMonth();
+  renderCalendarList();
+}
+
 function setView(v) {
   calView = v;
   document.getElementById('cal-month-view').style.display = v === 'month' ? 'block' : 'none';
@@ -463,7 +486,7 @@ function renderCalendarMonth() {
   var daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
   var daysInPrev = new Date(calYear, calMonth, 0).getDate();
 
-  var tourneyRanges = tourneys.map(function(t) {
+  var tourneyRanges = visibleTourneys().map(function(t) {
     var range = parseTourneyDateRange(t);
     return range ? { t: t, start: range.start, end: range.end } : null;
   }).filter(Boolean);
@@ -548,14 +571,17 @@ window.collapseAllSeries = function () { setAllSeries(true); };
 function renderCalendarList() {
   var el = document.getElementById('calendar-list');
   if (!el) return;
-  if (!tourneys.length) {
-    el.innerHTML = '<div style="padding:3rem;text-align:center;color:rgba(255,255,255,.2);font-family:var(--mono);font-size:13px">No tournaments added. Click + ADD TOURNAMENT to start.</div>';
+  var list = visibleTourneys();
+  if (!list.length) {
+    el.innerHTML = calPlannedOnly
+      ? '<div style="padding:3rem;text-align:center;color:rgba(255,255,255,.2);font-family:var(--mono);font-size:13px">No events pinned yet. Tap the ☆ on an event to add it to your plan.</div>'
+      : '<div style="padding:3rem;text-align:center;color:rgba(255,255,255,.2);font-family:var(--mono);font-size:13px">No tournaments added. Click + ADD TOURNAMENT to start.</div>';
     return;
   }
 
   var seriesMap = {};
   var seriesOrder = [];
-  tourneys.forEach(function(t) {
+  list.forEach(function(t) {
     var key = t.series || t.name;
     if (!seriesMap[key]) {
       seriesMap[key] = [];
