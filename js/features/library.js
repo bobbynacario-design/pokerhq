@@ -15,14 +15,24 @@ function initOpponentFeature() {
   window.opponents = opponents;
 }
 
-// Calendar events offered as satellite targets — deduped by name, soonest
-// first when a date is parseable, so the most relevant events surface at the
-// top of the picker. The buy-in rides along so it can auto-fill the target.
-function getCalendarEventOptions() {
+// Is this calendar event a satellite / seat-qualifier? Checks name, structure,
+// and notes for the usual ways these get labelled, so the Satellite Name picker
+// lists only feeders and not the Main Events they feed into.
+function isSatelliteTourney(t) {
+  if (!t) return false;
+  var hay = [t.name, t.structure, t.notes].join(' ').toLowerCase();
+  return /satellite|qualif|win (a|your) seat|seat scramble|feeder|mega ?sat|super ?sat|\bsat\b|step \d/.test(hay);
+}
+
+// Calendar events as picker options — deduped by name, soonest first when a date
+// is parseable, with buy-in/venue along for auto-fill. Pass a predicate to
+// narrow the list (e.g. satellites only).
+function collectEventOptions(predicate) {
   var list = window.tourneys || [];
   var seen = {}, out = [];
   list.forEach(function (t) {
     if (!t || !t.name) return;
+    if (predicate && !predicate(t)) return;
     var key = t.name.toLowerCase();
     if (seen[key]) return;
     seen[key] = true;
@@ -37,17 +47,26 @@ function getCalendarEventOptions() {
   });
   return out;
 }
+function getCalendarEventOptions() { return collectEventOptions(null); }
+function getSatelliteEventOptions() { return collectEventOptions(isSatelliteTourney); }
 
-// Fill the shared datalist the satellite target + "for event" fields read from,
-// so you can pick a tournament straight off your calendar instead of retyping.
-function populateCalendarEventsDatalist() {
-  var dl = document.getElementById('calendar-events-list');
-  if (!dl) return;
-  dl.innerHTML = getCalendarEventOptions().map(function (o) {
+// Render <option>s (value + a ₱buy-in · venue label) for a datalist.
+function eventOptionsHtml(opts) {
+  return opts.map(function (o) {
     var label = o.buyin ? '₱' + o.buyin.toLocaleString() : '';
     if (o.venue) label += (label ? ' · ' : '') + o.venue;
     return '<option value="' + esc(o.name) + '"' + (label ? ' label="' + esc(label) + '"' : '') + '></option>';
   }).join('');
+}
+
+// Fill the datalist the Target Event fields read from (full calendar), and the
+// one the Satellite Name field reads from (satellites/qualifiers only) — so you
+// can pick straight off your calendar instead of retyping.
+function populateCalendarEventsDatalist() {
+  var dl = document.getElementById('calendar-events-list');
+  if (dl) dl.innerHTML = eventOptionsHtml(getCalendarEventOptions());
+  var sdl = document.getElementById('calendar-satellites-list');
+  if (sdl) sdl.innerHTML = eventOptionsHtml(getSatelliteEventOptions());
 }
 
 // When the typed/picked target matches a calendar event, pull its buy-in in as
@@ -59,6 +78,20 @@ function onSatTargetEventInput() {
   var typed = nameEl.value.trim().toLowerCase();
   var match = getCalendarEventOptions().filter(function (o) { return o.name.toLowerCase() === typed; })[0];
   if (match && match.buyin) buyinEl.value = match.buyin;
+}
+
+// When the satellite name matches a satellite event on the calendar, fill in its
+// venue and buy-in (only if those fields are still empty, so manual edits stick).
+function onSatNameInput() {
+  var nameEl = document.getElementById('sat-name');
+  if (!nameEl) return;
+  var typed = nameEl.value.trim().toLowerCase();
+  var match = getSatelliteEventOptions().filter(function (o) { return o.name.toLowerCase() === typed; })[0];
+  if (!match) return;
+  var venueEl = document.getElementById('sat-venue');
+  var buyinEl = document.getElementById('sat-buyin');
+  if (venueEl && match.venue && !venueEl.value) venueEl.value = match.venue;
+  if (buyinEl && match.buyin && !buyinEl.value) buyinEl.value = match.buyin;
 }
 
 function setSatTarget() {
