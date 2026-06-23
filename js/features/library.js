@@ -16,12 +16,12 @@ function initOpponentFeature() {
 }
 
 // Is this calendar event a satellite / seat-qualifier? Checks name, structure,
-// and notes for the usual ways these get labelled, so the Satellite Name picker
-// lists only feeders and not the Main Events they feed into.
+// and notes for the usual ways these get labelled, so the satellite-tab pickers
+// list only feeders and not the Main/side events they feed into.
 function isSatelliteTourney(t) {
   if (!t) return false;
   var hay = [t.name, t.structure, t.notes].join(' ').toLowerCase();
-  return /satellite|qualif|win (a|your) seat|seat scramble|feeder|mega ?sat|super ?sat|\bsat\b|step \d/.test(hay);
+  return /satellite|satty|qualif|win (a|your) seat|\bseats?\b|feeder|mega ?sat|super ?sat|\bsats?\b|step \d/.test(hay);
 }
 
 // Calendar events as picker options — deduped by name, soonest first when a date
@@ -59,24 +59,22 @@ function eventOptionsHtml(opts) {
   }).join('');
 }
 
-// Fill the datalist the Target Event fields read from (full calendar), and the
-// one the Satellite Name field reads from (satellites/qualifiers only) — so you
-// can pick straight off your calendar instead of retyping.
+// Fill the satellite-events datalist that every event picker on the Satellites
+// tab reads from — satellites/qualifiers only, so the suggestions never include
+// the Main/side events. You can still free-type a custom name in any field.
 function populateCalendarEventsDatalist() {
-  var dl = document.getElementById('calendar-events-list');
-  if (dl) dl.innerHTML = eventOptionsHtml(getCalendarEventOptions());
   var sdl = document.getElementById('calendar-satellites-list');
   if (sdl) sdl.innerHTML = eventOptionsHtml(getSatelliteEventOptions());
 }
 
-// When the typed/picked target matches a calendar event, pull its buy-in in as
+// When the typed/picked target matches a satellite event, pull its buy-in in as
 // the direct buy-in (the figure the "vs direct" savings is measured against).
 function onSatTargetEventInput() {
   var nameEl = document.getElementById('sat-target-input');
   var buyinEl = document.getElementById('sat-target-buyin-input');
   if (!nameEl || !buyinEl) return;
   var typed = nameEl.value.trim().toLowerCase();
-  var match = getCalendarEventOptions().filter(function (o) { return o.name.toLowerCase() === typed; })[0];
+  var match = getSatelliteEventOptions().filter(function (o) { return o.name.toLowerCase() === typed; })[0];
   if (match && match.buyin) buyinEl.value = match.buyin;
 }
 
