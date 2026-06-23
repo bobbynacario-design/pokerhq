@@ -13,8 +13,8 @@
 <title>PokerHQ — Tournament Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script type="module" src="./js/app.js?v=20260623c"></script>
-<link rel="stylesheet" href="./styles/app.css?v=20260623c">
+<script type="module" src="./js/app.js?v=20260623d"></script>
+<link rel="stylesheet" href="./styles/app.css?v=20260623d">
 </head>
 <body>
 <!-- LOGIN GATE — shown until Firebase auth resolves a signed-in user -->
@@ -861,15 +861,19 @@
     <div class="form-grid">
       <div class="form-group">
         <label class="form-label">Target Event</label>
-        <input class="form-input" type="text" id="sat-target-input" placeholder="e.g. Okada Manila Millions Main Event">
+        <input class="form-input" type="text" id="sat-target-input" list="calendar-events-list" oninput="onSatTargetEventInput()" placeholder="Pick from your calendar, or type one…">
       </div>
       <div class="form-group">
         <label class="form-label">Direct Buy-in (₱)</label>
         <input class="form-input" type="number" id="sat-target-buyin-input" placeholder="e.g. 7500">
       </div>
     </div>
-    <button class="sec-action primary" onclick="setSatTarget()" style="margin-top:.5rem">SET TARGET ↗</button>
+    <div class="tip" style="margin-top:.6rem">Choose an event from your <strong>Calendar</strong> to pull its buy-in automatically, or type a custom target.</div>
+    <button class="sec-action primary" onclick="setSatTarget()" style="margin-top:.6rem">SET TARGET ↗</button>
   </div>
+
+  <!-- Shared datalist of calendar events, populated by populateCalendarEventsDatalist() -->
+  <datalist id="calendar-events-list"></datalist>
 
   <div id="satellite-list"></div>
 </div>
@@ -1815,22 +1819,22 @@
   </div>
 </div>
 
-<script src="./js/data/config-runtime.js?v=20260623c"></script>
-<script src="./js/features/active-session.js?v=20260623c"></script>
-<script src="./js/features/demo-mode.js?v=20260623c"></script>
-<script src="./js/features/calculator.js?v=20260623c"></script>
-<script src="./js/features/staking.js?v=20260623c"></script>
-<script src="./js/features/package-report.js?v=20260623c"></script>
-<script src="./js/features/review.js?v=20260623c"></script>
-<script src="./js/features/calendar.js?v=20260623c"></script>
-<script src="./js/features/study-loop.js?v=20260623c"></script>
-<script src="./js/features/strategy.js?v=20260623c"></script>
-<script src="./js/features/hands.js?v=20260623c"></script>
-<script src="./js/features/treasury.js?v=20260623c"></script>
-<script src="./js/features/bankroll-chart.js?v=20260623c"></script>
-<script src="./js/features/library.js?v=20260623c"></script>
-<script src="./js/features/onboarding.js?v=20260623c"></script>
-<script src="./js/features/today-glance.js?v=20260623c"></script>
+<script src="./js/data/config-runtime.js?v=20260623d"></script>
+<script src="./js/features/active-session.js?v=20260623d"></script>
+<script src="./js/features/demo-mode.js?v=20260623d"></script>
+<script src="./js/features/calculator.js?v=20260623d"></script>
+<script src="./js/features/staking.js?v=20260623d"></script>
+<script src="./js/features/package-report.js?v=20260623d"></script>
+<script src="./js/features/review.js?v=20260623d"></script>
+<script src="./js/features/calendar.js?v=20260623d"></script>
+<script src="./js/features/study-loop.js?v=20260623d"></script>
+<script src="./js/features/strategy.js?v=20260623d"></script>
+<script src="./js/features/hands.js?v=20260623d"></script>
+<script src="./js/features/treasury.js?v=20260623d"></script>
+<script src="./js/features/bankroll-chart.js?v=20260623d"></script>
+<script src="./js/features/library.js?v=20260623d"></script>
+<script src="./js/features/onboarding.js?v=20260623d"></script>
+<script src="./js/features/today-glance.js?v=20260623d"></script>
 <script>
 // ── PWA INSTALL — captures the browser install prompt like Enclave ──
 var _deferredInstallPrompt = null;
@@ -2635,7 +2639,7 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
       </div>
       <div class="form-group">
         <label class="form-label">Target Event</label>
-        <input class="form-input" type="text" id="sat-for" placeholder="e.g. Okada Manila Millions ME">
+        <input class="form-input" type="text" id="sat-for" list="calendar-events-list" placeholder="Pick from your calendar, or type one…">
       </div>
     </div>
     <div class="form-group" style="margin-bottom:1rem;margin-top:.5rem">

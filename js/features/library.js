@@ -15,6 +15,52 @@ function initOpponentFeature() {
   window.opponents = opponents;
 }
 
+// Calendar events offered as satellite targets — deduped by name, soonest
+// first when a date is parseable, so the most relevant events surface at the
+// top of the picker. The buy-in rides along so it can auto-fill the target.
+function getCalendarEventOptions() {
+  var list = window.tourneys || [];
+  var seen = {}, out = [];
+  list.forEach(function (t) {
+    if (!t || !t.name) return;
+    var key = t.name.toLowerCase();
+    if (seen[key]) return;
+    seen[key] = true;
+    var range = (typeof parseTourneyDateRange === 'function') ? parseTourneyDateRange(t) : null;
+    out.push({ name: t.name, buyin: t.buyin || 0, venue: t.venue || '', start: range && range.start ? range.start.getTime() : null });
+  });
+  out.sort(function (a, b) {
+    if (a.start == null && b.start == null) return 0;
+    if (a.start == null) return 1;
+    if (b.start == null) return -1;
+    return a.start - b.start;
+  });
+  return out;
+}
+
+// Fill the shared datalist the satellite target + "for event" fields read from,
+// so you can pick a tournament straight off your calendar instead of retyping.
+function populateCalendarEventsDatalist() {
+  var dl = document.getElementById('calendar-events-list');
+  if (!dl) return;
+  dl.innerHTML = getCalendarEventOptions().map(function (o) {
+    var label = o.buyin ? '₱' + o.buyin.toLocaleString() : '';
+    if (o.venue) label += (label ? ' · ' : '') + o.venue;
+    return '<option value="' + esc(o.name) + '"' + (label ? ' label="' + esc(label) + '"' : '') + '></option>';
+  }).join('');
+}
+
+// When the typed/picked target matches a calendar event, pull its buy-in in as
+// the direct buy-in (the figure the "vs direct" savings is measured against).
+function onSatTargetEventInput() {
+  var nameEl = document.getElementById('sat-target-input');
+  var buyinEl = document.getElementById('sat-target-buyin-input');
+  if (!nameEl || !buyinEl) return;
+  var typed = nameEl.value.trim().toLowerCase();
+  var match = getCalendarEventOptions().filter(function (o) { return o.name.toLowerCase() === typed; })[0];
+  if (match && match.buyin) buyinEl.value = match.buyin;
+}
+
 function setSatTarget() {
   var name = document.getElementById('sat-target-input').value.trim();
   var buyin = parseFloat(document.getElementById('sat-target-buyin-input').value) || 0;
@@ -34,6 +80,7 @@ function setSatelliteModalTitle(text) {
 
 function openNewSatelliteModal() {
   _editingSatId = null;
+  populateCalendarEventsDatalist();
   setSatelliteModalTitle('Log Satellite');
   ['sat-name', 'sat-venue', 'sat-buyin', 'sat-for', 'sat-notes'].forEach(function(id) {
     var el = document.getElementById(id);
@@ -49,6 +96,7 @@ function openNewSatelliteModal() {
 function editSatellite(id) {
   var s = satellites.find(function(x) { return x.id === id; });
   if (!s) return;
+  populateCalendarEventsDatalist();
   document.getElementById('sat-date').value = s.date || '';
   document.getElementById('sat-name').value = s.name || '';
   document.getElementById('sat-venue').value = s.venue || '';
@@ -116,6 +164,7 @@ function deleteSatellite(id) {
 }
 
 function renderSatellites() {
+  populateCalendarEventsDatalist();
   var played = satellites.length;
   var won = satellites.filter(function(s) { return s.result === 'won'; }).length;
   var invested = satellites.reduce(function(a, s) { return a + s.buyin; }, 0);
