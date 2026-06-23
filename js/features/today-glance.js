@@ -83,6 +83,14 @@
     return p(Math.floor(s / 3600)) + ':' + p(Math.floor((s % 3600) / 60)) + ':' + p(s % 60);
   }
 
+  // The soonest event flagged "planning to play" on the calendar, independent of
+  // the day's auto-surfaced slate. Reuses the calendar helper when loaded.
+  function nextPlanned() {
+    if (typeof window.getUpcomingPlannedTourneys !== 'function') return null;
+    var arr = window.getUpcomingPlannedTourneys();
+    return arr.length ? arr[0].t : null;
+  }
+
   function curr(n) { return typeof window.fmtCur === 'function' ? window.fmtCur(n) : money(n); }
 
   // Compact monthly-goal bar for the card. Mirrors goalBar() in bankroll-chart.js
@@ -204,6 +212,28 @@
       ? ((dayLabel(day.focus) === 'today' ? "Today's events" : 'Events ' + dayLabel(day.focus)) + ' · ' + events.length)
       : 'Next up';
 
+    // Next pinned event — the user's own "I'm playing this" pick, shown above the
+    // day's slate so it's the first thing read on HOME.
+    var planned = nextPlanned();
+    var plannedHtml = '';
+    if (planned) {
+      var pr = eventRange(planned);
+      var plabel = pr ? dayLabel(midnight(pr.start)) : '';
+      var pg = gradeOf(planned);
+      var pgl = { target: 'TARGET', stretch: 'STRETCH', skip: 'SKIP' }[pg] || 'SKIP';
+      var pet = eventTime(planned);
+      plannedHtml =
+        '<div class="tg-planned tg-tappable" onclick="jumpToCalendarEvent(' + planned.id + ')">' +
+          '<div class="tg-planned-label">★ Planning to play' + (plabel ? ' · ' + plabel : '') + '</div>' +
+          '<div class="tg-planned-event">' +
+            '<span class="tg-grade tg-grade-' + pg + '">' + pgl + '</span>' +
+            '<span class="tg-planned-name">' + escape(planned.name) + '</span>' +
+            (pet ? '<span class="tg-event-time">' + escape(pet) + '</span>' : '') +
+            '<span class="tg-event-buyin">' + money(planned.buyin) + '</span>' +
+          '</div>' +
+        '</div>';
+    }
+
     var primaryBtn = timer.open
       ? '<button class="tg-btn tg-btn-primary" onclick="switchGroup(\'play\',\'sessions\')">RESUME SESSION ↗</button>'
       : '<button class="tg-btn tg-btn-primary" onclick="switchGroup(\'plan\',\'calendar\')">' + (events.length ? 'OPEN CALENDAR ↗' : 'PLAN AN EVENT ↗') + '</button>';
@@ -221,6 +251,7 @@
             '<div class="tg-stat"><span class="tg-stat-label">Stretch</span><span class="tg-stat-val">' + money(stretch) + '</span></div>' +
             '<div class="tg-stat"><span class="tg-stat-label">Shots</span><span class="tg-stat-val">' + (rec > 0 ? shots + 'x' : '—') + '</span></div>' +
           '</div>' +
+          plannedHtml +
           '<div class="tg-next">' +
             '<div class="tg-next-label">' + dayHeading + (events.length ? '<span class="tg-jump-hint">view in calendar ↗</span>' : '') + '</div>' +
             (events.length ? '<div class="tg-event-list">' + listHtml + '</div>' : '<div class="tg-next-body">Nothing scheduled</div>') +

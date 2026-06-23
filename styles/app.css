@@ -413,6 +413,24 @@ body.light .event-meta{color:rgba(0,0,0,.4)}
 .event-type-badge.main{background:rgba(212,175,55,.15);color:var(--gold);border:1px solid rgba(212,175,55,.25)}
 .event-type-badge.side{background:rgba(52,152,219,.12);color:var(--blue);border:1px solid rgba(52,152,219,.2)}
 
+/* Pin / "planning to play" toggle and pinned-row highlight */
+.pin-btn{background:transparent;border:none;color:rgba(255,255,255,.25);cursor:pointer;font-size:15px;line-height:1;padding:2px 6px;border-radius:4px;transition:all .15s}
+.pin-btn:hover{color:var(--gold);background:var(--gold-dim)}
+.pin-btn.pinned{color:var(--gold)}
+body.light .pin-btn{color:rgba(0,0,0,.25)}
+body.light .pin-btn:hover,body.light .pin-btn.pinned{color:var(--gold)}
+.event-row.planning{border-color:rgba(212,175,55,.45);background:linear-gradient(90deg,var(--gold-dim),var(--bg2))}
+body.light .event-row.planning{background:linear-gradient(90deg,var(--gold-dim),#fff)}
+
+/* "Playing These" shortlist card on the calendar */
+.planned-card{background:linear-gradient(135deg,var(--bg2),var(--bg3));border:1px solid rgba(212,175,55,.25);border-radius:14px;padding:1.25rem 1.5rem;margin-bottom:1.25rem}
+body.light .planned-card{background:linear-gradient(135deg,#FFFFFF,#F5F2EC)}
+.planned-hdr{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem}
+.planned-title{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--gold);text-transform:uppercase;display:flex;align-items:center;gap:.4rem}
+.planned-summary{font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.45)}
+body.light .planned-summary{color:rgba(0,0,0,.45)}
+.planned-list{display:flex;flex-direction:column;gap:.6rem}
+
 /* Calendar bar colors for main vs side */
 .cal-event-bar.main-event-bar{background:rgba(212,175,55,.3);color:#D4AF37;border:1px solid rgba(212,175,55,.4)}
 .cal-event-bar.side-event-bar{background:rgba(52,152,219,.2);color:#5DADE2;border:1px solid rgba(52,152,219,.3)}
@@ -998,6 +1016,12 @@ body.light .tg-idle .tg-verdict-label{ color:rgba(0,0,0,.4); }
 body.light .tg-stat-label{ color:rgba(0,0,0,.4); }
 .tg-stat-val{ font-family:var(--mono); font-size:15px; font-weight:500; color:#fff; }
 body.light .tg-stat-val{ color:#1A1A1A; }
+.tg-planned{ margin-top:.9rem; padding:.7rem .85rem; border:1px solid rgba(212,175,55,.3); border-radius:10px; background:var(--gold-dim); cursor:pointer; transition:border-color .15s; }
+.tg-planned:hover{ border-color:rgba(212,175,55,.55); }
+.tg-planned-label{ font-family:var(--mono); font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--gold); margin-bottom:.45rem; }
+.tg-planned-event{ display:flex; align-items:center; gap:.5rem; }
+.tg-planned-name{ flex:1 1 auto; min-width:0; font-size:13px; color:rgba(255,255,255,.9); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+body.light .tg-planned-name{ color:#1A1A1A; }
 .tg-next{ border-top:1px solid var(--rim); padding-top:.7rem; min-width:0; }
 .tg-next-label{ font-family:var(--mono); font-size:8.5px; letter-spacing:.1em; text-transform:uppercase; color:rgba(255,255,255,.35); margin-bottom:.2rem; }
 body.light .tg-next-label{ color:rgba(0,0,0,.4); }

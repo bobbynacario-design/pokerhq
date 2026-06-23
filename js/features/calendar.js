@@ -61,6 +61,34 @@ function gradeBuyin(buyin) {
   return b <= rec ? 'target' : b <= stretch ? 'stretch' : 'skip';
 }
 
+// ── PLANNED EVENTS — a personal shortlist of events you intend to play ──
+// `planning` is a per-tourney boolean, toggled with the ★ button in the list.
+// It is independent of the bankroll grade (TARGET/STRETCH/SKIP): the grade
+// answers "can I afford it", planning answers "I've decided to play it". Drives
+// the "Playing These" card on the calendar and the next-planned read on HOME.
+function togglePlanning(id) {
+  var t = (window.tourneys || []).find(function (x) { return x.id === id; });
+  if (!t) return;
+  t.planning = !t.planning;
+  window.tourneys = tourneys;
+  save('tourneys', tourneys);
+  renderCalendar();
+  if (typeof renderTodayGlance === 'function') renderTodayGlance();
+}
+
+// Planned events whose end date is today or later, soonest first. Shared by the
+// shortlist card here and the HOME glance (via window).
+function getUpcomingPlannedTourneys() {
+  var todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  return (window.tourneys || []).map(function (t) {
+    if (!t || !t.planning) return null;
+    var range = parseTourneyDateRange(t);
+    return (range && range.end >= todayStart) ? { t: t, range: range } : null;
+  }).filter(Boolean).sort(function (a, b) { return a.range.start - b.range.start; });
+}
+window.getUpcomingPlannedTourneys = getUpcomingPlannedTourneys;
+
 function addTourney() {
   var buyin = parseFloat(document.getElementById('t-buyin').value) || 0;
   var status = gradeBuyin(buyin);
@@ -277,8 +305,52 @@ function deleteTourney(id) {
 }
 
 function renderCalendar() {
+  renderPlannedEvents();
   renderCalendarMonth();
   renderCalendarList();
+}
+
+// The "Playing These" card at the top of the calendar — the events you've
+// pinned, soonest first, with the running buy-in commitment. Empty (and the
+// card hidden) until you pin something.
+function renderPlannedEvents() {
+  var wrap = document.getElementById('planned-events-wrap');
+  if (!wrap) return;
+  var planned = getUpcomingPlannedTourneys();
+  if (!planned.length) { wrap.innerHTML = ''; return; }
+
+  var totalBuyin = planned.reduce(function (s, p) { return s + (parseFloat(p.t.buyin) || 0); }, 0);
+  var html = '<div class="planned-card">';
+  html += '<div class="planned-hdr">';
+  html += '<div class="planned-title"><span>★</span>Playing These</div>';
+  html += '<div class="planned-summary">' + planned.length + ' event' + (planned.length > 1 ? 's' : '') +
+    ' · ₱' + totalBuyin.toLocaleString() + ' committed</div>';
+  html += '</div>';
+  html += '<div class="planned-list">';
+  planned.forEach(function (p) {
+    var t = p.t;
+    var d = p.range.start;
+    var day = d.getDate();
+    var mon = MONTH_SHORT_UPPER[d.getMonth()];
+    var liveStatus = gradeBuyin(t.buyin);
+    var sc = { target: 'ts-target', stretch: 'ts-stretch', skip: 'ts-skip' }[liveStatus] || 'ts-skip';
+    var sl = { target: 'TARGET', stretch: 'STRETCH', skip: 'SKIP' }[liveStatus] || 'SKIP';
+    html += '<div class="event-row planning" id="planned-row-' + t.id + '">';
+    html += '<div class="event-date-box"><div class="event-date-day">' + day + '</div><div class="event-date-mon">' + esc(mon) + '</div></div>';
+    html += '<div class="event-info"><div class="event-name">' + esc(t.name) + '</div>';
+    html += '<div class="event-meta">';
+    if (t.venue) html += '<span>' + esc(t.venue) + '</span>';
+    if (t.gtd) html += '<span>GTD: ' + esc(t.gtd) + '</span>';
+    html += '</div></div>';
+    html += '<div class="event-right">';
+    html += '<div class="event-buyin">₱' + (t.buyin ? Number(t.buyin).toLocaleString() : '0') + '</div>';
+    html += '<span class="tourney-status ' + sc + '">' + sl + '</span>';
+    html += '<button class="sec-action" style="font-size:10px;padding:3px 9px;margin-top:2px;border-color:var(--green);color:var(--green)" onclick="startSessionFromTourney(' + t.id + ')">▶ START SESSION</button>';
+    html += '<button class="pin-btn pinned" title="Remove from your plan" onclick="togglePlanning(' + t.id + ')">★</button>';
+    html += '</div></div>';
+  });
+  html += '</div></div>';
+  wrap.innerHTML = html;
 }
 
 var calView = 'month';
@@ -542,7 +614,7 @@ function renderCalendarList() {
       if (!mon) mon = '?';
 
       var isMain = t.type === 'main';
-      var rowCls = isMain ? 'event-row main-event' : 'event-row side-event';
+      var rowCls = (isMain ? 'event-row main-event' : 'event-row side-event') + (t.planning ? ' planning' : '');
       var badgeCls = isMain ? 'event-type-badge main' : 'event-type-badge side';
       var badgeTxt = isMain ? 'MAIN' : 'SIDE';
       var liveStatus = gradeBuyin(t.buyin);
@@ -563,6 +635,7 @@ function renderCalendarList() {
       html += '<span class="' + badgeCls + '">' + badgeTxt + '</span>';
       html += '<span class="tourney-status ' + sc + '">' + sl + '</span>';
       html += '<button class="sec-action" style="font-size:10px;padding:3px 9px;margin-top:2px;border-color:var(--green);color:var(--green)" onclick="startSessionFromTourney(' + t.id + ')">▶ START SESSION</button>';
+      html += '<button class="pin-btn' + (t.planning ? ' pinned' : '') + '" title="' + (t.planning ? 'Remove from your plan' : 'Add to your plan — mark you\'re playing this') + '" onclick="togglePlanning(' + t.id + ')">' + (t.planning ? '★' : '☆') + '</button>';
       html += '<button class="del-btn" title="Edit tournament" onclick="editTourney(' + t.id + ')">✎</button>';
       html += '<button class="del-btn" onclick="deleteTourney(' + t.id + ')">✕</button>';
       html += '</div></div>';
