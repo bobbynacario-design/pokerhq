@@ -698,9 +698,16 @@ function renderCalendarMonth() {
       var isSolo = isStart && isEnd;
       var pos = isSolo ? 'solo' : isStart ? 'start' : isEnd ? 'end' : 'mid';
       var sc = gradeBuyin(r.t.buyin);
-      var typeBar = r.t.type === 'main' ? 'main-event-bar' : 'side-event-bar';
+      var isSat = (typeof isSatelliteTourney === 'function') && isSatelliteTourney(r.t);
+      var typeBar = isSat ? 'sat-event-bar' : (r.t.type === 'main' ? 'main-event-bar' : 'side-event-bar');
       var name = isStart || isSolo ? r.t.name.substring(0, 14) + (r.t.name.length > 14 ? '…' : '') : '';
-      html += '<div class="cal-event-bar ' + sc + ' ' + pos + ' ' + typeBar + '" title="' + esc(r.t.name) + ' (' + esc(r.t.series) + ') — ₱' + r.t.buyin.toLocaleString() + '">' + esc(name) + '</div>';
+      // Tooltip carries the at-a-glance details (the month bar itself only fits a
+      // truncated name): name · venue · buy-in · structure.
+      var tipBits = [r.t.name];
+      if (r.t.venue) tipBits.push(r.t.venue);
+      if (r.t.buyin) tipBits.push('₱' + Number(r.t.buyin).toLocaleString());
+      if (r.t.structure) tipBits.push(r.t.structure);
+      html += '<div class="cal-event-bar ' + sc + ' ' + pos + ' ' + typeBar + '" title="' + esc(tipBits.join(' · ')) + '">' + esc(name) + '</div>';
     });
     html += '</div>';
   });
@@ -819,10 +826,12 @@ function renderCalendarList() {
       if (!day) day = '?';
       if (!mon) mon = '?';
 
+      var isSat = (typeof isSatelliteTourney === 'function') && isSatelliteTourney(t);
       var isMain = t.type === 'main';
-      var rowCls = (isMain ? 'event-row main-event' : 'event-row side-event') + (t.planning ? ' planning' : '');
-      var badgeCls = isMain ? 'event-type-badge main' : 'event-type-badge side';
-      var badgeTxt = isMain ? 'MAIN' : 'SIDE';
+      var typeCls = isSat ? 'sat-event' : isMain ? 'main-event' : 'side-event';
+      var rowCls = 'event-row ' + typeCls + (t.planning ? ' planning' : '');
+      var badgeCls = isSat ? 'event-type-badge sat' : isMain ? 'event-type-badge main' : 'event-type-badge side';
+      var badgeTxt = isSat ? 'SAT' : isMain ? 'MAIN' : 'SIDE';
       var liveStatus = gradeBuyin(t.buyin);
       var sc = { target: 'ts-target', stretch: 'ts-stretch', skip: 'ts-skip' }[liveStatus] || 'ts-skip';
       var sl = { target: 'TARGET', stretch: 'STRETCH', skip: 'SKIP' }[liveStatus] || 'SKIP';
@@ -832,7 +841,8 @@ function renderCalendarList() {
       html += '<div class="event-info">';
       html += '<div class="event-name">' + esc(t.name) + '</div>';
       html += '<div class="event-meta">';
-      html += '<span>' + esc(t.structure) + '</span>';
+      if (t.venue) html += '<span>' + esc(t.venue) + '</span>';
+      if (t.structure) html += '<span>' + esc(t.structure) + '</span>';
       if (t.gtd) html += '<span>GTD: ' + esc(t.gtd) + '</span>';
       if (t.notes) html += '<span>' + esc(t.notes) + '</span>';
       html += '</div></div>';

@@ -395,6 +395,7 @@ body.light .series-count{color:rgba(0,0,0,.35)}
 .event-row::before{content:'';position:absolute;top:0;left:0;bottom:0;width:3px}
 .event-row.main-event::before{background:var(--gold)}
 .event-row.side-event::before{background:var(--blue)}
+.event-row.sat-event::before{background:var(--purple)}
 .event-row:hover{border-color:var(--rim2)}
 body.light .event-row{background:#fff}
 .event-date-box{background:var(--bg3);border:1px solid var(--rim);border-radius:7px;padding:.4rem .6rem;text-align:center;min-width:44px;flex-shrink:0}
@@ -412,6 +413,7 @@ body.light .event-meta{color:rgba(0,0,0,.4)}
 .event-type-badge{font-family:var(--mono);font-size:8px;padding:2px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:.06em;font-weight:500}
 .event-type-badge.main{background:rgba(212,175,55,.15);color:var(--gold);border:1px solid rgba(212,175,55,.25)}
 .event-type-badge.side{background:rgba(52,152,219,.12);color:var(--blue);border:1px solid rgba(52,152,219,.2)}
+.event-type-badge.sat{background:var(--purple-dim);color:var(--purple);border:1px solid rgba(155,89,182,.3)}
 
 /* Pin / "planning to play" toggle and pinned-row highlight */
 .pin-btn{background:transparent;border:none;color:rgba(255,255,255,.25);cursor:pointer;font-size:15px;line-height:1;padding:2px 6px;border-radius:4px;transition:all .15s}
@@ -434,6 +436,7 @@ body.light .planned-summary{color:rgba(0,0,0,.45)}
 /* Calendar bar colors for main vs side */
 .cal-event-bar.main-event-bar{background:rgba(212,175,55,.22);color:#F2D777;border:1px solid rgba(212,175,55,.5)}
 .cal-event-bar.side-event-bar{background:rgba(52,152,219,.16);color:#8FCFF5;border:1px solid rgba(52,152,219,.45)}
+.cal-event-bar.sat-event-bar{background:rgba(155,89,182,.2);color:#D4A8E8;border:1px solid rgba(155,89,182,.5)}
 
 @media(max-width:768px){
   .event-row{flex-wrap:wrap;gap:.6rem}
