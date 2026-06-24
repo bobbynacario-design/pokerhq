@@ -13,8 +13,8 @@
 <title>PokerHQ — Tournament Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script type="module" src="./js/app.js?v=20260623i"></script>
-<link rel="stylesheet" href="./styles/app.css?v=20260623i">
+<script type="module" src="./js/app.js?v=20260623k"></script>
+<link rel="stylesheet" href="./styles/app.css?v=20260623k">
 </head>
 <body>
 <!-- LOGIN GATE — shown until Firebase auth resolves a signed-in user -->
@@ -626,9 +626,12 @@
     <div style="display:flex;gap:.5rem;flex-wrap:wrap">
       <button class="sec-action" onclick="dedupeTourneys()" title="Remove duplicate tournaments (same date, name and venue)">⧉ DEDUPE</button>
       <button class="sec-action" onclick="exportCalendarICS()" title="Download target events as a calendar file">⤓ EXPORT .ICS</button>
+      <button class="sec-action" id="cal-update-btn" onclick="runCalendarUpdate()" title="Web-search upcoming PH &amp; APAC tournaments and add them — satellites tagged automatically. Uses your Anthropic key; run every 2–3 weeks.">✨ UPDATE EVENTS</button>
       <button class="sec-action primary" onclick="openNewTourneyModal()">+ ADD TOURNAMENT</button>
     </div>
   </div>
+
+  <div id="cal-update-status" class="tip" style="display:none;width:100%;margin-bottom:1rem"></div>
 
   <!-- "Playing These" shortlist — rendered by renderPlannedEvents(); hidden until you pin events -->
   <div id="planned-events-wrap"></div>
@@ -766,15 +769,6 @@
     <button class="sec-action primary" id="ai-research-btn" onclick="runPokerResearch()">🔎 RESEARCH LATEST UPDATES</button>
     <div id="ai-research-status" style="display:none;font-family:var(--mono);font-size:11px;margin-top:.6rem"></div>
     <div id="ai-research-results" style="display:none;margin-top:.9rem"></div>
-  </div>
-
-    <div class="strategy-paste">
-    <div class="form-label" style="margin-bottom:.65rem">IMPORT WEEKLY INTELLIGENCE BRIEFING</div>
-    <textarea id="strategy-raw" placeholder="Paste your weekly briefing here — calendar, news, and strategy update automatically..."></textarea>
-    <div class="form-row" style="margin-top:.75rem">
-      <button class="sec-action primary" onclick="parseGeminiJSON()">LOAD BRIEFING ↗</button>
-      <button class="sec-action" onclick="document.getElementById('strategy-raw').value=''">CLEAR</button>
-    </div>
   </div>
 
   <!-- Manual Strategy Form -->
@@ -1242,11 +1236,11 @@
 
   <!-- STAGE 8 -->
   <h2 id="s8"><span class="step-badge">8</span>&nbsp; Improve</h2>
-  <p><strong>IMPROVE</strong> closes the loop: <strong>♥ Strategy</strong> for notes and weekly briefings, and <strong>👤 Opponents</strong> for villain reads.</p>
+  <p><strong>IMPROVE</strong> closes the loop: <strong>♥ Strategy</strong> for notes and AI poker research, and <strong>👤 Opponents</strong> for villain reads.</p>
   <h3>8.1 — Capture a lesson</h3>
   <ol class="action-list">
     <li><span class="al-num">1</span><div>On <strong>IMPROVE → ♥ Strategy</strong>, add a manual note — give it a week, a topic, and the insight.</div></li>
-    <li><span class="al-num">2</span><div>Or paste a <strong>weekly intelligence briefing</strong> (JSON) into the import box. PokerHQ splits it into calendar events, news, strategy insights, and a spotlight — deduplicating as it goes.</div></li>
+    <li><span class="al-num">2</span><div>Or let AI fill your feeds: <strong>🔎 AI Poker Research</strong> (below) gathers news &amp; strategy, and <strong>PLAN → Calendar → ✨ Update Events</strong> web-searches upcoming tournaments straight onto your calendar — satellites tagged automatically.</div></li>
   </ol>
   <h3>8.2 — Let AI research the poker world</h3>
   <p>On <strong>IMPROVE → ♥ Strategy</strong>, the <strong>🔎 AI Poker Research</strong> card searches the live web for what's worth knowing and files it into your feeds. Pick a <strong>Focus</strong>, run it, and each result is badged <span class="badge badge-green">✓ Verified source</span> or <span class="badge badge-yellow">⚠ Unverified</span>. <strong>+ Save</strong> an item — or <strong>Save All Verified</strong> — to drop it into your news feed or strategy notes with a clickable source link.</p>
@@ -1822,22 +1816,22 @@
   </div>
 </div>
 
-<script src="./js/data/config-runtime.js?v=20260623i"></script>
-<script src="./js/features/active-session.js?v=20260623i"></script>
-<script src="./js/features/demo-mode.js?v=20260623i"></script>
-<script src="./js/features/calculator.js?v=20260623i"></script>
-<script src="./js/features/staking.js?v=20260623i"></script>
-<script src="./js/features/package-report.js?v=20260623i"></script>
-<script src="./js/features/review.js?v=20260623i"></script>
-<script src="./js/features/calendar.js?v=20260623i"></script>
-<script src="./js/features/study-loop.js?v=20260623i"></script>
-<script src="./js/features/strategy.js?v=20260623i"></script>
-<script src="./js/features/hands.js?v=20260623i"></script>
-<script src="./js/features/treasury.js?v=20260623i"></script>
-<script src="./js/features/bankroll-chart.js?v=20260623i"></script>
-<script src="./js/features/library.js?v=20260623i"></script>
-<script src="./js/features/onboarding.js?v=20260623i"></script>
-<script src="./js/features/today-glance.js?v=20260623i"></script>
+<script src="./js/data/config-runtime.js?v=20260623k"></script>
+<script src="./js/features/active-session.js?v=20260623k"></script>
+<script src="./js/features/demo-mode.js?v=20260623k"></script>
+<script src="./js/features/calculator.js?v=20260623k"></script>
+<script src="./js/features/staking.js?v=20260623k"></script>
+<script src="./js/features/package-report.js?v=20260623k"></script>
+<script src="./js/features/review.js?v=20260623k"></script>
+<script src="./js/features/calendar.js?v=20260623k"></script>
+<script src="./js/features/study-loop.js?v=20260623k"></script>
+<script src="./js/features/strategy.js?v=20260623k"></script>
+<script src="./js/features/hands.js?v=20260623k"></script>
+<script src="./js/features/treasury.js?v=20260623k"></script>
+<script src="./js/features/bankroll-chart.js?v=20260623k"></script>
+<script src="./js/features/library.js?v=20260623k"></script>
+<script src="./js/features/onboarding.js?v=20260623k"></script>
+<script src="./js/features/today-glance.js?v=20260623k"></script>
 <script>
 // ── PWA INSTALL — captures the browser install prompt like Enclave ──
 var _deferredInstallPrompt = null;

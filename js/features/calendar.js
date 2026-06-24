@@ -308,6 +308,185 @@ function renderCalendar() {
   renderPlannedEvents();
   renderCalendarMonth();
   renderCalendarList();
+  showCalUpdateLastRun();
+}
+
+// ── AI EVENT UPDATE — one button that web-searches upcoming tournaments and
+// files them onto the calendar, with satellites/qualifiers classified at the
+// source by Claude (no name-guessing, no manual tagging). Meant to be run every
+// couple of weeks. Reuses the same Anthropic web-search plumbing as the Strategy
+// tab's AI research. ──
+var CAL_UPDATE_LAST_KEY = 'pokerhq_cal_update_last';
+
+function setCalUpdateStatus(message, kind) {
+  var el = document.getElementById('cal-update-status');
+  if (!el) return;
+  if (!message) { el.style.display = 'none'; el.textContent = ''; return; }
+  var color = kind === 'ok' ? 'var(--green)' : kind === 'error' ? 'var(--red)' : 'rgba(255,255,255,.55)';
+  el.style.display = 'block';
+  el.style.color = color;
+  el.textContent = message;
+}
+
+// Show when the calendar was last refreshed by the AI — but never stomp on a
+// live status message (only fills the line when it's otherwise empty).
+function showCalUpdateLastRun() {
+  var el = document.getElementById('cal-update-status');
+  if (!el || (el.style.display !== 'none' && el.textContent)) return;
+  var last = '';
+  try { last = localStorage.getItem(CAL_UPDATE_LAST_KEY) || ''; } catch (e) {}
+  if (!last) return;
+  el.style.display = 'block';
+  el.style.color = 'rgba(255,255,255,.4)';
+  el.textContent = 'Last AI event update: ' + last + ' · safe to run every 2–3 weeks.';
+}
+
+function buildCalendarUpdatePrompt() {
+  var today = new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
+  var br = (window.bankroll && window.bankroll.amount) || 0;
+  var rule = (window.bankroll && window.bankroll.rule) || 15;
+  var maxBuyin = rule ? Math.round(br / rule) : 0;
+  var accThreshold = String(maxBuyin || 15000);
+  var rollLine = br
+    ? 'Bob\'s current bankroll is ₱' + br.toLocaleString() + ' on a ' + rule + ' buy-in rule, so his recommended max buy-in is about ₱' + maxBuyin.toLocaleString() + '.'
+    : 'Bob runs a 15 buy-in bankroll rule and targets ₱3,000–₱15,000 buy-in events.';
+  return 'You are Bob\'s personal poker intelligence analyst. Bob is a live MTT player based in Quezon City, Philippines. '
+    + 'He plays weekends at Solaire Resort, Okada Manila, Casino Filipino, and City of Dreams Manila, and tracks the Asia-Pacific tournament circuit. '
+    + rollLine + ' Today is ' + today + '.\n\n'
+    + 'Use web search to thoroughly research UPCOMING tournaments. Search official / organiser sources and verify every event’s date and buy-in from at least one official source before listing it: '
+    + 'Solaire Poker Room, pokerstars.com/live/manila (APPT Manila), okadamanila.com, pokerph.com, Casino Filipino, City of Dreams Manila, '
+    + 'asianpokertour.com (APT), wsop.com/circuit, wpt.com, and Triton. '
+    + 'Do NOT invent events, dates, buy-ins, or guarantees — if you cannot verify it, omit it. '
+    + 'List EACH individual event on its own line (not just series headers). Cover confirmed events for roughly the next 6 weeks — Philippine venues plus Asia-Pacific stops reachable from Manila.\n\n'
+    + 'CLASSIFY each event precisely — this is the most important part:\n'
+    + '• "satellite" = ANY satellite, qualifier, mega/super satellite, feeder, step, or event whose prize is a SEAT or package into a bigger event rather than cash. Set "seatGuaranteed": true for these.\n'
+    + '• "main" = the flagship Main Event of a series.\n'
+    + '• "side" = any other regular cash-prize tournament.\n\n'
+    + 'Convert all buy-ins to Philippine Peso (note the original amount in notes if converted).\n\n'
+    + 'Respond with ONLY a single valid JSON object — no preamble, no explanation, no markdown code fences. Use exactly this shape:\n'
+    + '{"asOf":"' + today + '","events":[{'
+    + '"date":"Month DD, YYYY",'
+    + '"name":"event name",'
+    + '"venue":"full venue name",'
+    + '"buyin":3000,'
+    + '"gtd":"guarantee if known, else empty string",'
+    + '"structure":"Freezeout|Re-entry|Turbo|Deep Stack|Bounty / PKO|Satellite / Qualifier|other",'
+    + '"category":"satellite|main|side",'
+    + '"seatGuaranteed":false,'
+    + '"region":"ph|apac",'
+    + '"accessible":true,'
+    + '"notes":"late reg / flights / re-entry / original currency, etc.",'
+    + '"source":"organiser or publication name",'
+    + '"url":"https://exact-source-url"}]}\n'
+    + '"buyin" MUST be a plain number in PHP (no currency symbol or commas). '
+    + 'Set "accessible": true when the buy-in is at or below ₱' + accThreshold + ' (within direct reach), otherwise false. '
+    + 'The "url" MUST be copied exactly from a search result — never invent or guess one. Return every confirmed event you can verify.';
+}
+
+function importCalendarUpdateEvents(events) {
+  var added = [];
+  (events || []).forEach(function (ev) {
+    if (!ev || !ev.name) return;
+    var bi = parseFloat(ev.buyin) || 0;
+    var cat = String(ev.category || '').toLowerCase();
+    var isSat = cat === 'satellite' || ev.seatGuaranteed === true;
+    var t = {
+      id: Date.now() + Math.random(),
+      date: ev.date || '',
+      name: ev.name,
+      venue: ev.venue || '',
+      buyin: bi,
+      gtd: ev.gtd || '',
+      structure: ev.structure || (isSat ? 'Satellite / Qualifier' : 'Regular'),
+      type: cat === 'main' ? 'main' : 'side',
+      category: isSat ? 'satellite' : cat,   // authoritative satellite tag from Claude
+      sat: isSat,
+      notes: ev.notes || '',
+      source: ev.source || '',
+      url: /^https?:\/\//i.test(ev.url || '') ? ev.url : '',
+      status: (typeof gradeBuyin === 'function') ? gradeBuyin(bi) : 'skip'
+    };
+    var fpOf = (typeof getImportedTourneyFingerprint === 'function')
+      ? getImportedTourneyFingerprint
+      : function (x) { return [(x.date || ''), (x.name || ''), (x.venue || '')].join('|').toLowerCase(); };
+    var fp = fpOf(t);
+    var exists = (window.tourneys || []).some(function (x) { return fpOf(x) === fp; });
+    if (exists) return;
+    window.tourneys.push(t);
+    added.push(t);
+  });
+  if (added.length) {
+    tourneys = window.tourneys;
+    tourneys.sort(function (a, b) { return (a.date || '').localeCompare(b.date || ''); });
+    save('tourneys', tourneys);
+    renderCalendar();
+  }
+  return added;
+}
+
+async function runCalendarUpdate() {
+  var key = (typeof getStoredAnthropicKey === 'function') ? getStoredAnthropicKey() : '';
+  var btn = document.getElementById('cal-update-btn');
+  if (!key) {
+    setCalUpdateStatus('Add your Anthropic API key first — IMPROVE → ♥ Strategy → AI Assistant.', 'error');
+    return;
+  }
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ SEARCHING…'; }
+  setCalUpdateStatus('🔎 Researching upcoming tournaments across PH & APAC… this can take 30–60s.', 'muted');
+  try {
+    var response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-8',
+        max_tokens: 10000,
+        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 12 }],
+        messages: [{ role: 'user', content: buildCalendarUpdatePrompt() }]
+      })
+    });
+    if (!response.ok) {
+      if (response.status === 401) throw new Error('API key was rejected (401) — check it in AI Assistant.');
+      throw new Error('Claude API error (' + response.status + ')');
+    }
+    var data = await response.json();
+    var searchCount = (data.usage && data.usage.server_tool_use && data.usage.server_tool_use.web_search_requests) || 0;
+    var text = (data.content || [])
+      .filter(function (c) { return c.type === 'text'; })
+      .map(function (c) { return c.text || ''; })
+      .join('\n');
+    var parsed = null;
+    try {
+      var js = text.indexOf('{'), je = text.lastIndexOf('}');
+      if (js !== -1 && je !== -1) parsed = JSON.parse(text.substring(js, je + 1));
+    } catch (e) {}
+    if (!parsed || !Array.isArray(parsed.events) || !parsed.events.length) {
+      throw new Error('No usable events came back. Try again in a moment.');
+    }
+    var added = importCalendarUpdateEvents(parsed.events);
+    var asOf = new Date().toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' });
+    try { localStorage.setItem(CAL_UPDATE_LAST_KEY, asOf); } catch (e) {}
+    if (!added.length) {
+      setCalUpdateStatus('✓ Already up to date — every verified event found is on your calendar (' + searchCount + ' searches).', 'ok');
+    } else {
+      var sats = added.filter(function (t) { return isSatelliteTourney(t); }).length;
+      setCalUpdateStatus('✓ Added ' + added.length + ' event(s)' + (sats ? ' · ' + sats + ' satellite/qualifier' : '') + ' from ' + searchCount + ' searches. Review on the calendar.', 'ok');
+      if (typeof showUndoToast === 'function') showUndoToast('Added ' + added.length + ' event(s) from AI update', function () {
+        var ids = {}; added.forEach(function (t) { ids[t.id] = true; });
+        window.tourneys = (window.tourneys || []).filter(function (t) { return !ids[t.id]; });
+        tourneys = window.tourneys;
+        save('tourneys', tourneys);
+        renderCalendar();
+      });
+    }
+  } catch (e) {
+    setCalUpdateStatus('✗ ' + e.message, 'error');
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '✨ UPDATE EVENTS'; }
 }
 
 // The "Playing These" card at the top of the calendar — the events you've

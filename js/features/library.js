@@ -20,7 +20,10 @@ function initOpponentFeature() {
 // list only feeders and not the Main/side events they feed into.
 function isSatelliteTourney(t) {
   if (!t) return false;
-  // Explicit "Satellite / Qualifier" structure tag wins — the reliable signal.
+  // Authoritative tags win, in order of reliability:
+  //   t.sat / t.category — set by Claude's AI event update (it classified it)
+  //   structure "Satellite / Qualifier" — set by you in Add Tournament
+  if (t.sat === true || String(t.category || '').toLowerCase() === 'satellite') return true;
   if (/satellite|qualif/i.test(t.structure || '')) return true;
   // Otherwise fall back to clear name/notes signals (covers imported events).
   // Deliberately NOT matching a bare "seat"/"sat" — those leak in side events
