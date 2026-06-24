@@ -748,14 +748,20 @@ function renderCalendarMonth() {
       var sc = gradeBuyin(r.t.buyin);
       var isSat = (typeof isSatelliteTourney === 'function') && isSatelliteTourney(r.t);
       var typeBar = isSat ? 'sat-event-bar' : (r.t.type === 'main' ? 'main-event-bar' : 'side-event-bar');
-      var name = isStart || isSolo ? r.t.name.substring(0, 14) + (r.t.name.length > 14 ? '…' : '') : '';
+      // Label every segment (not just the start) so a multi-day event's
+      // continuation days aren't unreadable empty slivers. A leading "↳" marks
+      // the continued days.
+      var label = r.t.name.substring(0, 14) + (r.t.name.length > 14 ? '…' : '');
+      var name = (isStart || isSolo) ? label : '↳ ' + label;
       // Tooltip carries the at-a-glance details (the month bar itself only fits a
       // truncated name): name · venue · buy-in · structure.
       var tipBits = [r.t.name];
       if (r.t.venue) tipBits.push(r.t.venue);
       if (r.t.buyin) tipBits.push('₱' + Number(r.t.buyin).toLocaleString());
       if (r.t.structure) tipBits.push(r.t.structure);
-      html += '<div class="cal-event-bar ' + sc + ' ' + pos + ' ' + typeBar + '" title="' + esc(tipBits.join(' · ')) + '">' + esc(name) + '</div>';
+      // Clicking a bar jumps to this event's row in the list view.
+      html += '<div class="cal-event-bar ' + sc + ' ' + pos + ' ' + typeBar + '" title="' + esc(tipBits.join(' · ')) +
+        '" onclick="jumpToCalendarEvent(' + r.t.id + ')">' + esc(name) + '</div>';
     });
     html += '</div>';
   });
