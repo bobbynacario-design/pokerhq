@@ -347,11 +347,11 @@ body.light .cal-day-num{color:rgba(0,0,0,.35)}
 .cal-day.today .cal-day-num{background:var(--gold);color:var(--bg);border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-weight:500}
 .cal-day.other-month .cal-day-num{color:rgba(255,255,255,.12)}
 body.light .cal-day.other-month .cal-day-num{color:rgba(0,0,0,.15)}
-.cal-event-bar{border-radius:3px;padding:1px 4px;font-family:var(--mono);font-size:9px;font-weight:500;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;transition:opacity .15s}
+.cal-event-bar{border-radius:3px;padding:1px 4px;font-family:var(--mono);font-size:10px;font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;transition:opacity .15s}
 .cal-event-bar:hover{opacity:.8}
-.cal-event-bar.target{background:rgba(46,204,113,.25);color:#2ECC71;border:1px solid rgba(46,204,113,.35)}
-.cal-event-bar.stretch{background:rgba(212,175,55,.2);color:#D4AF37;border:1px solid rgba(212,175,55,.3)}
-.cal-event-bar.skip{background:rgba(255,255,255,.07);color:rgba(255,255,255,.4);border:1px solid var(--rim)}
+.cal-event-bar.target{background:rgba(46,204,113,.22);color:#7DE6A6;border:1px solid rgba(46,204,113,.45)}
+.cal-event-bar.stretch{background:rgba(212,175,55,.18);color:#F2D777;border:1px solid rgba(212,175,55,.45)}
+.cal-event-bar.skip{background:rgba(255,255,255,.06);color:rgba(255,255,255,.62);border:1px solid var(--rim)}
 body.light .cal-event-bar.skip{background:rgba(0,0,0,.06);color:rgba(0,0,0,.4)}
 .cal-event-bar.start{border-radius:3px 0 0 3px}
 .cal-event-bar.mid{border-radius:0;border-left:none;border-right:none}
@@ -369,7 +369,7 @@ body.light .view-btn.active{color:var(--gold)}
 @media(max-width:768px){
   .cal-day{min-height:48px;padding:.3rem .2rem}
   .cal-day-num{font-size:10px}
-  .cal-event-bar{font-size:8px;padding:1px 3px}
+  .cal-event-bar{font-size:9px;padding:1px 3px}
 }
 
 /* -- SERIES GROUPING -- */
@@ -432,8 +432,8 @@ body.light .planned-summary{color:rgba(0,0,0,.45)}
 .planned-list{display:flex;flex-direction:column;gap:.6rem}
 
 /* Calendar bar colors for main vs side */
-.cal-event-bar.main-event-bar{background:rgba(212,175,55,.3);color:#D4AF37;border:1px solid rgba(212,175,55,.4)}
-.cal-event-bar.side-event-bar{background:rgba(52,152,219,.2);color:#5DADE2;border:1px solid rgba(52,152,219,.3)}
+.cal-event-bar.main-event-bar{background:rgba(212,175,55,.22);color:#F2D777;border:1px solid rgba(212,175,55,.5)}
+.cal-event-bar.side-event-bar{background:rgba(52,152,219,.16);color:#8FCFF5;border:1px solid rgba(52,152,219,.45)}
 
 @media(max-width:768px){
   .event-row{flex-wrap:wrap;gap:.6rem}

@@ -20,16 +20,20 @@ function initOpponentFeature() {
 // list only feeders and not the Main/side events they feed into.
 function isSatelliteTourney(t) {
   if (!t) return false;
-  // Authoritative tags win, in order of reliability:
-  //   t.sat / t.category — set by Claude's AI event update (it classified it)
-  //   structure "Satellite / Qualifier" — set by you in Add Tournament
-  if (t.sat === true || String(t.category || '').toLowerCase() === 'satellite') return true;
+  // If Claude's AI event update classified this, TRUST that classification and
+  // do not second-guess it. An explicit category ('satellite' | 'side' | 'main')
+  // is authoritative — otherwise a side event whose notes mention "satellites
+  // available" or "qualify via…" would wrongly leak into the satellite picker.
+  if (t.sat === true) return true;
+  var cat = String(t.category || '').toLowerCase();
+  if (cat) return cat === 'satellite';
+  // Manual "Satellite / Qualifier" structure pick from Add Tournament.
   if (/satellite|qualif/i.test(t.structure || '')) return true;
-  // Otherwise fall back to clear name/notes signals (covers imported events).
-  // Deliberately NOT matching a bare "seat"/"sat" — those leak in side events
-  // ("Sat" for Saturday, "12 seats guaranteed" in notes). It must actually say so.
-  var hay = [t.name, t.notes].join(' ').toLowerCase();
-  return /satellite|satty|qualif|win (a|your) seat|seat scramble|feeder|mega ?sat\b|super ?sat\b|step \d/.test(hay);
+  // Legacy / hand-typed events with no classification: infer from the NAME only.
+  // Notes are deliberately excluded — they're too noisy (they describe context,
+  // not the event type) — and a bare "seat"/"sat" is excluded too ("Sat" =
+  // Saturday). The name must actually say it's a satellite.
+  return /satellite|satty|qualif|win (a|your) seat|seat scramble|feeder|mega ?sat\b|super ?sat\b|step \d/i.test(t.name || '');
 }
 
 // Calendar events as picker options — deduped by name, soonest first when a date
