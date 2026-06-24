@@ -366,7 +366,7 @@ function buildCalendarUpdatePrompt() {
     + 'Convert all buy-ins to Philippine Peso (note the original amount in notes if converted).\n\n'
     + 'Respond with ONLY a single valid JSON object — no preamble, no explanation, no markdown code fences. Use exactly this shape:\n'
     + '{"asOf":"' + today + '","events":[{'
-    + '"date":"Month DD, YYYY",'
+    + '"date":"YYYY-MM-DD",'
     + '"name":"event name",'
     + '"venue":"full venue name",'
     + '"buyin":3000,'
@@ -380,6 +380,8 @@ function buildCalendarUpdatePrompt() {
     + '"source":"organiser or publication name",'
     + '"url":"https://exact-source-url"}]}\n'
     + '"buyin" MUST be a plain number in PHP (no currency symbol or commas). '
+    + '"date" MUST be a single concrete calendar date in strict YYYY-MM-DD form (e.g. "2026-07-21") — never a weekday name, "weekly", "daily", "TBD", or a range. '
+    + 'For recurring events (dailies/weeklies) that fall inside the window, emit a SEPARATE entry for each concrete dated occurrence; for a multi-day event, use its Day 1 date. Omit any event whose exact date you cannot confirm. '
     + 'Set "accessible": true when the buy-in is at or below ₱' + accThreshold + ' (within direct reach), otherwise false. '
     + 'The "url" MUST be copied exactly from a search result — never invent or guess one. Return every confirmed event you can verify.';
 }
@@ -391,9 +393,18 @@ function importCalendarUpdateEvents(events) {
     var bi = parseFloat(ev.buyin) || 0;
     var cat = String(ev.category || '').toLowerCase();
     var isSat = cat === 'satellite' || ev.seatGuaranteed === true;
+    // Normalise the date so it always renders: parse whatever the AI returned
+    // (ISO / "Month DD, YYYY" / etc.) into a canonical ISO date — which sorts
+    // chronologically and the month grid reads — plus day/month for the list box.
+    var dObj = (typeof parseTourneyDateRange === 'function') ? parseTourneyDateRange({ date: ev.date || '' }) : null;
+    var startD = (dObj && dObj.start && !isNaN(dObj.start.getTime())) ? dObj.start : null;
+    function _p(n) { return n < 10 ? '0' + n : '' + n; }
+    var isoDate = startD ? (startD.getFullYear() + '-' + _p(startD.getMonth() + 1) + '-' + _p(startD.getDate())) : (ev.date || '');
     var t = {
       id: Date.now() + Math.random(),
-      date: ev.date || '',
+      date: isoDate,
+      day: startD ? String(startD.getDate()) : '',
+      month: startD ? MONTH_SHORT_UPPER[startD.getMonth()] : '',
       name: ev.name,
       venue: ev.venue || '',
       buyin: bi,
@@ -616,13 +627,33 @@ function changeMonth(dir) {
   renderCalendarMonth();
 }
 
+// Pick a concrete year for a month/day that arrived without one — assume the
+// upcoming edition: this year, unless that date is well in the past (>31 days),
+// in which case it's next year's. Keeps undated-year events on the calendar
+// instead of dropping them.
+function _inferDateForMonthDay(mon, day) {
+  var now = new Date(); now.setHours(0, 0, 0, 0);
+  var d = new Date(now.getFullYear(), mon, day);
+  if (d.getTime() < now.getTime() - 31 * 86400000) d = new Date(now.getFullYear() + 1, mon, day);
+  return d;
+}
+
 function parseTourneyDateRange(t) {
-  var dateStr = t.date || '';
+  var dateStr = (t.date || '').trim();
   var MONTHS = {
     january: 0, february: 1, march: 2, april: 3, may: 4, june: 5,
     july: 6, august: 7, september: 8, october: 9, november: 10, december: 11,
     jan: 0, feb: 1, mar: 2, apr: 3, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
   };
+  // ISO dates the AI update favours: 2026-06-21, and ranges 2026-06-21 to 2026-06-28.
+  var isoRange = dateStr.match(/(\d{4})-(\d{2})-(\d{2})\s*(?:[-–]|to)\s*(\d{4})-(\d{2})-(\d{2})/i);
+  if (isoRange) {
+    return { start: new Date(+isoRange[1], +isoRange[2] - 1, +isoRange[3]),
+             end:   new Date(+isoRange[4], +isoRange[5] - 1, +isoRange[6]) };
+  }
+  var iso = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) { var di = new Date(+iso[1], +iso[2] - 1, +iso[3]); return { start: di, end: di }; }
+
   var rangeMatch = dateStr.match(/(\w+)\s+(\d{1,2})\s*[-–]\s*(?:(\w+)\s+)?(\d{1,2}),?\s*(\d{4})/i);
   if (rangeMatch) {
     var startMon = MONTHS[rangeMatch[1].toLowerCase()];
@@ -648,6 +679,23 @@ function parseTourneyDateRange(t) {
     if (m !== undefined) {
       var d2 = new Date(new Date().getFullYear(), m, parseInt(t.day, 10));
       return { start: d2, end: d2 };
+    }
+  }
+  // Year-less "Month DD" (e.g. "June 21") — infer the upcoming edition's year.
+  var noYear = dateStr.match(/([A-Za-z]{3,})\.?\s+(\d{1,2})\b/);
+  if (noYear) {
+    var nm = MONTHS[noYear[1].toLowerCase()];
+    if (nm !== undefined) { var dn = _inferDateForMonthDay(nm, parseInt(noYear[2], 10)); return { start: dn, end: dn }; }
+  }
+  // Day-first "21 June [2026]".
+  var dayFirst = dateStr.match(/\b(\d{1,2})\s+([A-Za-z]{3,})\.?(?:,?\s*(\d{4}))?/);
+  if (dayFirst) {
+    var dm = MONTHS[dayFirst[2].toLowerCase()];
+    if (dm !== undefined) {
+      var dd = dayFirst[3]
+        ? new Date(parseInt(dayFirst[3], 10), dm, parseInt(dayFirst[1], 10))
+        : _inferDateForMonthDay(dm, parseInt(dayFirst[1], 10));
+      return { start: dd, end: dd };
     }
   }
   return null;
