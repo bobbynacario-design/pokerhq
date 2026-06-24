@@ -436,6 +436,37 @@ function importCalendarUpdateEvents(events) {
   return added;
 }
 
+// Recover event objects from the response even when the JSON is truncated at the
+// token limit — scan the "events" array and parse each complete {...} object,
+// stopping at the first incomplete one. A long festival list then imports the
+// events that did come through instead of failing or silently losing the tail.
+function extractEventObjects(text) {
+  var out = [];
+  var ai = text.indexOf('"events"');
+  var start = ai !== -1 ? text.indexOf('[', ai) : text.indexOf('[');
+  if (start === -1) return out;
+  var i = start + 1, n = text.length;
+  while (i < n) {
+    while (i < n && text.charAt(i) !== '{' && text.charAt(i) !== ']') i++;
+    if (i >= n || text.charAt(i) === ']') break;
+    var depth = 0, inStr = false, esc = false, objStart = i, j = i, done = false;
+    for (; j < n; j++) {
+      var ch = text.charAt(j);
+      if (inStr) {
+        if (esc) esc = false;
+        else if (ch === '\\') esc = true;
+        else if (ch === '"') inStr = false;
+      } else if (ch === '"') inStr = true;
+      else if (ch === '{') depth++;
+      else if (ch === '}') { depth--; if (depth === 0) { j++; done = true; break; } }
+    }
+    if (!done) break; // object truncated mid-way — stop here
+    try { out.push(JSON.parse(text.substring(objStart, j))); } catch (e) {}
+    i = j;
+  }
+  return out;
+}
+
 async function runCalendarUpdate() {
   var key = (typeof getStoredAnthropicKey === 'function') ? getStoredAnthropicKey() : '';
   var btn = document.getElementById('cal-update-btn');
@@ -456,7 +487,7 @@ async function runCalendarUpdate() {
       },
       body: JSON.stringify({
         model: 'claude-opus-4-8',
-        max_tokens: 10000,
+        max_tokens: 16000,
         tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 12 }],
         messages: [{ role: 'user', content: buildCalendarUpdatePrompt() }]
       })
@@ -476,17 +507,23 @@ async function runCalendarUpdate() {
       var js = text.indexOf('{'), je = text.lastIndexOf('}');
       if (js !== -1 && je !== -1) parsed = JSON.parse(text.substring(js, je + 1));
     } catch (e) {}
-    if (!parsed || !Array.isArray(parsed.events) || !parsed.events.length) {
+    // Whole-object parse works for a complete response; if it failed (or the
+    // response stopped at the token limit), recover whatever complete events
+    // did arrive so a long list isn't lost wholesale.
+    var events = (parsed && Array.isArray(parsed.events)) ? parsed.events : extractEventObjects(text);
+    var truncated = data.stop_reason === 'max_tokens' || (!parsed && events.length > 0);
+    if (!events.length) {
       throw new Error('No usable events came back. Try again in a moment.');
     }
-    var added = importCalendarUpdateEvents(parsed.events);
+    var added = importCalendarUpdateEvents(events);
     var asOf = new Date().toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' });
     try { localStorage.setItem(CAL_UPDATE_LAST_KEY, asOf); } catch (e) {}
+    var moreNote = truncated ? ' The list was long and may be incomplete — run UPDATE EVENTS again to capture the rest.' : '';
     if (!added.length) {
-      setCalUpdateStatus('✓ Already up to date — every verified event found is on your calendar (' + searchCount + ' searches).', 'ok');
+      setCalUpdateStatus('✓ Already up to date — every verified event found is on your calendar (' + searchCount + ' searches).' + moreNote, truncated ? 'muted' : 'ok');
     } else {
       var sats = added.filter(function (t) { return isSatelliteTourney(t); }).length;
-      setCalUpdateStatus('✓ Added ' + added.length + ' event(s)' + (sats ? ' · ' + sats + ' satellite/qualifier' : '') + ' from ' + searchCount + ' searches. Review on the calendar.', 'ok');
+      setCalUpdateStatus('✓ Added ' + added.length + ' event(s)' + (sats ? ' · ' + sats + ' satellite/qualifier' : '') + ' from ' + searchCount + ' searches. Review on the calendar.' + moreNote, 'ok');
       if (typeof showUndoToast === 'function') showUndoToast('Added ' + added.length + ' event(s) from AI update', function () {
         var ids = {}; added.forEach(function (t) { ids[t.id] = true; });
         window.tourneys = (window.tourneys || []).filter(function (t) { return !ids[t.id]; });
