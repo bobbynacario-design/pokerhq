@@ -364,27 +364,44 @@ function buildCalendarUpdatePrompt() {
     + '• "side" = every other regular cash-prize tournament.\n'
     + 'Do NOT mark as satellite: Day 1 / starting flights of a Main (e.g. "Day 1A", "Warm-up Day 1C"), deepstacks, turbos, bounties, high rollers, or anything that pays out cash. If the prize is money (not a seat), it is "main" or "side", never "satellite" — even if its name contains "warm-up" or satellites feed into it.\n\n'
     + 'Convert all buy-ins to Philippine Peso (note the original amount in notes if converted).\n\n'
-    + 'Respond with ONLY a single valid JSON object — no preamble, no explanation, no markdown code fences. Use exactly this shape:\n'
-    + '{"asOf":"' + today + '","events":[{'
-    + '"date":"YYYY-MM-DD",'
-    + '"name":"event name",'
-    + '"venue":"full venue name",'
-    + '"buyin":3000,'
-    + '"gtd":"guarantee if known, else empty string",'
-    + '"structure":"Freezeout|Re-entry|Turbo|Deep Stack|Bounty / PKO|Satellite / Qualifier|other",'
-    + '"category":"satellite|main|side",'
-    + '"seatGuaranteed":false,'
-    + '"region":"ph|apac",'
-    + '"accessible":true,'
-    + '"notes":"late reg / flights / re-entry / original currency, etc.",'
-    + '"source":"organiser or publication name",'
-    + '"url":"https://exact-source-url"}]}\n'
     + '"buyin" MUST be a plain number in PHP (no currency symbol or commas). '
     + '"date" MUST be a single concrete calendar date in strict YYYY-MM-DD form (e.g. "2026-07-21") — never a weekday name, "weekly", "daily", "TBD", or a range. '
     + 'For recurring events (dailies/weeklies) that fall inside the window, emit a SEPARATE entry for each concrete dated occurrence; for a multi-day event, use its Day 1 date. Omit any event whose exact date you cannot confirm. '
     + 'Set "accessible": true when the buy-in is at or below ₱' + accThreshold + ' (within direct reach), otherwise false. '
-    + 'The "url" MUST be copied exactly from a search result — never invent or guess one. Return every confirmed event you can verify.';
+    + 'The "url" MUST be copied exactly from a search result — never invent or guess one. Return every confirmed event you can verify. Use "' + today + '" as the "asOf" value.';
 }
+
+var CALENDAR_UPDATE_SCHEMA = {
+  type: 'object',
+  properties: {
+    asOf: { type: 'string', description: 'Today\'s date, as given in the prompt.' },
+    events: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          date: { type: 'string', description: 'Strict YYYY-MM-DD single concrete date.' },
+          name: { type: 'string' },
+          venue: { type: 'string', description: 'Full venue name.' },
+          buyin: { type: 'number', description: 'Plain number in PHP, no currency symbol or commas.' },
+          gtd: { type: 'string', description: 'Guarantee if known, else empty string.' },
+          structure: { type: 'string', enum: ['Freezeout', 'Re-entry', 'Turbo', 'Deep Stack', 'Bounty / PKO', 'Satellite / Qualifier', 'other'] },
+          category: { type: 'string', enum: ['satellite', 'main', 'side'] },
+          seatGuaranteed: { type: 'boolean', description: 'True only for events whose prize is a seat/package, not cash.' },
+          region: { type: 'string', enum: ['ph', 'apac'] },
+          accessible: { type: 'boolean' },
+          notes: { type: 'string', description: 'Late reg / flights / re-entry / original currency, etc.' },
+          source: { type: 'string', description: 'Organiser or publication name.' },
+          url: { type: 'string', description: 'Exact URL copied from a search result — never invented.' }
+        },
+        required: ['date', 'name', 'venue', 'buyin', 'gtd', 'structure', 'category', 'seatGuaranteed', 'region', 'accessible', 'notes', 'source', 'url'],
+        additionalProperties: false
+      }
+    }
+  },
+  required: ['asOf', 'events'],
+  additionalProperties: false
+};
 
 function importCalendarUpdateEvents(events) {
   var added = [];
@@ -468,29 +485,21 @@ function extractEventObjects(text) {
 }
 
 async function runCalendarUpdate() {
-  var key = (typeof getStoredAnthropicKey === 'function') ? getStoredAnthropicKey() : '';
   var btn = document.getElementById('cal-update-btn');
-  if (!key) {
+  if (!hasAnthropicAccess()) {
     setCalUpdateStatus('Add your Anthropic API key first — IMPROVE → ♥ Strategy → AI Assistant.', 'error');
     return;
   }
   if (btn) { btn.disabled = true; btn.textContent = '⏳ SEARCHING…'; }
   setCalUpdateStatus('🔎 Researching upcoming tournaments across PH & APAC… this can take 30–60s.', 'muted');
   try {
-    var response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-opus-4-8',
-        max_tokens: 16000,
-        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 12 }],
-        messages: [{ role: 'user', content: buildCalendarUpdatePrompt() }]
-      })
+    var response = await callAnthropicMessages({
+      model: 'claude-opus-4-8',
+      max_tokens: 16000,
+      thinking: { type: 'adaptive' },
+      tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 12 }],
+      output_config: { format: { type: 'json_schema', schema: CALENDAR_UPDATE_SCHEMA } },
+      messages: [{ role: 'user', content: buildCalendarUpdatePrompt() }]
     });
     if (!response.ok) {
       if (response.status === 401) throw new Error('API key was rejected (401) — check it in AI Assistant.');
@@ -504,8 +513,7 @@ async function runCalendarUpdate() {
       .join('\n');
     var parsed = null;
     try {
-      var js = text.indexOf('{'), je = text.lastIndexOf('}');
-      if (js !== -1 && je !== -1) parsed = JSON.parse(text.substring(js, je + 1));
+      parsed = JSON.parse(text);
     } catch (e) {}
     // Whole-object parse works for a complete response; if it failed (or the
     // response stopped at the token limit), recover whatever complete events

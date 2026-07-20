@@ -98,11 +98,9 @@ function buildSessionDebrief(session, linkedHands) {
 
 function getSessionDebriefAiConfig() {
   var cfg = window.PokerHQAI || window.pokerhqAI || {};
-  var apiKey = cfg.apiKey || cfg.anthropicApiKey || (typeof getStoredAnthropicKey === 'function' ? getStoredAnthropicKey() : '');
-  if (!apiKey) return null;
+  if (!hasAnthropicAccess()) return null;
   return {
     provider: 'anthropic',
-    apiKey: apiKey,
     model: cfg.model || 'claude-sonnet-4-6'
   };
 }
@@ -153,7 +151,7 @@ function buildAiDebriefPrompt(session, linkedHands, localReport) {
       lesson: hand.lesson || ''
     };
   });
-  return 'You are enhancing a poker session review. Improve the existing local debrief, but stay concrete, concise, and practical. Respond only with valid JSON using exactly this shape: {"wentWell":"","hurt":"","reviewNext":"","focusItem":""}. Session: ' + JSON.stringify({
+  return 'You are enhancing a poker session review. Improve the existing local debrief, but stay concrete, concise, and practical. Session: ' + JSON.stringify({
     date: session.date || '',
     name: session.name || '',
     venue: session.venue || '',
@@ -172,6 +170,18 @@ function buildAiDebriefPrompt(session, linkedHands, localReport) {
     notes: session.notes || ''
   }) + ' Linked hands: ' + JSON.stringify(handContext) + ' Venue history: ' + JSON.stringify(venueHistory) + ' Existing local debrief: ' + JSON.stringify(localReport);
 }
+
+var AI_DEBRIEF_SCHEMA = {
+  type: 'object',
+  properties: {
+    wentWell: { type: 'string', description: 'What went well in this session.' },
+    hurt: { type: 'string', description: 'What likely hurt performance.' },
+    reviewNext: { type: 'string', description: 'What to review next.' },
+    focusItem: { type: 'string', description: 'The single most important focus for the next session.' }
+  },
+  required: ['wentWell', 'hurt', 'reviewNext', 'focusItem'],
+  additionalProperties: false
+};
 
 function buildAiDebriefHtml(report) {
   var html = '<div class="review-card" style="margin-bottom:0;border-color:rgba(212,175,55,.22)">';
@@ -197,30 +207,19 @@ async function enhanceSessionDebriefWithAi(sid) {
   var localReport = buildSessionDebrief(session, linkedHands);
   target.innerHTML = '<div class="review-card" style="margin-bottom:0;border-color:rgba(212,175,55,.18)"><div class="review-card-title">AI-Enhanced Debrief</div><div class="review-card-copy">Enhancing the local debrief now...</div></div>';
   try {
-    var response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': aiConfig.apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: aiConfig.model,
-        max_tokens: 900,
-        messages: [{
-          role: 'user',
-          content: buildAiDebriefPrompt(session, linkedHands, localReport)
-        }]
-      })
+    var response = await callAnthropicMessages({
+      model: aiConfig.model,
+      max_tokens: 900,
+      output_config: { format: { type: 'json_schema', schema: AI_DEBRIEF_SCHEMA } },
+      messages: [{
+        role: 'user',
+        content: buildAiDebriefPrompt(session, linkedHands, localReport)
+      }]
     });
     if (!response.ok) throw new Error('AI enhancement failed (' + response.status + ')');
     var data = await response.json();
     var text = (data.content || []).map(function(chunk) { return chunk.text || ''; }).join('');
-    var start = text.indexOf('{');
-    var end = text.lastIndexOf('}');
-    if (start === -1 || end === -1) throw new Error('AI returned invalid JSON');
-    var parsed = JSON.parse(text.substring(start, end + 1));
+    var parsed = JSON.parse(text);
     target.innerHTML = buildAiDebriefHtml({
       wentWell: parsed.wentWell || localReport.wentWell,
       hurt: parsed.hurt || localReport.hurt,

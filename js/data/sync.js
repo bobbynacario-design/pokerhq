@@ -9,6 +9,7 @@ import {
   onAuthStateChanged,
   signOut
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
 import {
   firebaseConfig,
   FIRESTORE_KEYS,
@@ -18,6 +19,10 @@ import {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+// Region must match functions/index.js's pokerhqAiCall deployment region.
+// Bridges the callable to plain window scope so classic (non-module) feature
+// scripts (js/data/ai-proxy.js) can call it without their own SDK import.
+window.pokerhqAiCall = httpsCallable(getFunctions(app, "asia-southeast1"), "pokerhqAiCall");
 
 let resolvedProfile = null;
 let unsubscribeListeners = [];
@@ -120,6 +125,10 @@ export async function fbSave(key, data) {
   } catch (error) {
     setSyncStatus("error", "Save failed");
     console.error("fbSave error:", error);
+    // Failed while believed online (a real offline write never reaches fbSave —
+    // save() queues it directly). Re-queue so the next reconnect or sign-in
+    // retries it instead of silently losing the change.
+    if (typeof window.queueFailedSave === "function") window.queueFailedSave(key, data);
   }
 }
 

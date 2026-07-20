@@ -13,8 +13,8 @@
 <title>PokerHQ — Tournament Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script type="module" src="./js/app.js?v=20260623p"></script>
-<link rel="stylesheet" href="./styles/app.css?v=20260623p">
+<script type="module" src="./js/app.js?v=20260720d"></script>
+<link rel="stylesheet" href="./styles/app.css?v=20260720d">
 </head>
 <body>
 <!-- LOGIN GATE — shown until Firebase auth resolves a signed-in user -->
@@ -1816,22 +1816,23 @@
   </div>
 </div>
 
-<script src="./js/data/config-runtime.js?v=20260623p"></script>
-<script src="./js/features/active-session.js?v=20260623p"></script>
-<script src="./js/features/demo-mode.js?v=20260623p"></script>
-<script src="./js/features/calculator.js?v=20260623p"></script>
-<script src="./js/features/staking.js?v=20260623p"></script>
-<script src="./js/features/package-report.js?v=20260623p"></script>
-<script src="./js/features/review.js?v=20260623p"></script>
-<script src="./js/features/calendar.js?v=20260623p"></script>
-<script src="./js/features/study-loop.js?v=20260623p"></script>
-<script src="./js/features/strategy.js?v=20260623p"></script>
-<script src="./js/features/hands.js?v=20260623p"></script>
-<script src="./js/features/treasury.js?v=20260623p"></script>
-<script src="./js/features/bankroll-chart.js?v=20260623p"></script>
-<script src="./js/features/library.js?v=20260623p"></script>
-<script src="./js/features/onboarding.js?v=20260623p"></script>
-<script src="./js/features/today-glance.js?v=20260623p"></script>
+<script src="./js/data/config-runtime.js?v=20260720d"></script>
+<script src="./js/data/ai-proxy.js?v=20260720d"></script>
+<script src="./js/features/active-session.js?v=20260720d"></script>
+<script src="./js/features/demo-mode.js?v=20260720d"></script>
+<script src="./js/features/calculator.js?v=20260720d"></script>
+<script src="./js/features/staking.js?v=20260720d"></script>
+<script src="./js/features/package-report.js?v=20260720d"></script>
+<script src="./js/features/review.js?v=20260720d"></script>
+<script src="./js/features/calendar.js?v=20260720d"></script>
+<script src="./js/features/study-loop.js?v=20260720d"></script>
+<script src="./js/features/strategy.js?v=20260720d"></script>
+<script src="./js/features/hands.js?v=20260720d"></script>
+<script src="./js/features/treasury.js?v=20260720d"></script>
+<script src="./js/features/bankroll-chart.js?v=20260720d"></script>
+<script src="./js/features/library.js?v=20260720d"></script>
+<script src="./js/features/onboarding.js?v=20260720d"></script>
+<script src="./js/features/today-glance.js?v=20260720d"></script>
 <script>
 // ── PWA INSTALL — captures the browser install prompt like Enclave ──
 var _deferredInstallPrompt = null;
@@ -1908,6 +1909,18 @@ function flushOfflineQueue() {
   });
   _offlineQueue = {};
   localStorage.setItem(_offlineQueueKey, '{}');
+  renderReliability();
+}
+
+// Called by fbSave's catch block (sync.js) when a Firestore write fails while
+// _isOnline was true — e.g. a transient error, not a real offline state — so
+// the change isn't silently dropped. It re-enters the same queue the offline
+// path uses, and gets retried on the next reconnect or sign-in (startSyncForUser
+// already calls flushOfflineQueue on load).
+function queueFailedSave(key, val) {
+  if (window._demoMode) return;
+  _offlineQueue[key] = val;
+  localStorage.setItem(_offlineQueueKey, JSON.stringify(_offlineQueue));
   renderReliability();
 }
 

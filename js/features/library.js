@@ -418,6 +418,8 @@ function getBackupSnapshot() {
       satellites: cloneBackupValue(window.satellites || [], []),
       satTarget: cloneBackupValue(window.satTarget || { name: '', buyin: 0 }, { name: '', buyin: 0 }),
       opponents: cloneBackupValue(window.opponents || [], []),
+      goals: cloneBackupValue(window.goals || {}, {}),
+      reminderSettings: cloneBackupValue(window.reminderSettings || {}, {}),
       timer: cloneBackupValue(load('timer', null), null)
     }
   };
@@ -477,6 +479,15 @@ function validateBackupPayload(parsed) {
   if (!(source.timer === null || typeof source.timer === 'undefined' || isPlainBackupObject(source.timer))) {
     return { ok: false, message: 'Backup timer data is invalid.' };
   }
+  // goals/reminderSettings were added to the backup format after v1 — tolerate
+  // older backups that don't have them, but reject the key if it's present
+  // and malformed.
+  if (typeof source.goals !== 'undefined' && !isPlainBackupObject(source.goals)) {
+    return { ok: false, message: 'Backup goals data is invalid.' };
+  }
+  if (typeof source.reminderSettings !== 'undefined' && !isPlainBackupObject(source.reminderSettings)) {
+    return { ok: false, message: 'Backup reminder settings are invalid.' };
+  }
 
   return {
     ok: true,
@@ -493,6 +504,8 @@ function validateBackupPayload(parsed) {
       satellites: cloneBackupValue(source.satellites, []),
       satTarget: cloneBackupValue(source.satTarget, { name: '', buyin: 0 }),
       opponents: cloneBackupValue(source.opponents, []),
+      goals: isPlainBackupObject(source.goals) ? cloneBackupValue(source.goals, {}) : {},
+      reminderSettings: isPlainBackupObject(source.reminderSettings) ? cloneBackupValue(source.reminderSettings, {}) : {},
       timer: typeof source.timer === 'undefined' ? null : cloneBackupValue(source.timer, null)
     }
   };
@@ -547,6 +560,12 @@ function applyBackupRestore(data) {
   window.opponents = opponents;
   save('opponents', opponents);
 
+  window.goals = data.goals || {};
+  save('goals', window.goals);
+
+  window.reminderSettings = data.reminderSettings || {};
+  save('reminderSettings', window.reminderSettings);
+
   var timerState = data.timer || { running: false, startedAt: null, elapsed: 0 };
   if (typeof resetTimerState === 'function') resetTimerState();
   save('timer', timerState);
@@ -564,6 +583,8 @@ function applyBackupRestore(data) {
   if (typeof renderSatellites === 'function') renderSatellites();
   if (typeof renderOpponents === 'function') renderOpponents();
   if (typeof renderStudyLoop === 'function') renderStudyLoop();
+  if (typeof renderMonthlyGoals === 'function') renderMonthlyGoals();
+  if (typeof renderReminderSettings === 'function') renderReminderSettings();
   if (typeof refreshDashboard === 'function') refreshDashboard();
   if (typeof renderTreasury === 'function') renderTreasury();
   if (typeof renderActiveSessionSurface === 'function') renderActiveSessionSurface();

@@ -666,6 +666,18 @@ function clearVoiceModal() {
   refreshVoiceKeyRow();
 }
 
+var HAND_STRUCTURE_SCHEMA = {
+  type: 'object',
+  properties: {
+    result: { type: 'string', enum: ['won', 'lost', 'fold'], description: 'Outcome of the hand for Bob.' },
+    title: { type: 'string', description: 'Concise 8-10 word summary of the hand situation.' },
+    desc: { type: 'string', description: 'Full hand description with positions, actions, board, and reasoning.' },
+    lesson: { type: 'string', description: 'One specific lesson learned from this hand.' }
+  },
+  required: ['result', 'title', 'desc', 'lesson'],
+  additionalProperties: false
+};
+
 async function structureHand() {
   var transcript = document.getElementById('voice-transcript').value.trim();
   if (!transcript) {
@@ -675,7 +687,7 @@ async function structureHand() {
 
   var errEl = document.getElementById('voice-error');
   var apiKey = resolveVoiceApiKey();
-  if (!apiKey) {
+  if (!apiKey && !hasAnthropicAccess()) {
     errEl.textContent = 'Add your Anthropic API key above first — it stays on this device only.';
     errEl.style.display = 'block';
     var keyInput = document.getElementById('voice-api-key');
@@ -689,22 +701,14 @@ async function structureHand() {
   document.getElementById('voice-result').style.display = 'none';
 
   try {
-    var response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
-        messages: [{
-          role: 'user',
-          content: 'You are a poker hand log structurer. Convert this voice transcript into a structured poker hand log. Respond ONLY with valid JSON, no other text. Use this exact format: {"result":"won|lost|fold","title":"concise 8-10 word hand situation","desc":"full hand description with positions actions board and reasoning","lesson":"one specific lesson from this hand"} Transcript: ' + transcript
-        }]
-      })
+    var response = await callAnthropicMessages({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1000,
+      output_config: { format: { type: 'json_schema', schema: HAND_STRUCTURE_SCHEMA } },
+      messages: [{
+        role: 'user',
+        content: 'You are a poker hand log structurer. Convert this voice transcript into a structured poker hand log, capturing positions, actions, board, and reasoning, and identifying one specific lesson from the hand. Transcript: ' + transcript
+      }]
     });
     if (!response.ok) {
       if (response.status === 401) {
@@ -716,8 +720,7 @@ async function structureHand() {
     }
     var data = await response.json();
     var text = (data.content || []).map(function(c) { return c.text || ''; }).join('');
-    var js = text.indexOf('{'), je = text.lastIndexOf('}');
-    var parsed = JSON.parse(text.substring(js, je + 1));
+    var parsed = JSON.parse(text);
 
     document.getElementById('vr-result').value = parsed.result || 'lost';
     document.getElementById('vr-title').value = parsed.title || '';

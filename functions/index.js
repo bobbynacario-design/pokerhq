@@ -1,17 +1,28 @@
 "use strict";
 
-// PokerHQ — scheduled email reminders for upcoming target/stretch events.
+// PokerHQ Cloud Functions — two independent pieces on the shared pokerhq-a67e4
+// project:
 //
-// Runs daily at 08:00 Asia/Manila. Reads the owner's tournaments and reminder
-// settings straight from Firestore (Admin SDK, bypasses security rules), finds
-// playable events starting within the lead window that haven't been emailed yet,
-// and sends one digest email via Resend. Dedupe state lives in a state doc.
+// 1. pokerhqEventReminders — scheduled daily at 08:00 Asia/Manila. Reads the
+//    owner's tournaments and reminder settings straight from Firestore (Admin
+//    SDK, bypasses security rules), finds playable events starting within the
+//    lead window that haven't been emailed yet, and sends one digest email via
+//    Resend. Dedupe state lives in a state doc.
 //
-// Deployed as its own codebase ("pokerhq") and always with
-//   firebase deploy --only functions:pokerhqEventReminders
+// 2. pokerhqAiCall — callable proxy so the Anthropic API key never has to live
+//    in the browser. Owner-only (checks the signed-in Firebase Auth email,
+//    mirroring the Firestore rules' isBobGoogleAccount check); forwards the
+//    client's Messages API request body to Anthropic using a server-held
+//    secret and returns the response. The client falls back to this only when
+//    no local BYOK key is stored — see js/data/ai-proxy.js.
+//
+// Deployed as its own codebase ("pokerhq") and always with explicitly named
+// targets, e.g.
+//   firebase deploy --only functions:pokerhqEventReminders,functions:pokerhqAiCall
 // so it can never delete other apps' functions on this shared project.
 
 const {onSchedule} = require("firebase-functions/v2/scheduler");
+const {onCall, HttpsError} = require("firebase-functions/v2/https");
 const {defineSecret} = require("firebase-functions/params");
 const logger = require("firebase-functions/logger");
 const {initializeApp} = require("firebase-admin/app");
@@ -21,6 +32,12 @@ initializeApp();
 const db = getFirestore();
 
 const RESEND_API_KEY = defineSecret("RESEND_API_KEY");
+// Falls back to Resend's shared onboarding@resend.dev sender (weak deliverability,
+// can be rate-limited/cut off) until a domain is verified at resend.com/domains.
+// Once verified, override by adding a line to functions/.env (Functions v2 loads
+// it automatically at deploy time; not committed):
+//   RESEND_FROM_ADDRESS=PokerHQ <reminders@yourdomain.com>
+const RESEND_FROM_ADDRESS = process.env.RESEND_FROM_ADDRESS || "PokerHQ <onboarding@resend.dev>";
 
 const PROFILE = "pokerhq-bob";
 const APP_URL = "https://bobbynacario-design.github.io/pokerhq/";
@@ -133,11 +150,11 @@ function buildEmail(due) {
   return {subject, html};
 }
 
-async function sendViaResend(apiKey, to, subject, html) {
+async function sendViaResend(apiKey, from, to, subject, html) {
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {"Authorization": "Bearer " + apiKey, "Content-Type": "application/json"},
-    body: JSON.stringify({from: "PokerHQ <onboarding@resend.dev>", to: [to], subject, html}),
+    body: JSON.stringify({from, to: [to], subject, html}),
   });
   if (!res.ok) {
     const body = await res.text();
@@ -186,7 +203,7 @@ exports.pokerhqEventReminders = onSchedule(
     due.sort((a, b) => a.daysUntil - b.daysUntil);
 
     const {subject, html} = buildEmail(due);
-    await sendViaResend(RESEND_API_KEY.value(), settings.email, subject, html);
+    await sendViaResend(RESEND_API_KEY.value(), RESEND_FROM_ADDRESS, settings.email, subject, html);
 
     const cutoff = Date.now() - 60 * 86400000;
     const pruned = {};
@@ -198,5 +215,57 @@ exports.pokerhqEventReminders = onSchedule(
     });
     await db.collection(PROFILE).doc("reminderState").set({sent: pruned, updated: Date.now()});
     logger.info("Sent reminder for " + due.length + " event(s) to " + settings.email);
+  },
+);
+
+// ─────────────────────────────────────────────────────────────────────────
+// pokerhqAiCall — owner-only Anthropic Messages API proxy.
+// ─────────────────────────────────────────────────────────────────────────
+
+const ANTHROPIC_API_KEY = defineSecret("ANTHROPIC_API_KEY");
+const OWNER_EMAIL = "bobbynacario@gmail.com";
+// Kept in sync with the models the four client AI features actually send
+// (calendar.js/strategy.js: claude-opus-4-8; hands.js/review.js: claude-sonnet-4-6).
+// Update alongside any client-side model change.
+const ALLOWED_MODELS = new Set(["claude-opus-4-8", "claude-sonnet-4-6"]);
+const MAX_TOKENS_CEILING = 20000;
+
+exports.pokerhqAiCall = onCall(
+  {
+    region: "asia-southeast1",
+    secrets: [ANTHROPIC_API_KEY],
+  },
+  async (request) => {
+    const token = request.auth && request.auth.token;
+    const email = token && token.email ? String(token.email).toLowerCase() : "";
+    if (!token || email !== OWNER_EMAIL || token.email_verified !== true) {
+      throw new HttpsError("permission-denied", "Not authorized for PokerHQ AI access.");
+    }
+
+    const body = request.data;
+    if (!body || typeof body !== "object" || !Array.isArray(body.messages)) {
+      throw new HttpsError("invalid-argument", "Malformed Anthropic request body.");
+    }
+    if (!ALLOWED_MODELS.has(body.model)) {
+      throw new HttpsError("invalid-argument", "Model not permitted through this proxy: " + body.model);
+    }
+    if (typeof body.max_tokens !== "number" || body.max_tokens <= 0 || body.max_tokens > MAX_TOKENS_CEILING) {
+      throw new HttpsError("invalid-argument", "max_tokens out of range.");
+    }
+
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY.value(),
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new HttpsError("internal", (data && data.error && data.error.message) || ("Anthropic API error " + res.status));
+    }
+    return data;
   },
 );
