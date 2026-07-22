@@ -104,11 +104,14 @@ function renderDashboardExtras() {
   renderMonthlyGoals();
   var list = window.sessions || [];
 
-  // Hourly rate stat card — only sessions with logged hours count
+  // Hourly rate stat card — only sessions with logged hours count. Uses the
+  // dashboard's period toggle (index.html); the buy-in breakdown below stays
+  // all-time regardless.
   var hourlyEl = document.getElementById('dash-hourly');
   var hourlySubEl = document.getElementById('dash-hourly-sub');
   if (hourlyEl) {
-    var timed = list.filter(function(s) { return (s.hours || 0) > 0; });
+    var periodList = (typeof getDashPeriodSessions === 'function') ? getDashPeriodSessions() : list;
+    var timed = periodList.filter(function(s) { return (s.hours || 0) > 0; });
     var hoursTotal = timed.reduce(function(sum, s) { return sum + s.hours; }, 0);
     var pnlTimed = timed.reduce(function(sum, s) { return sum + (s.pnl || 0); }, 0);
     if (hoursTotal > 0) {

@@ -258,6 +258,71 @@ function calcStackAdvisor() {
   });
 }
 
+// Minimum logged (paid) sessions before trusting a measured mean/variance —
+// fewer than this and a single big score or bad run swings the estimate wildly.
+var CALC_RISK_MIN_SESSIONS = 10;
+var CALC_RISK_SMALL_SAMPLE_CEILING = 20;
+
+function calcRiskAutoFillFromSessions() {
+  var noteEl = document.getElementById('calc-risk-autofill-note');
+  var list = (window.sessions || []).filter(function(s) { return (s.total || 0) > 0; });
+
+  if (!noteEl) return;
+  noteEl.style.display = '';
+
+  if (list.length < CALC_RISK_MIN_SESSIONS) {
+    noteEl.style.color = 'var(--red)';
+    noteEl.textContent = 'Need at least ' + CALC_RISK_MIN_SESSIONS + ' logged sessions with a buy-in to compute this reliably — you have ' + list.length + '.';
+    return;
+  }
+
+  var totalInvested = 0, totalReturned = 0;
+  var ratios = [];
+  list.forEach(function(s) {
+    var buyin = s.total || 0;
+    totalInvested += buyin;
+    totalReturned += (s.prize || 0);
+    ratios.push((s.pnl || 0) / buyin);
+  });
+
+  var avgBuyin = totalInvested / list.length;
+  var roiPct = totalInvested > 0 ? ((totalReturned - totalInvested) / totalInvested) * 100 : 0;
+
+  var meanRatio = ratios.reduce(function(a, b) { return a + b; }, 0) / ratios.length;
+  var variance = ratios.reduce(function(sum, r) { return sum + Math.pow(r - meanRatio, 2); }, 0) / ratios.length;
+  // Floor sigma — a near-zero measured variance (e.g. a short run of near-identical
+  // results) would otherwise make bust risk look implausibly low.
+  var sigma = Math.max(0.3, Math.sqrt(variance));
+
+  _calcRiskVarianceMap.measured = { sigma: sigma, label: 'My results (σ=' + sigma.toFixed(2) + ')' };
+
+  var select = document.getElementById('calc-risk-variance');
+  if (select) {
+    var opt = select.querySelector('option[value="measured"]');
+    if (!opt) {
+      opt = document.createElement('option');
+      opt.value = 'measured';
+      select.appendChild(opt);
+    }
+    opt.textContent = _calcRiskVarianceMap.measured.label;
+    select.value = 'measured';
+  }
+
+  var bankrollEl = document.getElementById('calc-risk-bankroll');
+  if (bankrollEl && window.bankroll && window.bankroll.amount) bankrollEl.value = Math.round(window.bankroll.amount);
+  document.getElementById('calc-risk-buyin').value = Math.round(avgBuyin);
+  document.getElementById('calc-risk-roi').value = roiPct.toFixed(1);
+
+  var smallSampleNote = list.length < CALC_RISK_SMALL_SAMPLE_CEILING
+    ? ' Small sample — treat this as a rough read, not a settled number.'
+    : '';
+  noteEl.style.color = list.length < CALC_RISK_SMALL_SAMPLE_CEILING ? 'var(--gold)' : 'rgba(255,255,255,.4)';
+  noteEl.textContent = 'Computed from ' + list.length + ' sessions: avg buy-in ₱' + Math.round(avgBuyin).toLocaleString()
+    + ', ROI ' + roiPct.toFixed(1) + '%, measured variance σ=' + sigma.toFixed(2) + '.' + smallSampleNote;
+
+  calcRiskEngine();
+}
+
 var _calcRiskVarianceMap = {
   low: { sigma: 1.1, label: 'Low variance field' },
   standard: { sigma: 1.5, label: 'Standard tournament variance' },

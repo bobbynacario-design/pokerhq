@@ -13,8 +13,8 @@
 <title>PokerHQ — Tournament Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script type="module" src="./js/app.js?v=20260720d"></script>
-<link rel="stylesheet" href="./styles/app.css?v=20260720d">
+<script type="module" src="./js/app.js?v=20260722a"></script>
+<link rel="stylesheet" href="./styles/app.css?v=20260722a">
 </head>
 <body>
 <!-- LOGIN GATE — shown until Firebase auth resolves a signed-in user -->
@@ -217,6 +217,11 @@
     </div>
   </div>
 
+  <div style="display:flex;gap:.4rem;margin:1.1rem 0 .6rem;flex-wrap:wrap">
+    <button class="subtab active" id="dash-period-all" onclick="setDashStatsPeriod('all')">ALL TIME</button>
+    <button class="subtab" id="dash-period-ytd" onclick="setDashStatsPeriod('ytd')">THIS YEAR</button>
+    <button class="subtab" id="dash-period-90d" onclick="setDashStatsPeriod('90d')">LAST 90 DAYS</button>
+  </div>
   <div class="stat-row">
     <div class="stat-card" style="--accent:var(--green)">
       <div class="stat-label">Total Profit / Loss</div>
@@ -252,6 +257,16 @@
       <div class="stat-label">Hourly Rate</div>
       <div class="stat-val" id="dash-hourly">—</div>
       <div class="stat-sub" id="dash-hourly-sub">Log hours to see ₱/hr</div>
+    </div>
+    <div class="stat-card" style="--accent:var(--gold)">
+      <div class="stat-label">Final Tables</div>
+      <div class="stat-val" id="dash-finals">0</div>
+      <div class="stat-sub" id="dash-finals-sub">Top-3 cashes</div>
+    </div>
+    <div class="stat-card" style="--accent:var(--purple)">
+      <div class="stat-label">Avg Finish Depth</div>
+      <div class="stat-val" id="dash-depth">—</div>
+      <div class="stat-sub" id="dash-depth-sub">Log field size to see this</div>
     </div>
   </div>
 
@@ -1628,6 +1643,11 @@
         </div>
       </div>
 
+      <div style="margin:.2rem 0 .9rem">
+        <button class="sec-action" onclick="calcRiskAutoFillFromSessions()">📊 AUTO-FILL FROM MY SESSIONS</button>
+        <div id="calc-risk-autofill-note" style="display:none;font-family:var(--mono);font-size:10px;line-height:1.5;margin-top:.5rem"></div>
+      </div>
+
       <div id="calc-risk-empty" style="text-align:center;padding:2.5rem 0;font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.22)">Enter bankroll, average buy-in, ROI, and variance to see bankroll pressure.</div>
 
       <div id="calc-risk-results" style="display:none">
@@ -1816,23 +1836,23 @@
   </div>
 </div>
 
-<script src="./js/data/config-runtime.js?v=20260720d"></script>
-<script src="./js/data/ai-proxy.js?v=20260720d"></script>
-<script src="./js/features/active-session.js?v=20260720d"></script>
-<script src="./js/features/demo-mode.js?v=20260720d"></script>
-<script src="./js/features/calculator.js?v=20260720d"></script>
-<script src="./js/features/staking.js?v=20260720d"></script>
-<script src="./js/features/package-report.js?v=20260720d"></script>
-<script src="./js/features/review.js?v=20260720d"></script>
-<script src="./js/features/calendar.js?v=20260720d"></script>
-<script src="./js/features/study-loop.js?v=20260720d"></script>
-<script src="./js/features/strategy.js?v=20260720d"></script>
-<script src="./js/features/hands.js?v=20260720d"></script>
-<script src="./js/features/treasury.js?v=20260720d"></script>
-<script src="./js/features/bankroll-chart.js?v=20260720d"></script>
-<script src="./js/features/library.js?v=20260720d"></script>
-<script src="./js/features/onboarding.js?v=20260720d"></script>
-<script src="./js/features/today-glance.js?v=20260720d"></script>
+<script src="./js/data/config-runtime.js?v=20260722a"></script>
+<script src="./js/data/ai-proxy.js?v=20260722a"></script>
+<script src="./js/features/active-session.js?v=20260722a"></script>
+<script src="./js/features/demo-mode.js?v=20260722a"></script>
+<script src="./js/features/calculator.js?v=20260722a"></script>
+<script src="./js/features/staking.js?v=20260722a"></script>
+<script src="./js/features/package-report.js?v=20260722a"></script>
+<script src="./js/features/review.js?v=20260722a"></script>
+<script src="./js/features/calendar.js?v=20260722a"></script>
+<script src="./js/features/study-loop.js?v=20260722a"></script>
+<script src="./js/features/strategy.js?v=20260722a"></script>
+<script src="./js/features/hands.js?v=20260722a"></script>
+<script src="./js/features/treasury.js?v=20260722a"></script>
+<script src="./js/features/bankroll-chart.js?v=20260722a"></script>
+<script src="./js/features/library.js?v=20260722a"></script>
+<script src="./js/features/onboarding.js?v=20260722a"></script>
+<script src="./js/features/today-glance.js?v=20260722a"></script>
 <script>
 // ── PWA INSTALL — captures the browser install prompt like Enclave ──
 var _deferredInstallPrompt = null;
@@ -2426,6 +2446,30 @@ function renderSessionTable() {
 }
 
 // ── DASHBOARD ──
+// ── DASHBOARD STATS PERIOD ── all-time by default; not persisted across reloads.
+var _dashStatsPeriod = 'all';
+
+function getDashPeriodSessions() {
+  var list = window.sessions || [];
+  if (_dashStatsPeriod === 'all') return list;
+  var cutoff = _dashStatsPeriod === 'ytd'
+    ? new Date(new Date().getFullYear(), 0, 1)
+    : new Date(Date.now() - 90 * 86400000);
+  return list.filter(function(s) {
+    var d = s.date ? new Date(s.date + 'T00:00:00') : null;
+    return d && !isNaN(d.getTime()) && d >= cutoff;
+  });
+}
+
+function setDashStatsPeriod(period) {
+  _dashStatsPeriod = period;
+  ['all','ytd','90d'].forEach(function(p) {
+    var btn = document.getElementById('dash-period-'+p);
+    if (btn) btn.classList.toggle('active', p===period);
+  });
+  refreshDashboard();
+}
+
 function refreshDashboard() {
   if (typeof renderTodayGlance === 'function') renderTodayGlance();
   var br = bankroll.amount, rule = bankroll.rule||5;
@@ -2436,33 +2480,40 @@ function refreshDashboard() {
   var _dsb=document.getElementById('dash-stretch-buyin'); if(_dsb) _dsb.textContent = '₱'+fmt(stretch);
   var _dsh=document.getElementById('dash-shots'); if(_dsh) _dsh.textContent = rec>0?Math.floor(br/rec)+'x':'—';
 
-  var totalIn=0, totalOut=0, cashes=0, itm=0, biggest=0, biggestName='';
-  sessions.forEach(function(s){
+  var statSessions = getDashPeriodSessions();
+  var totalIn=0, totalOut=0, cashes=0, itm=0, biggest=0, biggestName='', finals=0, depthSum=0, depthCount=0;
+  statSessions.forEach(function(s){
     totalIn  += s.total||0;
     totalOut += s.prize||0;
     if (s.prize>0) cashes++;
     if (s.result==='itm'||s.result==='final') itm++;
+    if (s.result==='final') finals++;
     if (s.prize>biggest){ biggest=s.prize; biggestName=s.name; }
+    if (s.position>0 && s.field>0) { depthSum += 1-(s.position/s.field); depthCount++; }
   });
   var pnl = totalOut-totalIn;
   var roi = totalIn>0 ? ((pnl/totalIn)*100).toFixed(1) : 0;
-  var itmPct = sessions.length>0 ? ((itm/sessions.length)*100).toFixed(0) : 0;
+  var itmPct = statSessions.length>0 ? ((itm/statSessions.length)*100).toFixed(0) : 0;
 
   var pnlEl = document.getElementById('dash-pnl');
   pnlEl.textContent = fmtCur(pnl);
   pnlEl.className = 'stat-val '+(pnl>0?'stat-up':pnl<0?'stat-down':'');
 
-  var _dps=document.getElementById('dash-pnl-sub'); if(_dps) _dps.textContent = sessions.length+' tournaments';
+  var _dps=document.getElementById('dash-pnl-sub'); if(_dps) _dps.textContent = statSessions.length+' tournaments';
   var _dri=document.getElementById('dash-roi'); if(_dri) _dri.textContent = roi+'%';
   var _drs=document.getElementById('dash-roi-sub'); if(_drs) _drs.textContent = totalIn>0?'₱'+fmt(totalIn)+' invested':'No investment yet';
   var _dit=document.getElementById('dash-itm'); if(_dit) _dit.textContent = itmPct+'%';
-  var _dis=document.getElementById('dash-itm-sub'); if(_dis) _dis.textContent = itm+' cashes from '+sessions.length;
-  var _dtl=document.getElementById('dash-total'); if(_dtl) _dtl.textContent = sessions.length;
+  var _dis=document.getElementById('dash-itm-sub'); if(_dis) _dis.textContent = itm+' cashes from '+statSessions.length;
+  var _dtl=document.getElementById('dash-total'); if(_dtl) _dtl.textContent = statSessions.length;
   var _dca=document.getElementById('dash-cashes'); if(_dca) _dca.textContent = cashes+' cashes';
-  var avgBuyin = sessions.length>0 ? totalIn/sessions.length : 0;
+  var avgBuyin = statSessions.length>0 ? totalIn/statSessions.length : 0;
   var _dab=document.getElementById('dash-avg-buyin'); if(_dab) _dab.textContent = '₱'+fmt(avgBuyin);
   var _dbg=document.getElementById('dash-biggest'); if(_dbg) _dbg.textContent = '₱'+fmt(biggest);
   var _dbs=document.getElementById('dash-biggest-sub'); if(_dbs) _dbs.textContent = biggestName||'—';
+  var _dfn=document.getElementById('dash-finals'); if(_dfn) _dfn.textContent = finals;
+  var _dfs=document.getElementById('dash-finals-sub'); if(_dfs) _dfs.textContent = statSessions.length>0 ? (Math.round((finals/statSessions.length)*100)+'% of sessions') : 'Top-3 cashes';
+  var _ddp=document.getElementById('dash-depth'); if(_ddp) _ddp.textContent = depthCount>0 ? Math.round((depthSum/depthCount)*100)+'%' : '—';
+  var _dds=document.getElementById('dash-depth-sub'); if(_dds) _dds.textContent = depthCount>0 ? 'Outlast this share of the field, on avg' : 'Log field size to see this';
 
   // Recent 5 in dash table
   var tbody = document.getElementById('dash-session-tbody');
