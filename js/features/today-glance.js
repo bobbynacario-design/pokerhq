@@ -41,6 +41,21 @@
     return m ? (parseInt(m[1], 10) * 60 + parseInt(m[2], 10)) : null;
   }
 
+  // "Starts in Xh Ym" against wall-clock now, only for an event whose focus
+  // day is today and whose start time hasn't already passed — never shows a
+  // stale or negative countdown.
+  function countdownLabel(e, focusDate) {
+    var mins = timeMins(e);
+    if (mins == null) return null;
+    var target = new Date(focusDate);
+    target.setHours(Math.floor(mins / 60), mins % 60, 0, 0);
+    var diffMs = target.getTime() - Date.now();
+    if (diffMs <= 0) return null;
+    var totalMin = Math.round(diffMs / 60000);
+    var h = Math.floor(totalMin / 60), m = totalMin % 60;
+    return h > 0 ? (h + 'h ' + m + 'm') : (m + 'm');
+  }
+
   // The next relevant day and EVERY event on it: today if anything runs today,
   // otherwise the next calendar day that has events. Multi-day events that span
   // the focus day are included. Returns null when nothing is upcoming, so a busy
@@ -162,7 +177,6 @@
       var r = gradeRank(gradeOf(e)); return r < acc ? r : acc;
     }, 3);
     var bestGrade = ['target', 'stretch', 'skip'][bestRank] || null;
-    var playableCount = events.filter(function (e) { return gradeOf(e) !== 'skip'; }).length;
 
     var label, cls, sub;
     if (timer.open) {
@@ -177,10 +191,22 @@
       label = bestGrade === 'target' ? 'GO' : bestGrade === 'stretch' ? 'STRETCH' : 'SKIP';
       cls = bestGrade === 'target' ? 'tg-target' : bestGrade === 'stretch' ? 'tg-stretch' : 'tg-skip';
       var wl = dayLabel(day.focus);
-      sub = (events.length === 1
-        ? events[0].name + ' · ' + money(events[0].buyin) + (eventTime(events[0]) ? ' · ' + eventTime(events[0]) : '')
-        : events.length + ' events' + (playableCount ? ' · ' + playableCount + ' playable' : ' · none playable')) +
-        (wl ? ' · ' + wl : '');
+      var base;
+      if (events.length === 1) {
+        base = events[0].name + ' · ' + money(events[0].buyin) + (eventTime(events[0]) ? ' · ' + eventTime(events[0]) : '');
+      } else {
+        var targetCount = events.filter(function (e) { return gradeOf(e) === 'target'; }).length;
+        var stretchCount = events.filter(function (e) { return gradeOf(e) === 'stretch'; }).length;
+        var skipCount = events.length - targetCount - stretchCount;
+        var breakdown = [
+          targetCount ? targetCount + ' target' : null,
+          stretchCount ? stretchCount + ' stretch' : null,
+          skipCount ? skipCount + ' skip' : null
+        ].filter(Boolean).join(' · ');
+        base = events.length + ' events' + (breakdown ? ' · ' + breakdown : '');
+      }
+      var countdown = (wl === 'today') ? countdownLabel(events[0], day.focus) : null;
+      sub = base + (wl ? ' · ' + wl : '') + (countdown ? ' · starts in ' + countdown : '');
     } else {
       label = 'NO EVENTS'; cls = 'tg-idle';
       sub = 'Add a tournament to your calendar to get a read.';
@@ -270,4 +296,12 @@
       window.renderTodayGlance();
     }
   }, 1000);
+
+  // Otherwise still refresh once a minute so the "starts in" countdown
+  // doesn't sit frozen at whatever it read on the last render.
+  setInterval(function () {
+    if (!window._timerInterval && document.getElementById('today-glance-wrap') && typeof window.renderTodayGlance === 'function') {
+      window.renderTodayGlance();
+    }
+  }, 60000);
 })();
