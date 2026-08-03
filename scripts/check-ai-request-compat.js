@@ -18,6 +18,19 @@ vm.runInThisContext(fs.readFileSync("js/data/ai-proxy.js", "utf8"));
     throw new Error("Anthropic error details were not preserved: " + message);
   }
 
+  global.getStoredAnthropicKey = () => "test-key";
+  global.fetch = (_url, options) => new Promise((_resolve, reject) => {
+    options.signal.addEventListener("abort", () => {
+      const error = new Error("aborted");
+      error.name = "AbortError";
+      reject(error);
+    });
+  });
+  const timedOut = await callAnthropicMessages({messages: []}, {timeoutMs: 5});
+  if (timedOut.status !== 408) {
+    throw new Error("Direct Anthropic requests do not stop at the configured timeout");
+  }
+
   ["js/features/calendar.js", "js/features/strategy.js"].forEach((file) => {
     const source = fs.readFileSync(file, "utf8");
     if (source.includes("output_config")) {
@@ -34,8 +47,11 @@ vm.runInThisContext(fs.readFileSync("js/data/ai-proxy.js", "utf8"));
       throw new Error("Calendar research prompt is missing priority venue: " + venue);
     }
   });
-  if (!calendarSource.includes("max_uses: 20") || !calendarSource.includes("max_tokens: 20000")) {
-    throw new Error("Calendar research request is not configured for broad coverage");
+  if (!calendarSource.includes("model: 'claude-sonnet-4-6'") ||
+      !calendarSource.includes("web_search_20250305") ||
+      !calendarSource.includes("max_uses: 12") ||
+      !calendarSource.includes("timeoutMs: 120000")) {
+    throw new Error("Calendar research request is not configured for responsive Manila coverage");
   }
 
   console.log("AI request compatibility checks passed.");

@@ -474,14 +474,14 @@ async function runCalendarUpdate() {
     return;
   }
   if (btn) { btn.disabled = true; btn.textContent = '⏳ SEARCHING…'; }
-  setCalUpdateStatus('🔎 Searching Manila rooms first, then PH & APAC… this can take 1–3 minutes.', 'muted');
+  setCalUpdateStatus('🔎 Searching Manila rooms first, then PH & APAC… usually 30–90 seconds.', 'muted');
   try {
     var response = await callAnthropicMessages({
-      model: 'claude-opus-4-8',
-      max_tokens: 20000,
-      tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 20 }],
+      model: 'claude-sonnet-4-6',
+      max_tokens: 12000,
+      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 12 }],
       messages: [{ role: 'user', content: buildCalendarUpdatePrompt() }]
-    });
+    }, { timeoutMs: 120000 });
     if (!response.ok) {
       if (response.status === 401) throw new Error('API key was rejected (401) — check it in AI Assistant.');
       throw new Error(await getAnthropicErrorMessage(response, 'Claude API error'));

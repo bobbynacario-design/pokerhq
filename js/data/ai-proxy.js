@@ -26,19 +26,36 @@ async function getAnthropicErrorMessage(response, fallback) {
   return fallback + (message ? ': ' + message : ' (' + response.status + ')');
 }
 
-async function callAnthropicMessages(bodyObj) {
+async function callAnthropicMessages(bodyObj, options) {
+  var timeoutMs = options && options.timeoutMs ? Number(options.timeoutMs) : 0;
   var key = (typeof getStoredAnthropicKey === 'function') ? getStoredAnthropicKey() : '';
   if (key) {
-    return fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify(bodyObj)
-    });
+    var controller = timeoutMs && typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var timer = controller ? setTimeout(function () { controller.abort(); }, timeoutMs) : null;
+    try {
+      return await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': key,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify(bodyObj),
+        signal: controller ? controller.signal : undefined
+      });
+    } catch (err) {
+      if (err && err.name === 'AbortError') {
+        return {
+          ok: false,
+          status: 408,
+          json: function () { return Promise.resolve({ error: { message: 'The AI search timed out. Please try again.' } }); }
+        };
+      }
+      throw err;
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
   }
   if (!window.__pokerhqAuthUid || typeof window.pokerhqAiCall !== 'function') {
     return {
@@ -48,7 +65,15 @@ async function callAnthropicMessages(bodyObj) {
     };
   }
   try {
-    var result = await window.pokerhqAiCall(bodyObj);
+    var proxyCall = window.pokerhqAiCall(bodyObj);
+    var result = timeoutMs
+      ? await Promise.race([
+        proxyCall,
+        new Promise(function (_, reject) {
+          setTimeout(function () { reject(new Error('The AI search timed out. Please try again.')); }, timeoutMs);
+        })
+      ])
+      : await proxyCall;
     return { ok: true, status: 200, json: function () { return Promise.resolve(result.data); } };
   } catch (err) {
     var code = err && err.code;
