@@ -351,13 +351,21 @@ function buildCalendarUpdatePrompt() {
     ? 'Bob\'s current bankroll is ₱' + br.toLocaleString() + ' on a ' + rule + ' buy-in rule, so his recommended max buy-in is about ₱' + maxBuyin.toLocaleString() + '.'
     : 'Bob runs a 15 buy-in bankroll rule and targets ₱3,000–₱15,000 buy-in events.';
   return 'You are Bob\'s personal poker intelligence analyst. Bob is a live MTT player based in Quezon City, Philippines. '
-    + 'He plays weekends at Solaire Resort, Okada Manila, Casino Filipino, and City of Dreams Manila, and tracks the Asia-Pacific tournament circuit. '
+    + 'His priority is a dense, practical calendar of tournaments at the main poker rooms across Metro Manila, followed by worthwhile Philippine and Asia-Pacific festivals. '
     + rollLine + ' Today is ' + today + '.\n\n'
-    + 'Use web search to thoroughly research UPCOMING tournaments. Search official / organiser sources and verify every event’s date and buy-in from at least one official source before listing it: '
-    + 'Solaire Poker Room, pokerstars.com/live/manila (APPT Manila), okadamanila.com, pokerph.com, Casino Filipino, City of Dreams Manila, '
-    + 'asianpokertour.com (APT), wsop.com/circuit, wpt.com, and Triton. '
-    + 'Do NOT invent events, dates, buy-ins, or guarantees — if you cannot verify it, omit it. '
-    + 'List EACH individual event on its own line (not just series headers). Cover confirmed events for roughly the next 6 weeks — Philippine venues plus Asia-Pacific stops reachable from Manila.\n\n'
+    + 'SEARCH PLAN — follow this order and do not move to APAC until Manila coverage is exhausted:\n'
+    + '1. Spend at least the first 10 searches on Metro Manila. Search each room separately using its name plus "tournament schedule", the current month, and the next month. Cover: '
+    + 'Metro Card Club at Metrowalk Pasig (metrocardclub.com), PRIME Poker Club Manila, Masters Poker Club, Soul Poker Club at City of Dreams Manila (soul-poker.com), '
+    + 'PokerStars LIVE Manila at Okada (pokerstarslivemanila.com and pokerstarslive.com/appt), Solaire Poker Room / Solaire Resort North, Newport World Resorts Poker Room, 2Ace Poker Club, '
+    + 'and any other established Metro Manila poker room discovered in current results.\n'
+    + '2. Then search other Philippine rooms and major domestic series, including Wild Aces and organiser calendars on pokerph.com.\n'
+    + '3. Only after that, use remaining searches for reachable Asia-Pacific festivals from APT, WPT, WSOP Circuit, PokerStars/APPT, and Triton.\n\n'
+    + 'SOURCE RULES: Prefer official room/organiser websites and official Facebook or Instagram schedule posts. Because local Manila rooms often publish only on social media, '
+    + 'you may also use a current schedule reported by established poker media such as SoMuchPoker, PokerNews, or Life of Poker when it explicitly states the event date and buy-in. '
+    + 'Never invent an event, URL, date, buy-in, or guarantee. Omit anything that still lacks a concrete date or buy-in after searching.\n\n'
+    + 'List EACH individual tournament as its own event, not merely a festival header. Cover confirmed events for roughly the next 8 weeks. '
+    + 'Include concrete dated occurrences of recurring daily or weekly Manila tournaments when a current schedule verifies them. '
+    + 'ORDER THE JSON EVENTS ARRAY with Metro Manila events first, then other Philippine events, then APAC; within each group sort by date. This ordering is mandatory so local events survive if the response is cut off.\n\n'
     + 'CLASSIFY each event precisely — this is the most important part, and accuracy matters more than inclusion:\n'
     + '• "satellite" = ONLY events whose PRIZE is a seat or package into another event rather than cash — i.e. actual satellites, qualifiers, mega/super satellites, feeders, "Step" rounds, or "win a seat" events. Set "seatGuaranteed": true for these.\n'
     + '• "main" = the flagship Main Event of a series.\n'
@@ -369,12 +377,13 @@ function buildCalendarUpdatePrompt() {
     + '"date":"YYYY-MM-DD","name":"event name","venue":"full venue name","buyin":3000,'
     + '"gtd":"guarantee if known, else empty string","structure":"Freezeout|Re-entry|Turbo|Deep Stack|Bounty / PKO|Satellite / Qualifier|other",'
     + '"category":"satellite|main|side","seatGuaranteed":false,"region":"ph|apac","accessible":true,'
-    + '"notes":"late reg / flights / re-entry / original currency, etc.","source":"organiser or publication name","url":"https://exact-source-url"}]}\n'
+    + '"notes":"brief details, maximum 100 characters","source":"short source name","url":"https://exact-source-url"}]}\n'
     + '"buyin" MUST be a plain number in PHP (no currency symbol or commas). '
     + '"date" MUST be a single concrete calendar date in strict YYYY-MM-DD form (e.g. "2026-07-21") — never a weekday name, "weekly", "daily", "TBD", or a range. '
     + 'For recurring events (dailies/weeklies) that fall inside the window, emit a SEPARATE entry for each concrete dated occurrence; for a multi-day event, use its Day 1 date. Omit any event whose exact date you cannot confirm. '
     + 'Set "accessible": true when the buy-in is at or below ₱' + accThreshold + ' (within direct reach), otherwise false. '
-    + 'The "url" MUST be copied exactly from a search result — never invent or guess one. Return every confirmed event you can verify. Use "' + today + '" as the "asOf" value.';
+    + 'Keep every field compact: no prose outside JSON and no long notes. The "url" MUST be copied exactly from a search result — never invent or guess one. '
+    + 'Return every confirmed event you can verify, prioritising breadth of Manila coverage. Use "' + today + '" as the "asOf" value.';
 }
 
 function importCalendarUpdateEvents(events) {
@@ -465,13 +474,12 @@ async function runCalendarUpdate() {
     return;
   }
   if (btn) { btn.disabled = true; btn.textContent = '⏳ SEARCHING…'; }
-  setCalUpdateStatus('🔎 Researching upcoming tournaments across PH & APAC… this can take 30–60s.', 'muted');
+  setCalUpdateStatus('🔎 Searching Manila rooms first, then PH & APAC… this can take 1–3 minutes.', 'muted');
   try {
     var response = await callAnthropicMessages({
       model: 'claude-opus-4-8',
-      max_tokens: 16000,
-      thinking: { type: 'adaptive' },
-      tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 12 }],
+      max_tokens: 20000,
+      tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 20 }],
       messages: [{ role: 'user', content: buildCalendarUpdatePrompt() }]
     });
     if (!response.ok) {

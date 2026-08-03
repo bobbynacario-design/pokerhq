@@ -28,6 +28,16 @@ vm.runInThisContext(fs.readFileSync("js/data/ai-proxy.js", "utf8"));
     }
   });
 
+  const calendarSource = fs.readFileSync("js/features/calendar.js", "utf8");
+  ["Metro Card Club", "PRIME Poker Club Manila", "Masters Poker Club", "Soul Poker Club"].forEach((venue) => {
+    if (!calendarSource.includes(venue)) {
+      throw new Error("Calendar research prompt is missing priority venue: " + venue);
+    }
+  });
+  if (!calendarSource.includes("max_uses: 20") || !calendarSource.includes("max_tokens: 20000")) {
+    throw new Error("Calendar research request is not configured for broad coverage");
+  }
+
   console.log("AI request compatibility checks passed.");
 })().catch((error) => {
   console.error(error);
