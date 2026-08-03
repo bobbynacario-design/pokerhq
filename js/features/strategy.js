@@ -338,35 +338,14 @@ function buildResearchPrompt() {
     + 'Use web search to find the most current and noteworthy updates about ' + scope + '. '
     + 'Prioritise items from roughly the last 1-2 months: recent tournament results and records, upcoming notable festivals / series with their dates and venues, and significant strategy or industry developments. '
     + 'Base every factual claim, date, and result strictly on what your web searches return — do not rely on prior knowledge, and do not include anything you did not find in a search result.\n\n'
+    + 'Respond with ONLY a single valid JSON object — no preamble, explanation, markdown, or code fences. Use exactly this shape:\n'
+    + '{"asOf":"' + today + '","items":[{"category":"news|event|strategy","headline":"specific, informative headline",'
+    + '"summary":"a detailed 4-6 sentence brief with concrete specifics and why it matters",'
+    + '"date":"approximate date or date range","source":"publication or organiser name","url":"https://exact-source-url"}]}\n'
     + 'Make each summary genuinely useful and substantive — not a one-liner. Include the concrete figures and details a player would want.\n'
     + 'The "url" for each item MUST be copied exactly from one of the result URLs your searches returned — never invent, guess, or construct a URL. '
     + 'Run several searches across different sources and aim for 6 to 8 substantive, well-sourced items — do not stop at two or three. Only drop an item if you genuinely cannot verify it from a search result; prefer finding and sourcing more over returning a thin list. Use "' + today + '" as the "asOf" value.';
 }
-
-var POKER_RESEARCH_SCHEMA = {
-  type: 'object',
-  properties: {
-    asOf: { type: 'string', description: 'Today\'s date, as given in the prompt.' },
-    items: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          category: { type: 'string', enum: ['news', 'event', 'strategy'] },
-          headline: { type: 'string', description: 'Specific, informative headline.' },
-          summary: { type: 'string', description: 'A detailed 4-6 sentence brief: concrete specifics (names, dates, venues, buy-ins or guarantees, key results or numbers) and why it matters to a tournament player.' },
-          date: { type: 'string', description: 'Approximate date or date range.' },
-          source: { type: 'string', description: 'Publication or organiser name.' },
-          url: { type: 'string', description: 'Exact URL copied from a search result — never invented.' }
-        },
-        required: ['category', 'headline', 'summary', 'date', 'source', 'url'],
-        additionalProperties: false
-      }
-    }
-  },
-  required: ['asOf', 'items'],
-  additionalProperties: false
-};
 
 async function runPokerResearch() {
   if (!hasAnthropicAccess()) {
@@ -384,12 +363,11 @@ async function runPokerResearch() {
       max_tokens: 8000,
       thinking: { type: 'adaptive' },
       tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 8 }],
-      output_config: { format: { type: 'json_schema', schema: POKER_RESEARCH_SCHEMA } },
       messages: [{ role: 'user', content: buildResearchPrompt() }]
     });
     if (!response.ok) {
       if (response.status === 401) throw new Error('API key was rejected (401) — check it in the AI Assistant panel.');
-      throw new Error('Claude API error (' + response.status + ')');
+      throw new Error(await getAnthropicErrorMessage(response, 'Claude API error'));
     }
     var data = await response.json();
     // Ground-truth guard against hallucination: collect the URLs Claude's searches

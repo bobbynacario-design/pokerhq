@@ -13,6 +13,19 @@ function hasAnthropicAccess() {
   return !!key || !!window.__pokerhqAuthUid;
 }
 
+// Read Anthropic's error payload before callers throw. The old callers only
+// surfaced the HTTP status, which hid useful validation messages and made
+// request regressions unnecessarily hard to diagnose.
+async function getAnthropicErrorMessage(response, fallback) {
+  var message = '';
+  try {
+    var data = await response.json();
+    message = data && data.error && data.error.message ? String(data.error.message) : '';
+  } catch (e) {}
+  if (message.length > 400) message = message.slice(0, 397) + '...';
+  return fallback + (message ? ': ' + message : ' (' + response.status + ')');
+}
+
 async function callAnthropicMessages(bodyObj) {
   var key = (typeof getStoredAnthropicKey === 'function') ? getStoredAnthropicKey() : '';
   if (key) {

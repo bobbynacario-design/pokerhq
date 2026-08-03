@@ -716,7 +716,7 @@ async function structureHand() {
         refreshVoiceKeyRow();
         throw new Error('API key was rejected (401) — paste a valid key and try again');
       }
-      throw new Error('Claude API error (' + response.status + ')');
+      throw new Error(await getAnthropicErrorMessage(response, 'Claude API error'));
     }
     var data = await response.json();
     var text = (data.content || []).map(function(c) { return c.text || ''; }).join('');

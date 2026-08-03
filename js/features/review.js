@@ -216,7 +216,7 @@ async function enhanceSessionDebriefWithAi(sid) {
         content: buildAiDebriefPrompt(session, linkedHands, localReport)
       }]
     });
-    if (!response.ok) throw new Error('AI enhancement failed (' + response.status + ')');
+    if (!response.ok) throw new Error(await getAnthropicErrorMessage(response, 'AI enhancement failed'));
     var data = await response.json();
     var text = (data.content || []).map(function(chunk) { return chunk.text || ''; }).join('');
     var parsed = JSON.parse(text);
