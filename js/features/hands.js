@@ -382,7 +382,7 @@ function renderAiSettings() {
       oaStatus.innerHTML = '<span style="color:var(--green)">✓ Key saved on this device</span> · <span class="ai-mask">' + esc(maskAnthropicKey(oaKey)) + '</span>';
       if (oaClear) oaClear.style.display = '';
     } else {
-      oaStatus.innerHTML = '<span class="ai-muted">○ No key set — voice recording disabled</span>';
+      oaStatus.innerHTML = '<span class="ai-muted">○ No key set — voice recording &amp; calendar research disabled</span>';
       if (oaClear) oaClear.style.display = 'none';
     }
   }
@@ -494,7 +494,7 @@ async function testOpenAIKey() {
     });
     if (res.ok) {
       if (typed) { setStoredOpenAIKey(typed); if (input) input.value = ''; renderAiSettings(); }
-      setAiTestResult('✓ Connection works — voice recording is ready.', 'ok', 'ai-openai-test-result');
+      setAiTestResult('✓ Connection works — voice recording and calendar research are ready.', 'ok', 'ai-openai-test-result');
     } else if (res.status === 401) {
       setAiTestResult('✗ Key rejected (401). Check the key and try again.', 'error', 'ai-openai-test-result');
     } else {

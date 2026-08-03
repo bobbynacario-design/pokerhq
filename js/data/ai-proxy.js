@@ -26,6 +26,57 @@ async function getAnthropicErrorMessage(response, fallback) {
   return fallback + (message ? ': ' + message : ' (' + response.status + ')');
 }
 
+function hasOpenAIResponsesAccess() {
+  var key = (typeof getStoredOpenAIKey === 'function') ? getStoredOpenAIKey() : '';
+  return !!key;
+}
+
+async function getOpenAIErrorMessage(response, fallback) {
+  var message = '';
+  try {
+    var data = await response.json();
+    message = data && data.error && data.error.message ? String(data.error.message) : '';
+  } catch (e) {}
+  if (message.length > 400) message = message.slice(0, 397) + '...';
+  return fallback + (message ? ': ' + message : ' (' + response.status + ')');
+}
+
+async function callOpenAIResponses(bodyObj, options) {
+  var key = (typeof getStoredOpenAIKey === 'function') ? getStoredOpenAIKey() : '';
+  if (!key) {
+    return {
+      ok: false,
+      status: 401,
+      json: function () { return Promise.resolve({ error: { message: 'Add your OpenAI API key in AI Assistant first.' } }); }
+    };
+  }
+  var timeoutMs = options && options.timeoutMs ? Number(options.timeoutMs) : 0;
+  var controller = timeoutMs && typeof AbortController !== 'undefined' ? new AbortController() : null;
+  var timer = controller ? setTimeout(function () { controller.abort(); }, timeoutMs) : null;
+  try {
+    return await fetch('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + key
+      },
+      body: JSON.stringify(bodyObj),
+      signal: controller ? controller.signal : undefined
+    });
+  } catch (err) {
+    if (err && err.name === 'AbortError') {
+      return {
+        ok: false,
+        status: 408,
+        json: function () { return Promise.resolve({ error: { message: 'The OpenAI event search timed out. Please try again.' } }); }
+      };
+    }
+    throw err;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 async function callAnthropicMessages(bodyObj, options) {
   var timeoutMs = options && options.timeoutMs ? Number(options.timeoutMs) : 0;
   var key = (typeof getStoredAnthropicKey === 'function') ? getStoredAnthropicKey() : '';

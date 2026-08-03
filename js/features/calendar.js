@@ -313,9 +313,8 @@ function renderCalendar() {
 
 // ── AI EVENT UPDATE — one button that web-searches upcoming tournaments and
 // files them onto the calendar, with satellites/qualifiers classified at the
-// source by Claude (no name-guessing, no manual tagging). Meant to be run every
-// couple of weeks. Reuses the same Anthropic web-search plumbing as the Strategy
-// tab's AI research. ──
+// source by the model (no name-guessing, no manual tagging). Meant to be run every
+// couple of weeks. Uses OpenAI Responses web search with a strict event schema. ──
 var CAL_UPDATE_LAST_KEY = 'pokerhq_cal_update_last';
 
 function setCalUpdateStatus(message, kind) {
@@ -386,6 +385,38 @@ function buildCalendarUpdatePrompt() {
     + 'Return every confirmed event you can verify, prioritising breadth of Manila coverage. Use "' + today + '" as the "asOf" value.';
 }
 
+var OPENAI_CALENDAR_UPDATE_SCHEMA = {
+  type: 'object',
+  properties: {
+    asOf: { type: 'string' },
+    events: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          date: { type: 'string' },
+          name: { type: 'string' },
+          venue: { type: 'string' },
+          buyin: { type: 'number' },
+          gtd: { type: 'string' },
+          structure: { type: 'string', enum: ['Freezeout', 'Re-entry', 'Turbo', 'Deep Stack', 'Bounty / PKO', 'Satellite / Qualifier', 'other'] },
+          category: { type: 'string', enum: ['satellite', 'main', 'side'] },
+          seatGuaranteed: { type: 'boolean' },
+          region: { type: 'string', enum: ['ph', 'apac'] },
+          accessible: { type: 'boolean' },
+          notes: { type: 'string' },
+          source: { type: 'string' },
+          url: { type: 'string' }
+        },
+        required: ['date', 'name', 'venue', 'buyin', 'gtd', 'structure', 'category', 'seatGuaranteed', 'region', 'accessible', 'notes', 'source', 'url'],
+        additionalProperties: false
+      }
+    }
+  },
+  required: ['asOf', 'events'],
+  additionalProperties: false
+};
+
 function importCalendarUpdateEvents(events) {
   var added = [];
   (events || []).forEach(function (ev) {
@@ -411,7 +442,7 @@ function importCalendarUpdateEvents(events) {
       gtd: ev.gtd || '',
       structure: ev.structure || (isSat ? 'Satellite / Qualifier' : 'Regular'),
       type: cat === 'main' ? 'main' : 'side',
-      category: isSat ? 'satellite' : cat,   // authoritative satellite tag from Claude
+      category: isSat ? 'satellite' : cat,   // authoritative satellite tag from the research model
       sat: isSat,
       notes: ev.notes || '',
       source: ev.source || '',
@@ -469,28 +500,41 @@ function extractEventObjects(text) {
 
 async function runCalendarUpdate() {
   var btn = document.getElementById('cal-update-btn');
-  if (!hasAnthropicAccess()) {
-    setCalUpdateStatus('Add your Anthropic API key first — IMPROVE → ♥ Strategy → AI Assistant.', 'error');
+  if (!hasOpenAIResponsesAccess()) {
+    setCalUpdateStatus('Add your OpenAI API key first — IMPROVE → ♥ Strategy → AI Assistant.', 'error');
     return;
   }
   if (btn) { btn.disabled = true; btn.textContent = '⏳ SEARCHING…'; }
   setCalUpdateStatus('🔎 Searching Manila rooms first, then PH & APAC… usually 30–90 seconds.', 'muted');
   try {
-    var response = await callAnthropicMessages({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 12000,
-      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 12 }],
-      messages: [{ role: 'user', content: buildCalendarUpdatePrompt() }]
+    var response = await callOpenAIResponses({
+      model: 'gpt-5.6-terra',
+      reasoning: { effort: 'low' },
+      tools: [{ type: 'web_search' }],
+      input: buildCalendarUpdatePrompt(),
+      max_output_tokens: 16000,
+      text: {
+        verbosity: 'low',
+        format: {
+          type: 'json_schema',
+          name: 'poker_calendar_events',
+          strict: true,
+          schema: OPENAI_CALENDAR_UPDATE_SCHEMA
+        }
+      }
     }, { timeoutMs: 120000 });
     if (!response.ok) {
-      if (response.status === 401) throw new Error('API key was rejected (401) — check it in AI Assistant.');
-      throw new Error(await getAnthropicErrorMessage(response, 'Claude API error'));
+      if (response.status === 401) throw new Error('OpenAI API key was rejected (401) — check it in AI Assistant.');
+      throw new Error(await getOpenAIErrorMessage(response, 'OpenAI API error'));
     }
     var data = await response.json();
-    var searchCount = (data.usage && data.usage.server_tool_use && data.usage.server_tool_use.web_search_requests) || 0;
-    var text = (data.content || [])
-      .filter(function (c) { return c.type === 'text'; })
-      .map(function (c) { return c.text || ''; })
+    var outputItems = Array.isArray(data.output) ? data.output : [];
+    var searchCount = outputItems.filter(function (item) { return item && item.type === 'web_search_call'; }).length;
+    var text = data.output_text || outputItems
+      .filter(function (item) { return item && item.type === 'message'; })
+      .reduce(function (parts, item) { return parts.concat(item.content || []); }, [])
+      .filter(function (item) { return item && item.type === 'output_text'; })
+      .map(function (item) { return item.text || ''; })
       .join('\n');
     var parsed = null;
     try {
@@ -500,7 +544,7 @@ async function runCalendarUpdate() {
     // response stopped at the token limit), recover whatever complete events
     // did arrive so a long list isn't lost wholesale.
     var events = (parsed && Array.isArray(parsed.events)) ? parsed.events : extractEventObjects(text);
-    var truncated = data.stop_reason === 'max_tokens' || (!parsed && events.length > 0);
+    var truncated = data.status === 'incomplete' || (!parsed && events.length > 0);
     if (!events.length) {
       throw new Error('No usable events came back. Try again in a moment.');
     }

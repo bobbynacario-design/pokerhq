@@ -31,7 +31,13 @@ vm.runInThisContext(fs.readFileSync("js/data/ai-proxy.js", "utf8"));
     throw new Error("Direct Anthropic requests do not stop at the configured timeout");
   }
 
-  ["js/features/calendar.js", "js/features/strategy.js"].forEach((file) => {
+  global.getStoredOpenAIKey = () => "test-openai-key";
+  const openAiTimedOut = await callOpenAIResponses({input: "test"}, {timeoutMs: 5});
+  if (openAiTimedOut.status !== 408) {
+    throw new Error("Direct OpenAI Responses requests do not stop at the configured timeout");
+  }
+
+  ["js/features/strategy.js"].forEach((file) => {
     const source = fs.readFileSync(file, "utf8");
     if (source.includes("output_config")) {
       throw new Error(file + " combines structured output with cited web search");
@@ -47,11 +53,12 @@ vm.runInThisContext(fs.readFileSync("js/data/ai-proxy.js", "utf8"));
       throw new Error("Calendar research prompt is missing priority venue: " + venue);
     }
   });
-  if (!calendarSource.includes("model: 'claude-sonnet-4-6'") ||
-      !calendarSource.includes("web_search_20250305") ||
-      !calendarSource.includes("max_uses: 12") ||
+  if (!calendarSource.includes("model: 'gpt-5.6-terra'") ||
+      !calendarSource.includes("type: 'web_search'") ||
+      !calendarSource.includes("type: 'json_schema'") ||
+      !calendarSource.includes("callOpenAIResponses") ||
       !calendarSource.includes("timeoutMs: 120000")) {
-    throw new Error("Calendar research request is not configured for responsive Manila coverage");
+    throw new Error("Calendar research request is not configured for OpenAI web search");
   }
 
   console.log("AI request compatibility checks passed.");

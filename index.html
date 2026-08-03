@@ -13,8 +13,8 @@
 <title>PokerHQ — Tournament Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script type="module" src="./js/app.js?v=20260803c"></script>
-<link rel="stylesheet" href="./styles/app.css?v=20260803c">
+<script type="module" src="./js/app.js?v=20260803d"></script>
+<link rel="stylesheet" href="./styles/app.css?v=20260803d">
 </head>
 <body>
 <!-- LOGIN GATE — shown until Firebase auth resolves a signed-in user -->
@@ -647,7 +647,7 @@
     <div style="display:flex;gap:.5rem;flex-wrap:wrap">
       <button class="sec-action" onclick="dedupeTourneys()" title="Remove duplicate tournaments (same date, name and venue)">⧉ DEDUPE</button>
       <button class="sec-action" onclick="exportCalendarICS()" title="Download target events as a calendar file">⤓ EXPORT .ICS</button>
-      <button class="sec-action" id="cal-update-btn" onclick="runCalendarUpdate()" title="Web-search upcoming PH &amp; APAC tournaments and add them — satellites tagged automatically. Uses your Anthropic key; run every 2–3 weeks.">✨ UPDATE EVENTS</button>
+      <button class="sec-action" id="cal-update-btn" onclick="runCalendarUpdate()" title="Web-search upcoming PH &amp; APAC tournaments and add them — satellites tagged automatically. Uses your OpenAI key; run every 2–3 weeks.">✨ UPDATE EVENTS</button>
       <button class="sec-action primary" onclick="openNewTourneyModal()">+ ADD TOURNAMENT</button>
     </div>
   </div>
@@ -743,8 +743,8 @@
 
     <div style="height:1px;background:var(--rim);margin:1.1rem 0"></div>
 
-    <div class="ai-sub-label" style="font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.5rem">OpenAI (Whisper) — in-app voice recording</div>
-    <div id="ai-openai-status" style="font-family:var(--mono);font-size:12px;margin-bottom:.7rem">○ No key set — voice recording disabled</div>
+    <div class="ai-sub-label" style="font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.5rem">OpenAI — voice recording &amp; calendar research</div>
+    <div id="ai-openai-status" style="font-family:var(--mono);font-size:12px;margin-bottom:.7rem">○ No key set — voice recording &amp; calendar research disabled</div>
     <div class="form-group" style="margin-bottom:.6rem">
       <label class="form-label">OpenAI API Key</label>
       <input class="form-input" type="password" id="ai-openai-input" autocomplete="off" placeholder="sk-...">
@@ -764,7 +764,7 @@
       </select>
     </div>
 
-    <div class="tip" style="margin-top:1rem">Both keys are stored only on this device — never synced, never shared. The Anthropic key powers 🎙 hand structuring and ✨ debriefs (console.anthropic.com); the OpenAI key powers 🎤 in-app voice recording via Whisper (platform.openai.com, ~$0.006/min). Set a spending limit on each.</div>
+    <div class="tip" style="margin-top:1rem">Both keys are stored only on this device — never synced, never shared. The Anthropic key powers 🎙 hand structuring, ✨ debriefs, and Strategy research (console.anthropic.com). The OpenAI key powers 🎤 voice transcription and Plan → ✨ Update Events web research (platform.openai.com). Set a spending limit on each.</div>
   </div>
 
   <!-- AI Poker Research -->
@@ -961,8 +961,8 @@
       <tr><td><strong>A Google account</strong></td><td>PokerHQ is locked to your account — you sign in with Google, and only your account can see your data</td><td><span class="badge badge-red">Required</span></td></tr>
       <tr><td><strong>A modern browser</strong> — Chrome, Edge, or Safari</td><td>Where the app runs; also lets you install it to your desktop or home screen</td><td><span class="badge badge-red">Required</span></td></tr>
       <tr><td><strong>Your bankroll figure</strong></td><td>Set once at the start so buy-in recommendations are accurate</td><td><span class="badge badge-yellow">Recommended</span></td></tr>
-      <tr><td><strong>Anthropic API key</strong></td><td>Only for the AI features — hand-structuring, AI debriefs, and AI poker research; everything else works without it</td><td><span class="badge badge-gray">Optional</span></td></tr>
-      <tr><td><strong>OpenAI API key</strong></td><td>Only for the in-app 🎤 voice recorder (Whisper transcription). Typed-hand capture and everything else work without it</td><td><span class="badge badge-gray">Optional</span></td></tr>
+      <tr><td><strong>Anthropic API key</strong></td><td>Optional hand-structuring, AI debriefs, and Strategy research</td><td><span class="badge badge-gray">Optional</span></td></tr>
+      <tr><td><strong>OpenAI API key</strong></td><td>Optional voice transcription and Plan calendar event research</td><td><span class="badge badge-gray">Optional</span></td></tr>
     </tbody>
   </table>
 
@@ -1304,11 +1304,12 @@
 
   <!-- AI FEATURES -->
   <h2 id="ai">AI features &amp; keys</h2>
-  <p>PokerHQ has four optional AI features. They're powered by your own API keys, managed in one place: <strong>IMPROVE → ♥ Strategy → 🤖 AI Assistant</strong>.</p>
+  <p>PokerHQ has five optional AI features. They're powered by your own API keys, managed in one place: <strong>IMPROVE → ♥ Strategy → 🤖 AI Assistant</strong>.</p>
   <table>
     <thead><tr><th>Feature</th><th>Where</th><th>Key used</th></tr></thead>
     <tbody>
       <tr><td><strong>Voice recording → transcript</strong></td><td>Hands → 🎙 Voice to Hand → 🎤 Record</td><td><span class="badge badge-blue">OpenAI</span> (Whisper)</td></tr>
+      <tr><td><strong>Update tournament calendar</strong></td><td>Plan → Calendar → ✨ Update Events</td><td><span class="badge badge-blue">OpenAI</span> (GPT-5.6 Terra) + web search</td></tr>
       <tr><td><strong>Structure a transcript into a hand</strong></td><td>Voice to Hand → ✨ Structure with AI</td><td><span class="badge badge-purple">Anthropic</span> (Claude)</td></tr>
       <tr><td><strong>AI-enhanced session debrief</strong></td><td>Review → open a session → ENHANCE WITH AI</td><td><span class="badge badge-purple">Anthropic</span> (Claude)</td></tr>
       <tr><td><strong>AI poker research</strong></td><td>IMPROVE → ♥ Strategy → 🔎 AI Poker Research</td><td><span class="badge badge-purple">Anthropic</span> (Claude) + web search</td></tr>
@@ -1407,7 +1408,7 @@
 
   <details>
     <summary>Do I need API keys to use PokerHQ?</summary>
-    <div class="faq-body"><p>No. Everything — planning, sessions, typed hand capture, review, heatmaps, treasury, the local session debrief — works without any key. Keys only power the optional AI features: an <strong>Anthropic</strong> key for hand-structuring and the AI-enhanced debrief, and an <strong>OpenAI</strong> key for the 🎤 voice recorder.</p></div>
+    <div class="faq-body"><p>No. Everything — planning, sessions, typed hand capture, review, heatmaps, treasury, and the local session debrief — works without any key. Keys only power optional AI features: an <strong>Anthropic</strong> key for hand-structuring, AI debriefs, and Strategy research; and an <strong>OpenAI</strong> key for voice transcription and Calendar event research.</p></div>
   </details>
 
   <details>
@@ -1842,23 +1843,23 @@
   </div>
 </div>
 
-<script src="./js/data/config-runtime.js?v=20260803c"></script>
-<script src="./js/data/ai-proxy.js?v=20260803c"></script>
-<script src="./js/features/active-session.js?v=20260803c"></script>
-<script src="./js/features/demo-mode.js?v=20260803c"></script>
-<script src="./js/features/calculator.js?v=20260803c"></script>
-<script src="./js/features/staking.js?v=20260803c"></script>
-<script src="./js/features/package-report.js?v=20260803c"></script>
-<script src="./js/features/review.js?v=20260803c"></script>
-<script src="./js/features/calendar.js?v=20260803c"></script>
-<script src="./js/features/study-loop.js?v=20260803c"></script>
-<script src="./js/features/strategy.js?v=20260803c"></script>
-<script src="./js/features/hands.js?v=20260803c"></script>
-<script src="./js/features/treasury.js?v=20260803c"></script>
-<script src="./js/features/bankroll-chart.js?v=20260803c"></script>
-<script src="./js/features/library.js?v=20260803c"></script>
-<script src="./js/features/onboarding.js?v=20260803c"></script>
-<script src="./js/features/today-glance.js?v=20260803c"></script>
+<script src="./js/data/config-runtime.js?v=20260803d"></script>
+<script src="./js/data/ai-proxy.js?v=20260803d"></script>
+<script src="./js/features/active-session.js?v=20260803d"></script>
+<script src="./js/features/demo-mode.js?v=20260803d"></script>
+<script src="./js/features/calculator.js?v=20260803d"></script>
+<script src="./js/features/staking.js?v=20260803d"></script>
+<script src="./js/features/package-report.js?v=20260803d"></script>
+<script src="./js/features/review.js?v=20260803d"></script>
+<script src="./js/features/calendar.js?v=20260803d"></script>
+<script src="./js/features/study-loop.js?v=20260803d"></script>
+<script src="./js/features/strategy.js?v=20260803d"></script>
+<script src="./js/features/hands.js?v=20260803d"></script>
+<script src="./js/features/treasury.js?v=20260803d"></script>
+<script src="./js/features/bankroll-chart.js?v=20260803d"></script>
+<script src="./js/features/library.js?v=20260803d"></script>
+<script src="./js/features/onboarding.js?v=20260803d"></script>
+<script src="./js/features/today-glance.js?v=20260803d"></script>
 <script>
 // ── PWA INSTALL — captures the browser install prompt like Enclave ──
 var _deferredInstallPrompt = null;
