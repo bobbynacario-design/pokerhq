@@ -48,7 +48,7 @@ vm.runInThisContext(fs.readFileSync("js/data/ai-proxy.js", "utf8"));
   });
 
   const calendarSource = fs.readFileSync("js/features/calendar.js", "utf8");
-  ["Metro Card Club", "PRIME Poker Club Manila", "Masters Poker Club", "Soul Poker Club"].forEach((venue) => {
+  ["Metro Card Club", "PRIME Poker Club", "Masters Poker Club", "Soul Poker Club", "2Ace Poker Club"].forEach((venue) => {
     if (!calendarSource.includes(venue)) {
       throw new Error("Calendar research prompt is missing priority venue: " + venue);
     }
@@ -57,8 +57,32 @@ vm.runInThisContext(fs.readFileSync("js/data/ai-proxy.js", "utf8"));
       !calendarSource.includes("type: 'web_search'") ||
       !calendarSource.includes("type: 'json_schema'") ||
       !calendarSource.includes("callOpenAIResponses") ||
-      !calendarSource.includes("timeoutMs: 120000")) {
+      !calendarSource.includes("runCalendarSearches(searches, 3") ||
+      !calendarSource.includes("timeoutMs: 75000")) {
     throw new Error("Calendar research request is not configured for OpenAI web search");
+  }
+
+  vm.runInThisContext(calendarSource);
+  if (CALENDAR_MANILA_SEARCHES.length !== 8) {
+    throw new Error("Calendar research must run one dedicated search for each priority Manila room");
+  }
+  const metroPrompt = buildCalendarVenuePrompt(CALENDAR_MANILA_SEARCHES[0]);
+  if (!metroPrompt.includes("DEDICATED venue search") || !metroPrompt.includes("Metro Card Club") || metroPrompt.includes("PRIME Poker Club")) {
+    throw new Error("Venue research prompts are not isolated to one Manila room");
+  }
+  let activeSearches = 0;
+  let maxActiveSearches = 0;
+  runOneCalendarSearch = async (search) => {
+    activeSearches++;
+    maxActiveSearches = Math.max(maxActiveSearches, activeSearches);
+    await new Promise((resolve) => setTimeout(resolve, 2));
+    activeSearches--;
+    return {label: search.label, events: []};
+  };
+  const mockSearches = CALENDAR_MANILA_SEARCHES.map((search) => ({label: search.label}));
+  const mockResults = await runCalendarSearches(mockSearches, 3);
+  if (mockResults.length !== 8 || maxActiveSearches !== 3 || mockResults[0].label !== "Metro Card Club") {
+    throw new Error("Dedicated venue searches are not aggregated with bounded concurrency");
   }
 
   console.log("AI request compatibility checks passed.");

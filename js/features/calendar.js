@@ -340,7 +340,7 @@ function showCalUpdateLastRun() {
   el.textContent = 'Last AI event update: ' + last + ' · safe to run every 2–3 weeks.';
 }
 
-function buildCalendarUpdatePrompt() {
+function calendarResearchContext() {
   var today = new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
   var br = (window.bankroll && window.bankroll.amount) || 0;
   var rule = (window.bankroll && window.bankroll.rule) || 15;
@@ -349,18 +349,43 @@ function buildCalendarUpdatePrompt() {
   var rollLine = br
     ? 'Bob\'s current bankroll is ₱' + br.toLocaleString() + ' on a ' + rule + ' buy-in rule, so his recommended max buy-in is about ₱' + maxBuyin.toLocaleString() + '.'
     : 'Bob runs a 15 buy-in bankroll rule and targets ₱3,000–₱15,000 buy-in events.';
+  return { today: today, rollLine: rollLine, accThreshold: accThreshold };
+}
+
+var CALENDAR_MANILA_SEARCHES = [
+  { label: 'Metro Card Club', query: 'Metro Card Club at Metrowalk Pasig; also search Metro Card Club Philippines and metrocardclub.com' },
+  { label: 'PRIME Poker Club', query: 'PRIME Poker Club Manila; distinguish it from unrelated businesses named Prime' },
+  { label: 'Masters Poker Club', query: 'Masters Poker Club Manila Philippines' },
+  { label: 'Soul Poker Club', query: 'Soul Poker Club at City of Dreams Manila and soul-poker.com' },
+  { label: 'PokerStars LIVE Manila', query: 'PokerStars LIVE Manila at Okada, pokerstarslivemanila.com, PokerStars APPT Manila' },
+  { label: 'Solaire Poker Room', query: 'Solaire Poker Room and Solaire Resort North poker tournaments Manila' },
+  { label: 'Newport Poker Room', query: 'Newport World Resorts Poker Room Manila tournaments' },
+  { label: '2Ace Poker Club', query: '2Ace Poker Club Metro Manila Philippines tournaments' }
+];
+
+function buildCalendarVenuePrompt(search) {
+  var ctx = calendarResearchContext();
   return 'You are Bob\'s personal poker intelligence analyst. Bob is a live MTT player based in Quezon City, Philippines. '
-    + 'His priority is a dense, practical calendar of tournaments at the main poker rooms across Metro Manila, followed by worthwhile Philippine and Asia-Pacific festivals. '
-    + rollLine + ' Today is ' + today + '.\n\n'
-    + 'SEARCH PLAN — follow this order and do not move to APAC until Manila coverage is exhausted:\n'
-    + '1. Spend at least the first 10 searches on Metro Manila. Search each room separately using its name plus "tournament schedule", the current month, and the next month. Cover: '
-    + 'Metro Card Club at Metrowalk Pasig (metrocardclub.com), PRIME Poker Club Manila, Masters Poker Club, Soul Poker Club at City of Dreams Manila (soul-poker.com), '
-    + 'PokerStars LIVE Manila at Okada (pokerstarslivemanila.com and pokerstarslive.com/appt), Solaire Poker Room / Solaire Resort North, Newport World Resorts Poker Room, 2Ace Poker Club, '
-    + 'and any other established Metro Manila poker room discovered in current results.\n'
-    + '2. Then search other Philippine rooms and major domestic series, including Wild Aces and organiser calendars on pokerph.com.\n'
-    + '3. Only after that, use remaining searches for reachable Asia-Pacific festivals from APT, WPT, WSOP Circuit, PokerStars/APPT, and Triton.\n\n'
-    + 'SOURCE RULES: Prefer official room/organiser websites and official Facebook or Instagram schedule posts. Because local Manila rooms often publish only on social media, '
-    + 'you may also use a current schedule reported by established poker media such as SoMuchPoker, PokerNews, or Life of Poker when it explicitly states the event date and buy-in. '
+    + ctx.rollLine + ' Today is ' + ctx.today + '.\n\n'
+    + 'This is a DEDICATED venue search. Research ONLY this room and do not substitute a larger casino or an international festival: ' + search.query + '.\n'
+    + 'Run several focused web searches for this venue using the current month, next month, "tournament schedule", "daily tournament", and "weekly tournament". '
+    + 'Check the official website plus official Facebook and Instagram pages/posts. Search-result text and reputable Philippine poker media may be used when an official social post is image-only, but the source must explicitly support the date and buy-in. '
+    + 'Find confirmed tournaments for roughly the next 8 weeks. Include each dated occurrence of a verified daily or weekly tournament, not just a schedule header. If nothing current can be verified, return an empty events array.\n\n'
+    + buildCalendarOutputRules(ctx.today, ctx.accThreshold);
+}
+
+function buildCalendarRegionalPrompt() {
+  var ctx = calendarResearchContext();
+  return 'You are Bob\'s personal poker intelligence analyst. Bob is a live MTT player based in Quezon City, Philippines. '
+    + ctx.rollLine + ' Today is ' + ctx.today + '.\n\n'
+    + 'Search for confirmed tournaments over roughly the next 8 weeks at other established Philippine poker rooms and in major domestic series, including Wild Aces and pokerph.com. '
+    + 'Then add only worthwhile, reachable Asia-Pacific festivals from APT, WPT, WSOP Circuit, PokerStars/APPT, and Triton. Do not repeat the named Metro Manila rooms; they are searched separately.\n\n'
+    + buildCalendarOutputRules(ctx.today, ctx.accThreshold);
+}
+
+function buildCalendarOutputRules(today, accThreshold) {
+  return 'SOURCE RULES: Prefer official room/organiser websites and official Facebook or Instagram schedule posts. Because local rooms often publish only on social media, '
+    + 'you may also use a current schedule reported by established poker media such as SoMuchPoker, PokerNews, Life of Poker, or Poker Philippines when it explicitly states the event date and buy-in. '
     + 'Never invent an event, URL, date, buy-in, or guarantee. Omit anything that still lacks a concrete date or buy-in after searching.\n\n'
     + 'List EACH individual tournament as its own event, not merely a festival header. Cover confirmed events for roughly the next 8 weeks. '
     + 'Include concrete dated occurrences of recurring daily or weekly Manila tournaments when a current schedule verifies them. '
@@ -382,7 +407,7 @@ function buildCalendarUpdatePrompt() {
     + 'For recurring events (dailies/weeklies) that fall inside the window, emit a SEPARATE entry for each concrete dated occurrence; for a multi-day event, use its Day 1 date. Omit any event whose exact date you cannot confirm. '
     + 'Set "accessible": true when the buy-in is at or below ₱' + accThreshold + ' (within direct reach), otherwise false. '
     + 'Keep every field compact: no prose outside JSON and no long notes. The "url" MUST be copied exactly from a search result — never invent or guess one. '
-    + 'Return every confirmed event you can verify, prioritising breadth of Manila coverage. Use "' + today + '" as the "asOf" value.';
+    + 'Return every confirmed event you can verify. Use "' + today + '" as the "asOf" value.';
 }
 
 var OPENAI_CALENDAR_UPDATE_SCHEMA = {
@@ -505,14 +530,59 @@ async function runCalendarUpdate() {
     return;
   }
   if (btn) { btn.disabled = true; btn.textContent = '⏳ SEARCHING…'; }
-  setCalUpdateStatus('🔎 Searching Manila rooms first, then PH & APAC… usually 30–90 seconds.', 'muted');
+  var searches = CALENDAR_MANILA_SEARCHES.map(function (search) {
+    return { label: search.label, local: true, prompt: buildCalendarVenuePrompt(search) };
+  });
+  searches.push({ label: 'Other PH & APAC', local: false, prompt: buildCalendarRegionalPrompt() });
+  setCalUpdateStatus('🔎 Searching 8 Manila rooms individually (0/' + searches.length + ')…', 'muted');
+  try {
+    var completed = 0;
+    var results = await runCalendarSearches(searches, 3, function () {
+      completed++;
+      setCalUpdateStatus('🔎 Searching each Manila room (' + completed + '/' + searches.length + ')…', 'muted');
+    });
+    var successful = results.filter(function (result) { return !result.error; });
+    if (!successful.length) throw new Error(results[0] && results[0].error ? results[0].error : 'All event searches failed.');
+    var events = successful.reduce(function (all, result) { return all.concat(result.events); }, []);
+    var searchCount = successful.reduce(function (count, result) { return count + result.searchCount; }, 0);
+    var truncated = successful.some(function (result) { return result.truncated; });
+    var added = importCalendarUpdateEvents(events);
+    var asOf = new Date().toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' });
+    try { localStorage.setItem(CAL_UPDATE_LAST_KEY, asOf); } catch (e) {}
+    var moreNote = truncated ? ' The list was long and may be incomplete — run UPDATE EVENTS again to capture the rest.' : '';
+    var missing = results.filter(function (result) { return result.local && !result.error && !result.events.length; }).map(function (result) { return result.label; });
+    var failed = results.filter(function (result) { return !!result.error; });
+    var coverageNote = missing.length ? ' No current verified listing found for: ' + missing.join(', ') + '.' : '';
+    if (failed.length) coverageNote += ' ' + failed.length + ' search' + (failed.length === 1 ? '' : 'es') + ' failed; run again to retry.';
+    if (!events.length) {
+      setCalUpdateStatus('○ Searched all 8 Manila rooms separately, but found no current listing with both an exact date and buy-in.' + coverageNote, 'muted');
+    } else if (!added.length) {
+      setCalUpdateStatus('✓ Already up to date — every verified event found is on your calendar (' + searchCount + ' web searches).' + coverageNote + moreNote, truncated ? 'muted' : 'ok');
+    } else {
+      var sats = added.filter(function (t) { return isSatelliteTourney(t); }).length;
+      setCalUpdateStatus('✓ Added ' + added.length + ' event(s)' + (sats ? ' · ' + sats + ' satellite/qualifier' : '') + ' from ' + searchCount + ' web searches. Review on the calendar.' + coverageNote + moreNote, 'ok');
+      if (typeof showUndoToast === 'function') showUndoToast('Added ' + added.length + ' event(s) from AI update', function () {
+        var ids = {}; added.forEach(function (t) { ids[t.id] = true; });
+        window.tourneys = (window.tourneys || []).filter(function (t) { return !ids[t.id]; });
+        tourneys = window.tourneys;
+        save('tourneys', tourneys);
+        renderCalendar();
+      });
+    }
+  } catch (e) {
+    setCalUpdateStatus('✗ ' + e.message, 'error');
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '✨ UPDATE EVENTS'; }
+}
+
+async function runOneCalendarSearch(search) {
   try {
     var response = await callOpenAIResponses({
       model: 'gpt-5.6-terra',
       reasoning: { effort: 'low' },
       tools: [{ type: 'web_search' }],
-      input: buildCalendarUpdatePrompt(),
-      max_output_tokens: 16000,
+      input: search.prompt,
+      max_output_tokens: 6000,
       text: {
         verbosity: 'low',
         format: {
@@ -522,7 +592,7 @@ async function runCalendarUpdate() {
           schema: OPENAI_CALENDAR_UPDATE_SCHEMA
         }
       }
-    }, { timeoutMs: 120000 });
+    }, { timeoutMs: 75000 });
     if (!response.ok) {
       if (response.status === 401) throw new Error('OpenAI API key was rejected (401) — check it in AI Assistant.');
       throw new Error(await getOpenAIErrorMessage(response, 'OpenAI API error'));
@@ -537,38 +607,36 @@ async function runCalendarUpdate() {
       .map(function (item) { return item.text || ''; })
       .join('\n');
     var parsed = null;
-    try {
-      parsed = JSON.parse(text);
-    } catch (e) {}
-    // Whole-object parse works for a complete response; if it failed (or the
-    // response stopped at the token limit), recover whatever complete events
-    // did arrive so a long list isn't lost wholesale.
+    try { parsed = JSON.parse(text); } catch (e) {}
     var events = (parsed && Array.isArray(parsed.events)) ? parsed.events : extractEventObjects(text);
-    var truncated = data.status === 'incomplete' || (!parsed && events.length > 0);
-    if (!events.length) {
-      throw new Error('No usable events came back. Try again in a moment.');
-    }
-    var added = importCalendarUpdateEvents(events);
-    var asOf = new Date().toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' });
-    try { localStorage.setItem(CAL_UPDATE_LAST_KEY, asOf); } catch (e) {}
-    var moreNote = truncated ? ' The list was long and may be incomplete — run UPDATE EVENTS again to capture the rest.' : '';
-    if (!added.length) {
-      setCalUpdateStatus('✓ Already up to date — every verified event found is on your calendar (' + searchCount + ' searches).' + moreNote, truncated ? 'muted' : 'ok');
-    } else {
-      var sats = added.filter(function (t) { return isSatelliteTourney(t); }).length;
-      setCalUpdateStatus('✓ Added ' + added.length + ' event(s)' + (sats ? ' · ' + sats + ' satellite/qualifier' : '') + ' from ' + searchCount + ' searches. Review on the calendar.' + moreNote, 'ok');
-      if (typeof showUndoToast === 'function') showUndoToast('Added ' + added.length + ' event(s) from AI update', function () {
-        var ids = {}; added.forEach(function (t) { ids[t.id] = true; });
-        window.tourneys = (window.tourneys || []).filter(function (t) { return !ids[t.id]; });
-        tourneys = window.tourneys;
-        save('tourneys', tourneys);
-        renderCalendar();
-      });
-    }
+    return {
+      label: search.label,
+      local: search.local,
+      events: events,
+      searchCount: searchCount,
+      truncated: data.status === 'incomplete' || (!parsed && events.length > 0),
+      error: ''
+    };
   } catch (e) {
-    setCalUpdateStatus('✗ ' + e.message, 'error');
+    return { label: search.label, local: search.local, events: [], searchCount: 0, truncated: false, error: e.message || String(e) };
   }
-  if (btn) { btn.disabled = false; btn.textContent = '✨ UPDATE EVENTS'; }
+}
+
+async function runCalendarSearches(searches, concurrency, onComplete) {
+  var results = new Array(searches.length);
+  var next = 0;
+  async function worker() {
+    while (next < searches.length) {
+      var index = next++;
+      results[index] = await runOneCalendarSearch(searches[index]);
+      if (onComplete) onComplete(results[index]);
+    }
+  }
+  var workers = [];
+  var count = Math.min(concurrency || 1, searches.length);
+  for (var i = 0; i < count; i++) workers.push(worker());
+  await Promise.all(workers);
+  return results;
 }
 
 // The "Playing These" card at the top of the calendar — the events you've
