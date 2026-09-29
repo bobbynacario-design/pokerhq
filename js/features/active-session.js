@@ -33,6 +33,46 @@ function initActiveSessionFeature() {
   _activeSessionDraft = readScopedUiJson(ACTIVE_SESSION_DRAFT_STORAGE_KEY, LEGACY_ACTIVE_SESSION_DRAFT_STORAGE_KEY, null);
 }
 
+// How close each synced list is to Firestore's 1 MiB document limit. Measuring
+// means serialising every list, so it is cached for 30s (the card re-renders on
+// nearly every save and sync event).
+var _cloudSizeCache = { at: 0, warnings: [] };
+function getCloudSizeWarnings(force) {
+  var now = Date.now();
+  if (!force && now - _cloudSizeCache.at < 30000) return _cloudSizeCache.warnings;
+  var warnings = [];
+  if (typeof cloudSizeWarnings === 'function' && !window._demoMode) {
+    warnings = cloudSizeWarnings({
+      sessions: window.sessions, hands: window.hands, tourneys: window.tourneys,
+      strategies: window.strategies, news: window.newsItems, spotlights: window.spotlights,
+      walletLedger: window.walletLedger, satellites: window.satellites, opponents: window.opponents
+    });
+  }
+  _cloudSizeCache = { at: now, warnings: warnings };
+  return warnings;
+}
+
+var CLOUD_LIST_LABELS = { sessions: 'Sessions', hands: 'Hands', tourneys: 'Calendar events', strategies: 'Strategy notes', news: 'News', spotlights: 'Spotlights', walletLedger: 'Treasury ledger', satellites: 'Satellites', opponents: 'Opponents' };
+
+function cloudSizeWarningHtml() {
+  var warnings = getCloudSizeWarnings(false);
+  var meta = window._syncMeta || {};
+  if (!warnings.length && !meta.tooLarge) return '';
+  var top = warnings[0];
+  var key = meta.tooLarge || (top && top.key);
+  var label = CLOUD_LIST_LABELS[key] || key;
+  var critical = !!meta.tooLarge || (top && top.level === 'critical');
+  var text;
+  if (meta.tooLarge) {
+    text = '⚠ ' + label + ' has outgrown cloud sync (1 MB limit per list), so new changes to it are saved on this device only. Download a JSON backup, then delete items you no longer need.';
+  } else {
+    var kb = Math.round(top.bytes / 1024);
+    text = '⚠ ' + label + ' is at ' + top.pct + '% of the cloud size limit (about ' + kb + ' KB of 1,024 KB). ' + (critical ? 'Saving will start failing soon — ' : '') + 'download a JSON backup and delete items you no longer need.';
+    if (warnings.length > 1) text += ' (' + (warnings.length - 1) + ' other list' + (warnings.length > 2 ? 's are' : ' is') + ' also getting large.)';
+  }
+  return '<div class="reliability-warn' + (critical ? ' critical' : '') + '">' + esc(text) + '</div>';
+}
+
 function getReliabilitySnapshot() {
   var meta = window._syncMeta || { status:'syncing', msg:'Loading...', updated:Date.now() };
   var queued = Object.keys(_offlineQueue || {}).length;
@@ -44,7 +84,7 @@ function getReliabilitySnapshot() {
     queueCount: queued,
     mode: window._demoMode ? 'Demo data' : 'Real data',
     detail: !_isOnline ? (queued ? queued+' change'+(queued!==1?'s':'')+' waiting to sync' : 'Offline. Changes stay on this device until you reconnect.') :
-      (status==='syncing' ? 'Writing changes now.' : status==='ok' ? 'Remote and local data are aligned.' : status==='error' ? 'Sync failed. Local data is still available.' : 'Waiting to reconnect.')
+      (status==='syncing' ? 'Writing changes now.' : status==='ok' ? 'Remote and local data are aligned.' : status==='error' ? (meta.tooLarge ? 'A list is too large to sync. Your data is safe on this device.' : 'Sync failed. Local data is still available.') : 'Waiting to reconnect.')
   };
 }
 
@@ -60,7 +100,7 @@ function renderReliability() {
     var el = document.getElementById(id);
     if (!el) return;
     el.innerHTML =
-      '<div class="reliability-card"><div class="reliability-top"><div class="reliability-main"><div class="reliability-icon">⛁</div><div><div class="reliability-title">Data safety and sync</div><div class="reliability-detail">'+snap.detail+'</div></div></div><div class="reliability-pill '+snap.status+'">'+snap.message+'</div></div><div class="reliability-meta"><div class="reliability-meta-card"><div class="reliability-meta-label">Pending sync</div><div class="reliability-meta-value">'+snap.queueCount+' change'+(snap.queueCount!==1?'s':'')+'</div></div><div class="reliability-meta-card"><div class="reliability-meta-label">Connection</div><div class="reliability-meta-value">'+(_isOnline ? 'Online' : 'Offline')+'</div></div><div class="reliability-meta-card"><div class="reliability-meta-label">Mode</div><div class="reliability-meta-value">'+snap.mode+'</div></div></div></div>';
+      '<div class="reliability-card"><div class="reliability-top"><div class="reliability-main"><div class="reliability-icon">⛁</div><div><div class="reliability-title">Data safety and sync</div><div class="reliability-detail">'+snap.detail+'</div></div></div><div class="reliability-pill '+snap.status+'">'+snap.message+'</div></div><div class="reliability-meta"><div class="reliability-meta-card"><div class="reliability-meta-label">Pending sync</div><div class="reliability-meta-value">'+snap.queueCount+' change'+(snap.queueCount!==1?'s':'')+'</div></div><div class="reliability-meta-card"><div class="reliability-meta-label">Connection</div><div class="reliability-meta-value">'+(_isOnline ? 'Online' : 'Offline')+'</div></div><div class="reliability-meta-card"><div class="reliability-meta-label">Mode</div><div class="reliability-meta-value">'+snap.mode+'</div></div></div>'+cloudSizeWarningHtml()+'</div>';
   });
 }
 
@@ -118,6 +158,7 @@ function syncActiveDraftFromForm() {
   _activeSessionDraft.date = document.getElementById('s-date').value || _activeSessionDraft.date || todayLocal();
   _activeSessionDraft.name = document.getElementById('s-name').value || _activeSessionDraft.name || '';
   _activeSessionDraft.venue = document.getElementById('s-venue').value || _activeSessionDraft.venue || '';
+  _activeSessionDraft.structure = document.getElementById('s-structure').value || _activeSessionDraft.structure || '';
   _activeSessionDraft.packageName = document.getElementById('s-package').value || _activeSessionDraft.packageName || '';
   _activeSessionDraft.buyin = parseFloat(document.getElementById('s-buyin').value) || _activeSessionDraft.buyin || 0;
   _activeSessionDraft.focus = parseFloat(document.getElementById('s-focus').value) || _activeSessionDraft.focus || 0;
@@ -134,6 +175,7 @@ function hydrateSessionFormFromDraft(force) {
     ['s-date', _activeSessionDraft.date || todayLocal()],
     ['s-name', _activeSessionDraft.name || ''],
     ['s-venue', _activeSessionDraft.venue || ''],
+    ['s-structure', _activeSessionDraft.structure || ''],
     ['s-package', _activeSessionDraft.packageName || ''],
     ['s-buyin', _activeSessionDraft.buyin || ''],
     ['s-focus', _activeSessionDraft.focus || ''],
@@ -666,12 +708,14 @@ function startSessionFromTourney(tid) {
     date: parsedDate || todayLocal(),
     name: t.name || '',
     venue: t.venue || '',
+    structure: normalizeFormat(t.structure),
     buyin: t.buyin || 0
   });
   switchGroup('play','sessions');
   setTimeout(function(){
     document.getElementById('s-name').value  = t.name || '';
     document.getElementById('s-venue').value = t.venue || '';
+    document.getElementById('s-structure').value = normalizeFormat(t.structure);
     document.getElementById('s-buyin').value = t.buyin || '';
     document.getElementById('s-date').value = parsedDate || todayLocal();
     syncActiveDraftFromForm();

@@ -23,6 +23,8 @@
       count: list.length,
       itmPct: list.length ? Math.round((itm / list.length) * 100) : 0,
       invested: invested,
+      returned: returned,
+      hours: hours,
       pnl: pnl,
       roi: invested > 0 ? Math.round((pnl / invested) * 1000) / 10 : 0,
       // ₱/hr only from sessions that logged hours — dividing everyone's P&L by
@@ -93,12 +95,100 @@
     return rows;
   }
 
+  // Group by game format. "Not recorded" (sessions logged before formats existed,
+  // or with none chosen) always goes last so real formats lead the table.
+  function byStructure(sessions) {
+    var groups = {}, order = [];
+    records(sessions).forEach(function (s) {
+      var name = String(s.structure == null ? "" : s.structure).trim() || "Not recorded";
+      if (!groups[name]) { groups[name] = []; order.push(name); }
+      groups[name].push(s);
+    });
+    var rows = order.map(function (name) { return summarize(name, groups[name]); });
+    rows.sort(function (a, b) {
+      if ((a.label === "Not recorded") !== (b.label === "Not recorded")) return a.label === "Not recorded" ? 1 : -1;
+      return b.count - a.count || b.pnl - a.pnl;
+    });
+    return rows;
+  }
+
+  var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  // "2026-09-27" → "2026-09" (from the date as written; never via UTC), or null.
+  function monthKey(dateStr) {
+    var m = /^(\d{4})-(\d{2})-\d{2}/.exec(String(dateStr || ""));
+    if (!m) return null;
+    var mo = Number(m[2]);
+    return mo >= 1 && mo <= 12 ? m[1] + "-" + m[2] : null;
+  }
+
+  function monthLabel(key) {
+    var y = key.slice(0, 4), mo = Number(key.slice(5, 7));
+    return MONTHS[mo - 1] + " " + y;
+  }
+
+  // Newest month first. `limit` caps the rows (0 / omitted = all months).
+  function byMonth(sessions, limit) {
+    var groups = {};
+    records(sessions).forEach(function (s) {
+      var key = monthKey(s.date);
+      if (!key) return;
+      (groups[key] = groups[key] || []).push(s);
+    });
+    var rows = Object.keys(groups).sort().reverse().map(function (key) {
+      var row = summarize(monthLabel(key), groups[key]);
+      row.key = key;
+      return row;
+    });
+    return limit ? rows.slice(0, limit) : rows;
+  }
+
+  function csvCell(v) {
+    var str = String(v == null ? "" : v);
+    return /[",\n\r]/.test(str) ? '"' + str.replace(/"/g, '""') + '"' : str;
+  }
+
+  // One line per month, oldest first (spreadsheet-friendly), with a totals row.
+  function monthlyCsv(rows) {
+    var header = ["Month", "Sessions", "ITM %", "Invested", "Returned", "P&L", "ROI %", "Hours", "P&L per hour"];
+    var ordered = (rows || []).slice().sort(function (a, b) { return String(a.key).localeCompare(String(b.key)); });
+    var lines = [header.join(",")];
+    function line(r, label) {
+      return [
+        label, r.count, r.itmPct, Math.round(r.invested), Math.round(r.returned), Math.round(r.pnl), r.roi,
+        Math.round(r.hours * 10) / 10, r.perHour === null || r.perHour === undefined ? "" : Math.round(r.perHour)
+      ].map(csvCell).join(",");
+    }
+    ordered.forEach(function (r) { lines.push(line(r, r.key || r.label)); });
+    if (ordered.length) {
+      var all = [];
+      // totals recomputed from the rows so the file adds up exactly
+      var t = { count: 0, invested: 0, returned: 0, pnl: 0, hours: 0, itmSessions: 0, timedPnl: 0 };
+      ordered.forEach(function (r) {
+        t.count += r.count; t.invested += r.invested; t.returned += r.returned; t.pnl += r.pnl; t.hours += r.hours;
+        t.itmSessions += Math.round(r.itmPct * r.count / 100);
+        if (r.perHour !== null && r.perHour !== undefined) t.timedPnl += r.perHour * r.hours;
+      });
+      lines.push(line({
+        count: t.count, itmPct: t.count ? Math.round(t.itmSessions / t.count * 100) : 0,
+        invested: t.invested, returned: t.returned, pnl: t.pnl,
+        roi: t.invested > 0 ? Math.round(t.pnl / t.invested * 1000) / 10 : 0,
+        hours: t.hours, perHour: t.hours > 0 ? t.timedPnl / t.hours : null
+      }, "Total"));
+    }
+    return lines.join("\n") + "\n";
+  }
+
   var api = {
     WEEKDAYS: WEEKDAYS,
     LOW_SAMPLE: LOW_SAMPLE,
     summarize: summarize,
     byVenue: byVenue,
     byWeekday: byWeekday,
+    byMonth: byMonth,
+    byStructure: byStructure,
+    monthKey: monthKey,
+    monthlyCsv: monthlyCsv,
     weekdayIndex: weekdayIndex
   };
 

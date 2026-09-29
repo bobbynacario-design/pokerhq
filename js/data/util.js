@@ -23,6 +23,30 @@
     return pos >= 1 && pos <= 3 ? "final" : "itm";
   }
 
+  // Game formats offered on the session form. Calendar events use the same words
+  // (plus a few the AI research adds), so a session started from the calendar
+  // lands on the right one.
+  var SESSION_FORMATS = ["Freezeout", "Re-entry", "Regular", "Deep Stack", "Turbo", "Hyper Turbo", "Bounty / PKO", "Short Deck", "Satellite / Qualifier", "Other"];
+
+  // Any calendar/AI structure text → one of SESSION_FORMATS, or "" when there is none.
+  function normalizeFormat(text) {
+    var t = String(text == null ? "" : text).trim();
+    if (!t) return "";
+    var lower = t.toLowerCase();
+    for (var i = 0; i < SESSION_FORMATS.length; i++) {
+      if (SESSION_FORMATS[i].toLowerCase() === lower) return SESSION_FORMATS[i];
+    }
+    if (/hyper/.test(lower)) return "Hyper Turbo";
+    if (/turbo/.test(lower)) return "Turbo";
+    if (/bounty|pko|knockout/.test(lower)) return "Bounty / PKO";
+    if (/satellite|qualifier|feeder/.test(lower)) return "Satellite / Qualifier";
+    if (/re-?entry|reentry/.test(lower)) return "Re-entry";
+    if (/freeze/.test(lower)) return "Freezeout";
+    if (/deep/.test(lower)) return "Deep Stack";
+    if (/short.?deck|6\+/.test(lower)) return "Short Deck";
+    return "Other";
+  }
+
   // Everything a tournament paid you: the placement prize plus any bounties
   // (PKO / bounty events). Bounties never make a cash on their own — the result
   // badge follows the placement prize only — but they are real money: they count
@@ -92,15 +116,69 @@
     };
   }
 
+  // ── Cloud size limit ────────────────────────────────────────────────────
+  // Every synced list is stored as ONE Firestore document (a JSON string), and a
+  // document can't exceed 1 MiB. These helpers let the app warn well before a
+  // save is refused, and recognise the refusal when it happens anyway.
+  var CLOUD_DOC_LIMIT_BYTES = 1048576;
+  var CLOUD_WARN_AT = 0.7;
+  var CLOUD_CRITICAL_AT = 0.9;
+  var CLOUD_DOC_OVERHEAD = 64;   // the {value, updated} wrapper around the JSON string
+
+  function utf8Length(str) {
+    var n = 0;
+    for (var i = 0; i < str.length; i++) {
+      var c = str.charCodeAt(i);
+      if (c < 0x80) n += 1;
+      else if (c < 0x800) n += 2;
+      else if (c >= 0xd800 && c <= 0xdbff) { n += 4; i++; }   // surrogate pair = one 4-byte character
+      else n += 3;
+    }
+    return n;
+  }
+
+  function estimateStoredBytes(value) {
+    var json;
+    try { json = JSON.stringify(value === undefined ? null : value); } catch (e) { return 0; }
+    return utf8Length(json || "") + CLOUD_DOC_OVERHEAD;
+  }
+
+  // data: {key: value}. Returns the lists at or past the warning level, biggest first.
+  function cloudSizeWarnings(data) {
+    var out = [];
+    Object.keys(data || {}).forEach(function (key) {
+      var bytes = estimateStoredBytes(data[key]);
+      var pct = bytes / CLOUD_DOC_LIMIT_BYTES;
+      if (pct >= CLOUD_WARN_AT) {
+        out.push({ key: key, bytes: bytes, pct: Math.round(pct * 100), level: pct >= CLOUD_CRITICAL_AT ? "critical" : "warn" });
+      }
+    });
+    out.sort(function (a, b) { return b.bytes - a.bytes; });
+    return out;
+  }
+
+  // Firestore's refusal of an oversized document, in the wordings it uses.
+  function isCloudTooLargeError(err) {
+    var text = String((err && err.message) || err || "");
+    return /exceeds the maximum|maximum allowed size|longer than \d+ bytes|payload size|request is too large/i.test(text);
+  }
+
   var api = {
     todayLocal: todayLocal,
     sessionResult: sessionResult,
     sessionWinnings: sessionWinnings,
+    SESSION_FORMATS: SESSION_FORMATS,
+    normalizeFormat: normalizeFormat,
     normalizeSessions: normalizeSessions,
     sessionBankrollDelta: sessionBankrollDelta,
     applySessionToBankroll: applySessionToBankroll,
     removeSessionFromBankroll: removeSessionFromBankroll,
-    bankrollCheck: bankrollCheck
+    bankrollCheck: bankrollCheck,
+    CLOUD_DOC_LIMIT_BYTES: CLOUD_DOC_LIMIT_BYTES,
+    utf8Length: utf8Length,
+    estimateStoredBytes: estimateStoredBytes,
+    cloudSizeWarnings: cloudSizeWarnings,
+    isCloudTooLargeError: isCloudTooLargeError
   };
 
   if (typeof module !== "undefined" && module.exports) module.exports = api;

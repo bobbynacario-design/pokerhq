@@ -1173,3 +1173,7 @@ body.light .tg-goal-figs{ color:#1A1A1A; }
 
 /* ICM calculator: on phones keep Player / Chips / ICM value / Diff visible */
 @media(max-width:600px){.icm-hide-sm,.icm-you{display:none}.icm-table{min-width:0}.icm-table th,.icm-table td{padding:.6rem .55rem;font-size:11px}}
+
+/* Cloud size warning inside the data-safety card */
+.reliability-warn{margin-top:.8rem;padding:.6rem .8rem;border-radius:8px;border:1px solid rgba(240,168,50,.35);background:rgba(240,168,50,.1);font-family:var(--mono);font-size:11px;line-height:1.5;color:#F0A832}
+.reliability-warn.critical{border-color:rgba(232,92,92,.4);background:rgba(232,92,92,.1);color:var(--red)}

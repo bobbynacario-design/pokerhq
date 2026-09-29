@@ -15,7 +15,7 @@ import {
   FIRESTORE_KEYS,
   resolveProfileConfig,
   resolveLocalStorageKey
-} from "./config.js?v=20260929c";
+} from "./config.js?v=20260929d";
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -126,8 +126,8 @@ function scheduleRealtimeRefresh(key) {
   }, 60);
 }
 
-export function setSyncStatus(status, msg) {
-  window._syncMeta = { status, msg, updated: Date.now() };
+export function setSyncStatus(status, msg, extra) {
+  window._syncMeta = Object.assign({ status, msg, updated: Date.now() }, extra || {});
   const el = document.getElementById("sync-status");
   if (!el) return;
   const colors = {
@@ -215,6 +215,8 @@ const engineStore = {
   writeBase: writeSyncBase
 };
 
+let tooLargeKey = null;
+
 function createSyncEngine() {
   const Merge = window.PokerHQMerge;
   if (!Merge) {
@@ -237,16 +239,26 @@ function createSyncEngine() {
     isDemo() { return !!window._demoMode; },
     onStatus(state) {
       if (state === "syncing") setSyncStatus("syncing", "Saving...");
-      else if (state === "ok") setSyncStatus("ok", "Synced");
-      else if (state === "error") setSyncStatus("error", "Save failed");
+      else if (state === "ok") { tooLargeKey = null; setSyncStatus("ok", "Synced"); }
+      else if (state === "error") {
+        // A list that has outgrown Firestore's 1 MiB document limit can never
+        // save; say so instead of a vague "Save failed" (see the size warning).
+        if (tooLargeKey) setSyncStatus("error", "Too large to sync", { tooLarge: tooLargeKey });
+        else setSyncStatus("error", "Save failed");
+      }
     },
     onError(key, error) {
       console.error("fbSave error (" + key + "):", error);
+      const tooLarge = typeof window.isCloudTooLargeError === "function" && window.isCloudTooLargeError(error);
+      tooLargeKey = tooLarge ? key : (tooLargeKey === key ? null : tooLargeKey);
     },
     // Failed while believed online (a real offline write never reaches fbSave —
     // save() queues it directly). Re-queue so the next reconnect or sign-in
     // retries it instead of silently losing the change.
     onFailure(key, data) {
+      // Too large will fail identically on every retry; the data is safe locally
+      // and the next save after trimming pushes the whole list again.
+      if (tooLargeKey === key) return;
       if (typeof window.queueFailedSave === "function") window.queueFailedSave(key, data);
     }
   });
