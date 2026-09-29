@@ -94,11 +94,13 @@
     if (!cur || !cur.drill) { el.innerHTML = ''; return; }
     var x = cur.drill, level = state.level === 'deep' ? 'deep' : 'light';
     var doneToday = !!(state.log[today] && state.log[today].id === x.id);
+    var doneDeep = doneToday && !!state.log[today].deep;
     var isSaved = state.saved.indexOf(x.id) >= 0;
 
     var week = L.weekDays(state, today).map(function (w) {
-      return '<span class="tg-dot' + (w.done ? ' done' : '') + (w.isToday ? ' today' : '') + (w.future ? ' future' : '') +
-        '" title="' + escape(L.dayLabel(w.date) + (w.done ? ' · done' : '')) + '"></span>';
+      var what = w.deep ? ' · done, deep (10 min)' : w.done ? ' · done' : '';
+      return '<span class="tg-dot' + (w.done ? ' done' : '') + (w.deep ? ' deep' : '') + (w.isToday ? ' today' : '') + (w.future ? ' future' : '') +
+        '" title="' + escape(L.dayLabel(w.date) + what) + '"></span>';
     }).join('');
 
     var moods = L.MOODS.map(function (m) {
@@ -106,7 +108,7 @@
     }).join('');
 
     var actions = doneToday
-      ? '<div class="tg-drill-done">✓ Done for today. Nice work.</div>' +
+      ? '<div class="tg-drill-done' + (doneDeep ? ' deep' : '') + '">' + (doneDeep ? '◆ Deep drill done. That\'s the good stuff.' : '✓ Done for today. Nice work.') + '</div>' +
         '<div class="tg-drill-actions">' + btn('ANOTHER ONE ANYWAY', 'drillAnother()') + btn('UNDO', 'drillUndo()') + '</div>'
       : '<div class="tg-drill-actions">' + btn('I DID IT', 'drillDone()', 'tg-btn-primary') + btn(cur.saved ? 'BACK TO TODAY\'S' : 'TRY ANOTHER', cur.saved ? 'drillBack()' : 'drillAnother()') + '</div>';
 
@@ -127,6 +129,7 @@
         chip('GO DEEPER · 10 MIN', "drillLevel('deep')", level === 'deep') +
       '</div>' +
       '<div class="tg-drill-step">' + escape(x[level]) + '</div>' +
+      (level === 'deep' && !doneDeep ? '<div class="tg-drill-deephint">◆ A deep drill earns a gold diamond this week.</div>' : '') +
       (x.go ? '<div class="tg-drill-go">' + btn(escape(x.go.label) + ' ↗', "drillGo('" + x.go.action + "')") + '</div>' : '') +
       actions +
       '<div class="tg-drill-fb"><span>' + (note ? escape(note) : 'Did this help?') + '</span>' +
@@ -135,6 +138,7 @@
         chip('MORE LIKE THIS', "drillFeedback('more')", false) +
       '</div>' +
       '<div class="tg-drill-week"><span class="tg-drill-week-label">This week</span><span class="tg-dots">' + week + '</span>' +
+        '<span class="tg-legend"><span class="tg-dot done"></span>quick<span class="tg-dot done deep"></span>deep</span>' +
         '<span class="tg-drill-week-msg">' + escape(L.weekMessage(state, today)) + '</span></div>' +
       '<div class="tg-drill-foot">' +
         '<label class="tg-drill-mood">What do you need today? <select class="tg-drill-select" aria-label="What do you need today?" onchange="drillMood(this.value)">' + moods + '</select></label>' +
