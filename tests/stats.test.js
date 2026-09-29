@@ -206,6 +206,31 @@ test("venueKey: unfamiliar venues drop address / city / building suffixes but st
   assert.notEqual(S.venueKey("Manila"), S.NO_VENUE, "a name made only of filler words is kept, not lost");
 });
 
+test("venueKey: Paradise City and Hanoi are one place each, however they were typed", () => {
+  const paradise = ["Paradise City", "Paradise City Incheon", "Paradise City, Incheon, South Korea", "Paradise City Casino Resort", "PARADISE CITY Resort Incheon Korea", "Paradise Incheon"];
+  for (const v of paradise) assert.equal(S.venueKey(v), S.venueKey("Paradise City"), v);
+  const hanoi = ["Hanoi", "Hanoi, Vietnam", "Sheraton Hanoi Hotel & Towers", "Crowne Plaza West Hanoi", "JW Marriott Hotel Hanoi", "Ha Noi Grand Ballroom", "Hà Nội"];
+  for (const v of hanoi) assert.equal(S.venueKey(v), S.venueKey("Hanoi"), v);
+  assert.notEqual(S.venueKey("Paradise City"), S.venueKey("Hanoi"));
+  // a different "Paradise" is not Paradise City
+  assert.notEqual(S.venueKey("Paradise Walkerhill Casino"), S.venueKey("Paradise City"));
+});
+
+test("venueKey: Asia-Pacific festival cities group by destination, and the two City of Dreams stay apart", () => {
+  assert.equal(S.venueKey("City of Dreams Macau"), S.venueKey("Venetian Macao"));
+  assert.notEqual(S.venueKey("City of Dreams Macau"), S.venueKey("City of Dreams Manila"));
+  assert.equal(S.venueKey("City of Dreams Manila"), S.venueKey("City of Dreams"));
+  assert.equal(S.venueKey("Resorts World Sentosa, Singapore"), S.venueKey("Marina Bay Sands"));
+  assert.equal(S.venueKey("Waterfront Cebu City Hotel & Casino"), S.venueKey("Hyatt Regency Cebu"));
+  assert.equal(S.venueKey("Crown Melbourne"), S.venueKey("Melbourne"));
+  assert.notEqual(S.venueKey("Crown Melbourne"), S.venueKey("Crown Perth"));
+  // Manila rooms are still their own places, not one big "Manila"
+  assert.notEqual(S.venueKey("Okada Manila"), S.venueKey("Solaire"));
+  assert.notEqual(S.venueKey("Prime Poker Club, Makati"), S.venueKey("Masters Poker Club Manila"));
+  const labels = S.venueChoices(["Sheraton Hanoi", "Hanoi, Vietnam", "Paradise City Incheon", "Paradise City"].map((v) => evt(v)));
+  assert.deepEqual(labels.map((c) => [c.label, c.count]), [["Hanoi", 2], ["Paradise City", 2]]);
+});
+
 test("venueChoices: known rooms merge under one standard name, counts add up", () => {
   const choices = S.venueChoices([
     evt("Okada Manila"), evt("Okada Manila, Parañaque"), evt("Okada"), evt("PokerStars LIVE Manila at Okada"),
@@ -219,10 +244,10 @@ test("venueChoices: unfamiliar rooms use their most-used spelling (ties: the sho
   const choices = S.venueChoices([
     evt("Prime Poker Club, Makati"), evt("Prime Poker Club"), evt("Prime Poker Club"),
     evt("Masters Poker Club"), evt("Masters Poker Club, Manila"),
-    evt("Crown Melbourne"),
+    evt("Wild Aces Poker Club"),
     evt(""), evt(undefined), evt("  "),
   ]);
-  assert.deepEqual(choices.map((c) => c.label), ["Prime Poker Club", "Masters Poker Club", "Crown Melbourne", "(no venue)"]);
+  assert.deepEqual(choices.map((c) => c.label), ["Prime Poker Club", "Masters Poker Club", "Wild Aces Poker Club", "(no venue)"]);
   assert.deepEqual(choices.map((c) => c.count), [3, 2, 1, 3]);
   assert.equal(choices[choices.length - 1].key, S.NO_VENUE, "no-venue last even though it has 3 events");
   assert.deepEqual(S.venueChoices([]), []);
