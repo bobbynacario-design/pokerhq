@@ -77,8 +77,10 @@ ICM, mental game, bankroll, review and live-table play (`js/data/drills.js`); ma
 that opens the matching tool (Advisor, ICM Calculator, Hands, Opponents, Calendar …). Today's pick
 is steered by the app: a ★ pinned event today or tomorrow favours pre-game drills, a losing last
 session favours mental-game and review, a thin bankroll (under 10 average buy-ins) favours
-bankroll drills, and no logged hands favours logging one. Progress is kept on that device
-(localStorage `pokerhq_drill_v1`), not synced.
+bankroll drills, and no logged hands favours logging one. **Go deeper** (the 10-minute version)
+counts for more: it earns a gold diamond in the week row instead of a green dot, and
+weeks in a row with at least one deep drill build a **deep weeks** streak. Progress is kept on
+that device (localStorage `pokerhq_drill_v1`), not synced.
 
 ## Light and dark themes
 

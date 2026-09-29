@@ -202,7 +202,7 @@ test("normalizeState repairs garbage instead of throwing", () => {
     saved: ["rev-hand", "rev-hand", "no-such"],
     tucked: "2026-09-29", mood: "steady", level: "deep",
   });
-  assert.deepEqual(s.log, { "2026-09-29": { id: "rev-hand", level: "deep" } });
+  assert.deepEqual(s.log, { "2026-09-29": { id: "rev-hand", level: "deep", deep: true } });
   assert.deepEqual(s.skips, { "2026-09-29": 3 });
   assert.deepEqual(s.bias, { postflop: 5 });
   assert.deepEqual(s.hidden, { "rev-hand": "2026-10-10" });
@@ -217,7 +217,7 @@ test("markDone / undoDone / toggleSaved never mutate their input", () => {
   const frozen = JSON.stringify(base);
   const done = D.markDone(base, TODAY, "rev-hand", "deep");
   assert.equal(JSON.stringify(base), frozen);
-  assert.deepEqual(done.log[TODAY], { id: "rev-hand", level: "deep" });
+  assert.deepEqual(done.log[TODAY], { id: "rev-hand", level: "deep", deep: true });
   assert.equal(D.undoDone(done, TODAY).log[TODAY], undefined);
   const saved = D.toggleSaved(base, "rev-hand");
   assert.deepEqual(saved.saved, ["rev-hand"]);
@@ -242,4 +242,66 @@ test("dates: labels and arithmetic use the calendar day, across month and year e
   assert.equal(D.addDays("2026-12-31", 1), "2027-01-01");
   assert.equal(D.addDays("2026-03-01", -1), "2026-02-28");
   assert.equal(D.daysBetween("2026-09-29", "2026-10-02"), 3);
+});
+
+// ── deep (10-minute) drills count for more ──
+test("a deep drill marks the day deep; a quick one after it doesn't undo that", () => {
+  const quick = D.markDone({}, TODAY, "rev-hand", "light");
+  assert.equal(quick.log[TODAY].deep, false);
+  const deep = D.markDone({}, TODAY, "rev-hand", "deep");
+  assert.equal(deep.log[TODAY].deep, true);
+  const both = D.markDone(deep, TODAY, "pre-open", "light");
+  assert.equal(both.log[TODAY].level, "light");
+  assert.equal(both.log[TODAY].deep, true, "still a deep day");
+  const upgraded = D.markDone(quick, TODAY, "pre-open", "deep");
+  assert.equal(upgraded.log[TODAY].deep, true);
+  // saved data from before the flag existed: level "deep" still counts
+  const old = D.normalizeState({ log: { [TODAY]: { id: "rev-hand", level: "deep" }, "2026-09-28": { id: "pre-open", level: "light" } } });
+  assert.equal(old.log[TODAY].deep, true);
+  assert.equal(old.log["2026-09-28"].deep, false);
+});
+
+test("weekDays flags deep days separately from quick ones", () => {
+  let s = D.markDone({}, "2026-09-28", "rev-hand", "light");
+  s = D.markDone(s, TODAY, "pre-open", "deep");
+  const w = D.weekDays(s, TODAY);
+  assert.deepEqual(w.map((x) => x.done), [true, true, false, false, false, false, false]);
+  assert.deepEqual(w.map((x) => x.deep), [false, true, false, false, false, false, false]);
+});
+
+test("deepWeeks counts weeks in a row with a deep drill; this week joins once it has one", () => {
+  assert.equal(D.deepWeeks({}, TODAY), 0);
+  // last week and the week before were deep; this week isn't yet -> the run is still alive
+  let s = D.markDone({}, "2026-09-22", "rev-hand", "deep");    // week of Mon 21 Sep
+  s = D.markDone(s, "2026-09-16", "pre-open", "deep");         // week of Mon 14 Sep
+  assert.equal(D.deepWeeks(s, TODAY), 2);
+  // a quick drill this week doesn't add to it, a deep one does
+  assert.equal(D.deepWeeks(D.markDone(s, TODAY, "men-tilt", "light"), TODAY), 2);
+  assert.equal(D.deepWeeks(D.markDone(s, TODAY, "men-tilt", "deep"), TODAY), 3);
+  // a gap breaks it
+  const gap = D.markDone(D.markDone({}, "2026-09-22", "rev-hand", "deep"), "2026-09-08", "pre-open", "deep");
+  assert.equal(D.deepWeeks(gap, TODAY), 1);
+  // Sunday belongs to the week that began the Monday before
+  assert.equal(D.deepWeeks(D.markDone({}, "2026-10-04", "rev-hand", "deep"), "2026-09-30"), 1);
+  // across a year end
+  const y = D.markDone(D.markDone({}, "2026-12-30", "rev-hand", "deep"), "2027-01-05", "pre-open", "deep");
+  assert.equal(D.deepWeeks(y, "2027-01-06"), 2);
+  assert.equal(D.deepWeeks({}, "garbage"), 0);
+});
+
+test("the week message mentions deep drills and nudges towards one", () => {
+  // two quick drills, no deep one yet -> a gentle nudge
+  let s = D.markDone(D.markDone({}, "2026-09-28", "rev-hand", "light"), TODAY, "pre-open", "light");
+  assert.match(D.weekMessage(s, TODAY), /Try a 10-minute one this week\.$/);
+  // one deep among them -> counted, no nudge
+  s = D.markDone(D.markDone({}, "2026-09-28", "rev-hand", "deep"), TODAY, "pre-open", "light");
+  assert.match(D.weekMessage(s, TODAY), /2-day run so far|days running|2 drills this week, 1 deep/);
+  assert.doesNotMatch(D.weekMessage(s, TODAY), /Try a 10-minute/);
+  // one drill only: no nudge yet
+  assert.equal(D.weekMessage(D.markDone({}, TODAY, "rev-hand", "light"), TODAY), "1 drill this week. Nice.");
+  assert.equal(D.weekMessage(D.markDone({}, TODAY, "rev-hand", "deep"), TODAY), "1 drill this week, 1 deep. Nice.");
+  // deep weeks in a row
+  let run = D.markDone({}, "2026-09-22", "rev-hand", "deep");
+  run = D.markDone(run, TODAY, "pre-open", "deep");
+  assert.match(D.weekMessage(run, TODAY), /Deep weeks in a row: 2\./);
 });

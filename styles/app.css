@@ -1163,7 +1163,14 @@ body.light .tg-event-more{ color:rgba(0,0,0,.66); }
 .tg-dot{ width:12px; height:12px; border-radius:50%; border:1.5px solid var(--wa-45); background:transparent; box-sizing:border-box; }
 .tg-dot.future{ border-style:dashed; opacity:.7; }
 .tg-dot.done{ background:var(--green); border-color:var(--green); }
+.tg-dot.deep{ background:var(--gold); border-color:var(--gold); border-radius:3px; transform:rotate(45deg) scale(.88); }
 .tg-dot.today{ outline:2px solid var(--gold); outline-offset:1.5px; }
+.tg-legend{ display:inline-flex; align-items:center; gap:.3rem; font-size:9px; }
+.tg-legend .tg-dot{ width:9px; height:9px; }
+.tg-legend .tg-dot + .tg-dot, .tg-legend .tg-dot.deep{ margin-left:.35rem; }
+.tg-drill-week-msg{ flex:1 1 100%; }
+.tg-drill-done.deep{ color:var(--gold); }
+.tg-drill-deephint{ font-family:var(--mono); font-size:9.5px; letter-spacing:.03em; color:var(--gold); }
 .tg-drill-foot{ display:flex; align-items:center; justify-content:space-between; gap:.6rem; flex-wrap:wrap; font-family:var(--mono); font-size:9.5px; color:var(--wa-45); }
 .tg-drill-mood{ display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; }
 .tg-drill-select{ font-family:var(--mono); font-size:10px; padding:.3rem .5rem; border-radius:6px; border:1px solid var(--rim2); background:var(--bg3); color:var(--ink); cursor:pointer; max-width:100%; }

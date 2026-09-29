@@ -297,7 +297,10 @@
     var out = { log: {}, skips: {}, bias: {}, hidden: {}, saved: [], tucked: "", mood: "surprise", level: "light" };
     if (isObj(s.log)) Object.keys(s.log).forEach(function (k) {
       var e = s.log[k];
-      if (parseDay(k) && isObj(e) && BY_ID[e.id]) out.log[k] = { id: e.id, level: e.level === "deep" ? "deep" : "light" };
+      if (parseDay(k) && isObj(e) && BY_ID[e.id]) {
+        var deep = e.level === "deep";
+        out.log[k] = { id: e.id, level: deep ? "deep" : "light", deep: deep || e.deep === true };
+      }
     });
     if (isObj(s.skips)) Object.keys(s.skips).forEach(function (k) {
       var n = Math.floor(Number(s.skips[k]));
@@ -409,7 +412,12 @@
   // ── recording things ──
   function markDone(state, today, drillId, level) {
     var s = normalizeState(state);
-    if (BY_ID[drillId]) s.log[today] = { id: drillId, level: level === "deep" ? "deep" : "light" };
+    if (BY_ID[drillId]) {
+      // A day is "deep" if any drill done that day was the 10-minute version, even
+      // if a quicker one was logged after it.
+      var deep = level === "deep" || !!(s.log[today] && s.log[today].deep);
+      s.log[today] = { id: drillId, level: level === "deep" ? "deep" : "light", deep: deep };
+    }
     return prune(s, today);
   }
   function undoDone(state, today) {
@@ -453,7 +461,7 @@
     var monday = addDays(today, -((dt.getDay() + 6) % 7)), out = [];
     for (var i = 0; i < 7; i++) {
       var day = addDays(monday, i);
-      out.push({ date: day, label: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][i], done: !!s.log[day], isToday: day === today, future: daysBetween(today, day) > 0 });
+      out.push({ date: day, label: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][i], done: !!s.log[day], deep: !!(s.log[day] && s.log[day].deep), isToday: day === today, future: daysBetween(today, day) > 0 });
     }
     return out;
   }
@@ -463,13 +471,34 @@
     while (s.log[day]) { n++; day = addDays(day, -1); }
     return n;
   }
+  // Weeks (Monday to Sunday) in a row with at least one deep (10-minute) drill. This
+  // week counts once it has one; until then the run carries on from last week.
+  function deepWeeks(state, today) {
+    var s = normalizeState(state), dt = parseDay(today);
+    if (!dt) return 0;
+    function weekHasDeep(monday) {
+      for (var i = 0; i < 7; i++) { var e = s.log[addDays(monday, i)]; if (e && e.deep) return true; }
+      return false;
+    }
+    var week = addDays(today, -((dt.getDay() + 6) % 7)), n = 0;
+    if (!weekHasDeep(week)) week = addDays(week, -7);
+    while (weekHasDeep(week) && n < 60) { n++; week = addDays(week, -7); }
+    return n;
+  }
   function weekMessage(state, today) {
-    var done = weekDays(state, today).filter(function (x) { return x.done; }).length;
+    var days = weekDays(state, today);
+    var done = days.filter(function (x) { return x.done; }).length;
+    var deep = days.filter(function (x) { return x.deep; }).length;
     var run = streak(state, today), doneToday = !!normalizeState(state).log[today];
-    if (doneToday && run >= 3) return run + " days running. Keep the run going.";
-    if (!doneToday && run >= 2) return run + "-day run so far. Today keeps it alive.";
-    if (done === 0) return "A fresh week. Any day can be the first.";
-    return done + (done === 1 ? " drill" : " drills") + " this week. Nice.";
+    var deepRun = deepWeeks(state, today);
+    var msg;
+    if (doneToday && run >= 3) msg = run + " days running. Keep the run going.";
+    else if (!doneToday && run >= 2) msg = run + "-day run so far. Today keeps it alive.";
+    else if (done === 0) return "A fresh week. Any day can be the first.";
+    else msg = done + (done === 1 ? " drill" : " drills") + " this week" + (deep ? ", " + deep + " deep" : "") + ". Nice.";
+    if (deepRun >= 2) msg += " Deep weeks in a row: " + deepRun + ".";
+    else if (deep === 0 && done >= 2) msg += " Try a 10-minute one this week.";
+    return msg;
   }
 
   var api = {
@@ -491,6 +520,7 @@
     toggleSaved: toggleSaved,
     weekDays: weekDays,
     streak: streak,
+    deepWeeks: deepWeeks,
     weekMessage: weekMessage,
     reasonFor: reasonFor,
     dayLabel: dayLabel,
