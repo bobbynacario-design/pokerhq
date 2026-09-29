@@ -427,9 +427,9 @@ body.light .cal-day-num{color:rgba(0,0,0,.66)}
 body.light .cal-day.other-month .cal-day-num{color:rgba(0,0,0,.66)}
 .cal-event-bar{border-radius:3px;padding:1px 4px;font-family:var(--mono);font-size:10px;font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;transition:opacity .15s}
 .cal-event-bar:hover{opacity:.8}
-.cal-event-bar.target{background:rgba(46,204,113,.22);color:#7DE6A6;border:1px solid rgba(46,204,113,.45)}
-.cal-event-bar.stretch{background:rgba(212,175,55,.18);color:#F2D777;border:1px solid rgba(212,175,55,.45)}
-.cal-event-bar.skip{background:rgba(255,255,255,.06);color:var(--wa-62);border:1px solid var(--rim)}
+.cal-event-bar.target{background:rgba(46,204,113,.26);color:var(--ink);border:1px solid rgba(46,204,113,.55)}
+.cal-event-bar.stretch{background:rgba(212,175,55,.24);color:var(--ink);border:1px solid rgba(212,175,55,.55)}
+.cal-event-bar.skip{background:rgba(255,255,255,.06);color:var(--wa-85);border:1px solid var(--rim)}
 body.light .cal-event-bar.skip{background:rgba(0,0,0,.06);color:rgba(0,0,0,.66)}
 .cal-event-bar.start{border-radius:3px 0 0 3px}
 .cal-event-bar.mid{border-radius:0;border-left:none;border-right:none}
@@ -524,9 +524,10 @@ body.light .planned-summary{color:rgba(0,0,0,.66)}
 .planned-list{display:flex;flex-direction:column;gap:.6rem}
 
 /* Calendar bar colors for main vs side */
-.cal-event-bar.main-event-bar{background:rgba(212,175,55,.22);color:#F2D777;border:1px solid rgba(212,175,55,.5)}
-.cal-event-bar.side-event-bar{background:rgba(52,152,219,.16);color:#8FCFF5;border:1px solid rgba(52,152,219,.45)}
-.cal-event-bar.sat-event-bar{background:rgba(155,89,182,.2);color:#D4A8E8;border:1px solid rgba(155,89,182,.5)}
+/* Bar text is the main text colour (not a lighter tint of the bar's own colour, which blended into the fill); the fill and border carry the colour. */
+.cal-event-bar.main-event-bar{background:rgba(212,175,55,.30);color:var(--ink);border:1px solid rgba(212,175,55,.6)}
+.cal-event-bar.side-event-bar{background:rgba(52,152,219,.30);color:var(--ink);border:1px solid rgba(52,152,219,.6)}
+.cal-event-bar.sat-event-bar{background:rgba(155,89,182,.34);color:var(--ink);border:1px solid rgba(155,89,182,.65)}
 
 @media(max-width:768px){
   .event-row{flex-wrap:wrap;gap:.6rem}
@@ -1344,6 +1345,11 @@ body.light .cal-day-num{color:rgba(26,26,26,.85)}
 body.light .cal-day.other-month .cal-day-num{color:rgba(26,26,26,.62)}
 body.light .calc-rec-banner .rec-label,body.light .calc-rec-banner .rec-detail{opacity:1}
 body.light .cal-event-bar.target{color:#14663A}
+body.light .cal-event-bar.target{background:rgba(46,204,113,.22);border-color:rgba(46,204,113,.45)}
+body.light .cal-event-bar.stretch{background:rgba(212,175,55,.18);border-color:rgba(212,175,55,.45)}
+body.light .cal-event-bar.main-event-bar{background:rgba(212,175,55,.22);border-color:rgba(212,175,55,.5)}
+body.light .cal-event-bar.side-event-bar{background:rgba(52,152,219,.16);border-color:rgba(52,152,219,.45)}
+body.light .cal-event-bar.sat-event-bar{background:rgba(155,89,182,.2);border-color:rgba(155,89,182,.5)}
 body.light .cal-event-bar.stretch,body.light .cal-event-bar.main-event-bar{color:#6B5210}
 body.light .cal-event-bar.side-event-bar{color:#175A94}
 body.light .cal-event-bar.sat-event-bar{color:#6A3A9A}
