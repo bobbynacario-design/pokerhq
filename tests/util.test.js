@@ -111,3 +111,102 @@ test("bounties never turn a bust into a cash", () => {
   const s = {prize: 0, bounties: 1500, total: 3000, pnl: 1500 - 3000};
   assert.equal(u.sessionWinnings(s) - s.total, s.pnl);
 });
+
+// ── cloud size guard ──
+test("utf8Length counts bytes, not characters (₱ is 3 bytes, an emoji 4)", () => {
+  assert.equal(u.utf8Length("abc"), 3);
+  assert.equal(u.utf8Length("₱"), 3);
+  assert.equal(u.utf8Length("é"), 2);
+  assert.equal(u.utf8Length("🃏"), 4);
+  assert.equal(u.utf8Length(""), 0);
+  const mixed = "Metro ₱3,300 🃏 é";
+  assert.equal(u.utf8Length(mixed), Buffer.byteLength(mixed, "utf8"));
+});
+
+test("estimateStoredBytes matches what would actually be stored", () => {
+  const list = [{id: 1, name: "Sunday ₱3,300 Main", notes: "🃏 AK vs QQ"}];
+  const json = JSON.stringify(list);
+  assert.equal(u.estimateStoredBytes(list), Buffer.byteLength(json, "utf8") + 64);
+  assert.equal(u.estimateStoredBytes([]), 2 + 64);
+  assert.equal(u.estimateStoredBytes(undefined), 4 + 64, "undefined stores as null");
+  const circular = {}; circular.self = circular;
+  assert.equal(u.estimateStoredBytes(circular), 0, "unserialisable values never throw");
+});
+
+function listOfBytes(targetBytes) {
+  // one record whose JSON is ~targetBytes
+  return [{id: 1, notes: "x".repeat(Math.max(0, targetBytes - 60))}];
+}
+
+test("cloudSizeWarnings: silent when small, warns at 70%, critical at 90%, biggest first", () => {
+  const limit = u.CLOUD_DOC_LIMIT_BYTES;
+  assert.deepEqual(u.cloudSizeWarnings({sessions: listOfBytes(50000), hands: []}), []);
+  assert.deepEqual(u.cloudSizeWarnings({sessions: listOfBytes(limit * 0.69)}), [], "just under 70%");
+  const warn = u.cloudSizeWarnings({sessions: listOfBytes(limit * 0.75)});
+  assert.equal(warn.length, 1);
+  assert.equal(warn[0].level, "warn");
+  assert.ok(warn[0].pct >= 74 && warn[0].pct <= 76, "pct " + warn[0].pct);
+  const crit = u.cloudSizeWarnings({sessions: listOfBytes(limit * 0.72), hands: listOfBytes(limit * 0.95)});
+  assert.deepEqual(crit.map((w) => w.key), ["hands", "sessions"], "biggest first");
+  assert.equal(crit[0].level, "critical");
+  assert.equal(crit[1].level, "warn");
+  assert.deepEqual(u.cloudSizeWarnings(null), []);
+  assert.deepEqual(u.cloudSizeWarnings({a: undefined, b: null}), []);
+});
+
+test("isCloudTooLargeError recognises Firestore's wordings and nothing else", () => {
+  assert.equal(u.isCloudTooLargeError(new Error("The value of property \"value\" is longer than 1048487 bytes.")), true);
+  assert.equal(u.isCloudTooLargeError(new Error("Document cannot be written because its size (1,200,000 bytes) exceeds the maximum allowed size of 1,048,576 bytes.")), true);
+  assert.equal(u.isCloudTooLargeError({message: "Request payload size exceeds the limit"}), true);
+  assert.equal(u.isCloudTooLargeError(new Error("Missing or insufficient permissions.")), false);
+  assert.equal(u.isCloudTooLargeError(new Error("network offline")), false);
+  assert.equal(u.isCloudTooLargeError(null), false);
+  assert.equal(u.isCloudTooLargeError(undefined), false);
+});
+
+// ── game format ──
+test("normalizeFormat maps calendar / AI structure text onto the session formats", () => {
+  // exact (case-insensitive) matches
+  assert.equal(u.normalizeFormat("Freezeout"), "Freezeout");
+  assert.equal(u.normalizeFormat("turbo"), "Turbo");
+  assert.equal(u.normalizeFormat("Bounty / PKO"), "Bounty / PKO");
+  assert.equal(u.normalizeFormat("  deep stack "), "Deep Stack");
+  assert.equal(u.normalizeFormat("Satellite / Qualifier"), "Satellite / Qualifier");
+  // looser wording the AI or older events use
+  assert.equal(u.normalizeFormat("Hyper-Turbo"), "Hyper Turbo");
+  assert.equal(u.normalizeFormat("Super Turbo"), "Turbo");
+  assert.equal(u.normalizeFormat("Progressive Knockout"), "Bounty / PKO");
+  assert.equal(u.normalizeFormat("PKO"), "Bounty / PKO");
+  assert.equal(u.normalizeFormat("Mega Satellite"), "Satellite / Qualifier");
+  assert.equal(u.normalizeFormat("Feeder"), "Satellite / Qualifier");
+  assert.equal(u.normalizeFormat("Re-entry"), "Re-entry");
+  assert.equal(u.normalizeFormat("reentry"), "Re-entry");
+  assert.equal(u.normalizeFormat("Deepstack"), "Deep Stack");
+  assert.equal(u.normalizeFormat("Short-deck"), "Short Deck");
+  // unknown text is "Other", empty stays empty
+  assert.equal(u.normalizeFormat("other"), "Other");
+  assert.equal(u.normalizeFormat("Mystery Format"), "Other");
+  assert.equal(u.normalizeFormat(""), "");
+  assert.equal(u.normalizeFormat(null), "");
+  assert.equal(u.normalizeFormat(undefined), "");
+});
+
+test("every calendar structure option maps to a real session format", () => {
+  const fs = require("node:fs");
+  const html = fs.readFileSync(require("node:path").join(__dirname, "..", "index.html"), "utf8");
+  const block = html.slice(html.indexOf('id="t-structure"'), html.indexOf("</select>", html.indexOf('id="t-structure"')));
+  const options = [...block.matchAll(/<option>([^<]+)<\/option>/g)].map((m) => m[1]);
+  assert.ok(options.length >= 6);
+  for (const o of options) assert.ok(u.SESSION_FORMATS.includes(u.normalizeFormat(o)), o);
+  // and none collapse to "Other" by accident (Regular / Short Deck etc. are real formats)
+  assert.deepEqual(options.filter((o) => u.normalizeFormat(o) === "Other"), []);
+});
+
+test("the session form offers exactly the formats the code knows", () => {
+  const fs = require("node:fs");
+  const html = fs.readFileSync(require("node:path").join(__dirname, "..", "index.html"), "utf8");
+  const start = html.indexOf('id="s-structure"');
+  const block = html.slice(start, html.indexOf("</select>", start));
+  const values = [...block.matchAll(/<option value="([^"]*)">/g)].map((m) => m[1]);
+  assert.deepEqual(values, ["", ...u.SESSION_FORMATS]);
+});

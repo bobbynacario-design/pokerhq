@@ -152,3 +152,32 @@ test("demo mode: saves and incoming data leave everything alone", async () => {
   assert.deepEqual(ids(window.sessions), [9001], "demo view not overwritten");
   window._demoMode = false;
 });
+
+test("a list that outgrows the cloud limit says so, and isn't queued for endless retries", async () => {
+  require("../js/data/util.js");   // exposes isCloudTooLargeError on window
+  const queued = [];
+  window.queueFailedSave = (key, data) => queued.push(key);
+  window.sessions = [rec(1), rec(2)];
+  cloud.failNext = Object.assign(new Error("Document cannot be written because its size (1,300,000 bytes) exceeds the maximum allowed size of 1,048,576 bytes."), {code: "invalid-argument"});
+  await window.fbSave("sessions", window.sessions);
+  await settle();
+  assert.equal(window._syncMeta.status, "error");
+  assert.equal(window._syncMeta.msg, "Too large to sync");
+  assert.equal(window._syncMeta.tooLarge, "sessions");
+  assert.deepEqual(queued, [], "not parked for retry — it would fail identically every time");
+
+  // once it fits again the next save goes through and the warning clears
+  await window.fbSave("sessions", window.sessions);
+  await settle();
+  assert.equal(window._syncMeta.status, "ok");
+  assert.equal(window._syncMeta.tooLarge, undefined);
+
+  // an ordinary failure afterwards is NOT mislabelled as 'too large'
+  cloud.failNext = Object.assign(new Error("unavailable"), {code: "unavailable"});
+  await window.fbSave("sessions", window.sessions);
+  await settle();
+  assert.equal(window._syncMeta.msg, "Save failed");
+  assert.equal(queued.length, 1, "ordinary failures are still queued");
+  await window.fbSave("sessions", window.sessions);   // recover for later tests
+  await settle();
+});

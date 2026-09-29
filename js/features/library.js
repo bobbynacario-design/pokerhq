@@ -715,14 +715,14 @@ function exportCSV() {
     alert('No sessions to export.');
     return;
   }
-  var headers = ['Date', 'Tournament', 'Venue', 'Buy-in', 'Rebuys', 'Total Invested', 'Field', 'Position', 'Prize', 'Bounties', 'P&L', 'Hours', 'Result', 'Notes', 'Focus', 'Energy', 'Sleep', 'Fasting'];
+  var headers = ['Date', 'Tournament', 'Venue', 'Buy-in', 'Rebuys', 'Total Invested', 'Field', 'Position', 'Prize', 'Bounties', 'P&L', 'Hours', 'Result', 'Notes', 'Focus', 'Energy', 'Sleep', 'Fasting', 'Format'];
   var rows = sessions.map(function(s) {
     return [
       s.date || '', s.name || '', s.venue || '',
       s.buyin || 0, s.rebuy || 0, s.total || 0,
       s.field || '', s.position || '', s.prize || 0, s.bounties || 0, s.pnl || 0,
       s.hours || 0, s.result || '', s.notes || '',
-      s.focus || '', s.energy || '', s.sleep || '', s.fasting || ''
+      s.focus || '', s.energy || '', s.sleep || '', s.fasting || '', s.structure || ''
     ].map(csvField).join(',');
   });
   var csv = [headers.join(',')].concat(rows).join('\n');

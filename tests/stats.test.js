@@ -100,3 +100,72 @@ test("bounties count as returns in venue/weekday ROI and P&L", () => {
   assert.equal(r.roi, 41.7);
   assert.equal(r.itmPct, 50, "bounty-only session is not ITM");
 });
+
+// ── by month ──
+test("monthKey reads the month as written and rejects nonsense", () => {
+  assert.equal(S.monthKey("2026-09-27"), "2026-09");
+  assert.equal(S.monthKey("2026-01-01T23:59:00"), "2026-01");
+  assert.equal(S.monthKey("2026-13-01"), null);
+  assert.equal(S.monthKey("2026-00-10"), null);
+  assert.equal(S.monthKey("Sep 2026"), null);
+  assert.equal(S.monthKey(undefined), null);
+});
+
+test("byMonth: newest first, grouped by month, bad dates skipped, limit applied", () => {
+  const list = [
+    sess({date: "2026-01-04", pnl: 100}), sess({date: "2026-01-20", pnl: 200}),
+    sess({date: "2026-03-02"}), sess({date: "2025-12-31"}), sess({date: "garbage"}),
+  ];
+  const rows = S.byMonth(list);
+  assert.deepEqual(rows.map((r) => r.key), ["2026-03", "2026-01", "2025-12"]);
+  assert.deepEqual(rows.map((r) => r.label), ["Mar 2026", "Jan 2026", "Dec 2025"]);
+  assert.deepEqual(rows.map((r) => r.count), [1, 2, 1]);
+  assert.deepEqual(S.byMonth(list, 2).map((r) => r.key), ["2026-03", "2026-01"]);
+  assert.deepEqual(S.byMonth([]), []);
+  assert.deepEqual(S.byMonth(null), []);
+});
+
+test("byMonth rows carry returned + hours, and bounties count as returns", () => {
+  const rows = S.byMonth([
+    sess({date: "2026-02-01", total: 3000, prize: 0, bounties: 1200, hours: 5, pnl: -1800}),
+    sess({date: "2026-02-08", total: 3000, prize: 9000, hours: 3, pnl: 6000, result: "itm"}),
+  ]);
+  assert.equal(rows[0].returned, 10200);
+  assert.equal(rows[0].hours, 8);
+  assert.equal(rows[0].pnl, 4200);
+});
+
+test("monthlyCsv: oldest first, exact totals, escaping", () => {
+  const rows = S.byMonth([
+    sess({date: "2026-01-04", total: 1000, prize: 3000, pnl: 2000, hours: 4, result: "itm"}),
+    sess({date: "2026-02-01", total: 2000, prize: 0, pnl: -2000, hours: 6}),
+    sess({date: "2026-02-08", total: 1000, prize: 0, pnl: -1000, hours: 0}),
+  ]);
+  const lines = S.monthlyCsv(rows).trimEnd().split("\n");
+  assert.equal(lines[0], "Month,Sessions,ITM %,Invested,Returned,P&L,ROI %,Hours,P&L per hour");
+  assert.equal(lines[1], "2026-01,1,100,1000,3000,2000,200,4,500");
+  assert.equal(lines[2], "2026-02,2,0,3000,0,-3000,-100,6,-333");
+  // ₱/hr uses only sessions with hours: (+2000 in 4h) + (-2000 in 6h) over 10h = 0
+  assert.equal(lines[3], "Total,3,33,4000,3000,-1000,-25,10,0");
+  assert.equal(S.monthlyCsv([]).trimEnd(), "Month,Sessions,ITM %,Invested,Returned,P&L,ROI %,Hours,P&L per hour");
+});
+
+// ── by format ──
+test("byStructure groups by format, real formats first, 'Not recorded' last", () => {
+  const rows = S.byStructure([
+    sess({structure: "Turbo", pnl: 500}), sess({structure: "Turbo", pnl: -100}), sess({structure: "Turbo"}),
+    sess({structure: "Freezeout"}),
+    sess({}), sess({structure: ""}), sess({structure: "  "}), sess({structure: undefined}), sess({structure: null}),
+  ]);
+  assert.deepEqual(rows.map((r) => r.label), ["Turbo", "Freezeout", "Not recorded"]);
+  assert.deepEqual(rows.map((r) => r.count), [3, 1, 5]);
+  assert.deepEqual(S.byStructure([]), []);
+  assert.deepEqual(S.byStructure(null), []);
+  assert.doesNotThrow(() => S.byStructure([null, undefined, {}]));
+});
+
+test("byStructure: 'Not recorded' stays last even when it has the most sessions", () => {
+  const rows = S.byStructure([sess({}), sess({}), sess({}), sess({structure: "PKO"})]);
+  assert.equal(rows[rows.length - 1].label, "Not recorded");
+  assert.equal(rows[0].label, "PKO");
+});

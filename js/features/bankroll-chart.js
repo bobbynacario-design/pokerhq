@@ -191,6 +191,30 @@ function renderBreakdownSections(list) {
   if (venueEl) venueEl.innerHTML = breakdownTableHtml(PokerHQStats.byVenue(list), 'Venue', 'Log sessions to compare venues');
   var dayEl = document.getElementById('weekday-breakdown');
   if (dayEl) dayEl.innerHTML = breakdownTableHtml(PokerHQStats.byWeekday(list), 'Day', 'Log sessions to compare days of the week');
+  var formatEl = document.getElementById('format-breakdown');
+  if (formatEl) {
+    var formatRows = PokerHQStats.byStructure(list);
+    var anyFormat = formatRows.some(function(r) { return r.label !== 'Not recorded'; });
+    formatEl.innerHTML = breakdownTableHtml(anyFormat ? formatRows : [], 'Format', 'Pick a Format when you log a session to compare freezeouts, PKOs, turbos…');
+  }
+  var monthEl = document.getElementById('month-breakdown');
+  if (monthEl) monthEl.innerHTML = breakdownTableHtml(PokerHQStats.byMonth(list, 12), 'Month', 'Log sessions to see month-by-month results');
+}
+
+// Every month you've played, oldest first, with a totals row — opens in Excel / Sheets.
+function exportMonthlyCSV() {
+  if (window._demoMode) { alert('Clear demo mode first to export your real results.'); return; }
+  var rows = PokerHQStats.byMonth(window.sessions || [], 0);
+  if (!rows.length) { alert('No sessions to report yet.'); return; }
+  var blob = new Blob([PokerHQStats.monthlyCsv(rows)], { type: 'text/csv;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'PokerHQ_Monthly_' + todayLocal() + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 function renderVarianceWidget() {

@@ -59,6 +59,10 @@ Both run in CI on every push and pull request (`.github/workflows/test.yml`).
   deliberate overwrite, and it keeps a copy of what it replaced (undo toast +
   `↩ UNDO LAST RESTORE`). Small single values (bankroll, wallet, goals) are still
   last-write-wins; the Treasury **bankroll check** flags any drift.
+- Each synced list is one Firestore document, which is capped at 1 MiB. The Home **Data safety**
+  card warns at 70% / 90% of that limit and says so plainly if a save is ever refused as too
+  large (`js/data/util.js`, `cloudSizeWarnings`). Splitting a list across documents is the
+  long-term fix if one nears the limit.
 - `pokerhqWeeklyBackup` (Cloud Function, Sundays 03:00 Manila) writes the owner's data to
   `pokerhq-backups/weekly/PokerHQ_Backup_YYYY-MM-DD.json` in the project's default Storage
   bucket, keeps the newest 8 distinct versions, and skips empty or unchanged data. The file is
