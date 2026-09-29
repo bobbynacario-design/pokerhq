@@ -43,30 +43,68 @@
 
   var NO_VENUE = "__none__";
 
-  // Stable identity for a venue name: case and spacing don't matter.
-  function venueKey(v) {
+  // The Manila rooms that turn up under many spellings ("Okada Manila",
+  // "Okada Manila, Parañaque", "PokerStars LIVE Manila at Okada", "Metrocard Club",
+  // "Metro Card Club at Metrowalk Pasig" ...). Anything matching is one place.
+  var KNOWN_PLACES = [
+    { key: "okada", label: "Okada Manila", re: /okada/ },
+    { key: "metrocardclub", label: "Metro Card Club", re: /metro\s*card|metrowalk/ },
+    { key: "solaire", label: "Solaire", re: /solaire/ },
+    { key: "cityofdreams", label: "City of Dreams", re: /city\s+of\s+dreams/ },
+    { key: "newport", label: "Newport World Resorts", re: /newport/ }
+  ];
+  // Words that only say where / what kind of building it is. Dropped from the END
+  // of an unfamiliar name so "Prime Poker Club" and "Prime Poker Club, Makati" match.
+  var TRAILING_FILLER = /^(manila|makati|pasig|paranaque|pasay|taguig|mandaluyong|quezon|city|philippines|ph|casino|resort|resorts|hotel|room)$/;
+
+  // Which place a venue name belongs to: {key, label, known}. Case, spacing,
+  // punctuation, accents, and address / city / building suffixes don't matter.
+  function placeOf(v) {
     var name = cleanVenue(v);
-    return name ? name.toLowerCase() : NO_VENUE;
+    if (!name) return { key: NO_VENUE, label: "(no venue)", known: false };
+    var plain = name.toLowerCase();
+    if (plain.normalize) plain = plain.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    for (var i = 0; i < KNOWN_PLACES.length; i++) {
+      if (KNOWN_PLACES[i].re.test(plain)) {
+        return { key: KNOWN_PLACES[i].key, label: KNOWN_PLACES[i].label, known: true };
+      }
+    }
+    // Unfamiliar venue: keep the part before an address ("X, Pasig", "X - Hall 2", "X at Y", "X (Y)").
+    var head = name.split(/\s+[-\u2013\u2014]\s+|\s+at\s+|\s*[,(|:@]/)[0].trim() || name;
+    var words = head.toLowerCase();
+    if (words.normalize) words = words.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    words = words.match(/[a-z0-9]+/g) || [];
+    while (words.length > 1 && TRAILING_FILLER.test(words[words.length - 1])) words.pop();
+    var key = words.join("");
+    if (!key) key = plain.replace(/\s+/g, "");
+    return { key: key, label: head, known: false };
   }
 
-  // The venues that appear in a list of events, for a filter dropdown. Each is
-  // labelled with its most-used spelling; busiest first, then A–Z. Events with
-  // no venue collect under "(no venue)" (always last).
+  // Stable identity for a venue: every spelling of the same place shares it.
+  function venueKey(v) { return placeOf(v).key; }
+
+  // The places that appear in a list of events, for a filter dropdown. Known
+  // rooms use their standard name; others use their most-used spelling (ties:
+  // the shorter one). Busiest first, then A–Z. Events with no venue collect
+  // under "(no venue)" (always last).
   function venueChoices(events) {
     var groups = {}, order = [];
     records(events).forEach(function (e) {
-      var key = venueKey(e.venue);
-      if (!groups[key]) { groups[key] = { spellings: {}, count: 0 }; order.push(key); }
-      groups[key].count++;
-      var name = cleanVenue(e.venue);
-      if (name) groups[key].spellings[name] = (groups[key].spellings[name] || 0) + 1;
+      var place = placeOf(e.venue);
+      var g = groups[place.key];
+      if (!g) { g = groups[place.key] = { known: place.known, label: place.label, spellings: {}, count: 0 }; order.push(place.key); }
+      g.count++;
+      if (!place.known && place.key !== NO_VENUE) g.spellings[place.label] = (g.spellings[place.label] || 0) + 1;
     });
     var out = order.map(function (key) {
-      var label = "(no venue)", best = 0;
-      Object.keys(groups[key].spellings).forEach(function (sp) {
-        if (groups[key].spellings[sp] > best) { best = groups[key].spellings[sp]; label = sp; }
-      });
-      return { key: key, label: label, count: groups[key].count };
+      var g = groups[key], label = g.label, best = 0;
+      if (!g.known && key !== NO_VENUE) {
+        Object.keys(g.spellings).forEach(function (sp) {
+          var n = g.spellings[sp];
+          if (n > best || (n === best && sp.length < label.length)) { best = n; label = sp; }
+        });
+      }
+      return { key: key, label: label, count: g.count };
     });
     out.sort(function (a, b) {
       if ((a.key === NO_VENUE) !== (b.key === NO_VENUE)) return a.key === NO_VENUE ? 1 : -1;
@@ -75,7 +113,7 @@
     return out;
   }
 
-  // key falsy = everything. Otherwise only events at that venue.
+  // key falsy = everything. Otherwise only events at that place.
   function filterByVenue(events, key) {
     var list = records(events);
     if (!key) return list;
@@ -226,6 +264,7 @@
     summarize: summarize,
     byVenue: byVenue,
     NO_VENUE: NO_VENUE,
+    placeOf: placeOf,
     venueKey: venueKey,
     venueChoices: venueChoices,
     filterByVenue: filterByVenue,
