@@ -207,7 +207,7 @@ html,body{background:var(--bg);color:#fff;font-family:var(--sans);min-height:100
 .mob-subtab.active{color:var(--gold);border-color:rgba(212,175,55,.3);background:var(--gold-dim)}
 
 /* -- PAGES -- */
-.page{display:none;padding:2rem;max-width:1300px;margin:0 auto;animation:fadeIn .3s ease}
+.page{display:none;padding:2rem;max-width:3000px;margin:0 auto;animation:fadeIn .3s ease}
 .page.active{display:block}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
