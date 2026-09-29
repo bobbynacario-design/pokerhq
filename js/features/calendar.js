@@ -316,6 +316,21 @@ function renderCalendar() {
 // source by the model (no name-guessing, no manual tagging). Meant to be run every
 // couple of weeks. Uses OpenAI Responses web search with a strict event schema. ──
 var CAL_UPDATE_LAST_KEY = 'pokerhq_cal_update_last';
+var CAL_UPDATE_TS_KEY = 'pokerhq_cal_update_ts';
+var CAL_UPDATE_COOLDOWN_MS = 12 * 60 * 60 * 1000;
+
+// Each UPDATE EVENTS run makes ~9 paid web searches on the OpenAI account, and
+// the calendar stays current for weeks. Returns '' when a run is fine, or the
+// question to confirm when the last run was recent.
+function calUpdateCooldownMessage(lastTs, now) {
+  var last = Number(lastTs) || 0;
+  if (!last || now < last || now - last >= CAL_UPDATE_COOLDOWN_MS) return '';
+  var mins = Math.max(1, Math.round((now - last) / 60000));
+  var ago = mins < 60
+    ? mins + ' minute' + (mins === 1 ? '' : 's')
+    : Math.round(mins / 60) + ' hour' + (Math.round(mins / 60) === 1 ? '' : 's');
+  return 'The last event update ran ' + ago + ' ago. Each run makes about 9 web searches on your OpenAI account, and the calendar usually stays current for 2\u20133 weeks.\n\nRun it again anyway?';
+}
 
 function setCalUpdateStatus(message, kind) {
   var el = document.getElementById('cal-update-status');
@@ -529,6 +544,11 @@ async function runCalendarUpdate() {
     setCalUpdateStatus('Add your OpenAI API key first — IMPROVE → ♥ Strategy → AI Assistant.', 'error');
     return;
   }
+  var lastRunTs = 0;
+  try { lastRunTs = localStorage.getItem(CAL_UPDATE_TS_KEY) || 0; } catch (e) {}
+  var cooldownWarning = calUpdateCooldownMessage(lastRunTs, Date.now());
+  if (cooldownWarning && !confirm(cooldownWarning)) return;
+  try { localStorage.setItem(CAL_UPDATE_TS_KEY, String(Date.now())); } catch (e) {}
   if (btn) { btn.disabled = true; btn.textContent = '⏳ SEARCHING…'; }
   var searches = CALENDAR_MANILA_SEARCHES.map(function (search) {
     return { label: search.label, local: true, prompt: buildCalendarVenuePrompt(search) };

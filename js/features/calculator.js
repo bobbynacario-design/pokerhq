@@ -283,6 +283,83 @@ function calcStackAdvisor() {
   }
 }
 
+// ── ICM CALCULATOR ── (maths in js/data/icm.js)
+// Turns chip stacks into prize-money value and, for a call decision, shows the
+// equity you need once the pay ladder is priced in.
+function calcIcmFill(select, count, keep) {
+  var html = '';
+  for (var i = 0; i < count; i++) html += '<option value="' + i + '">Player ' + (i + 1) + '</option>';
+  if (select.getAttribute('data-count') !== String(count)) {
+    select.innerHTML = html;
+    select.setAttribute('data-count', String(count));
+    select.value = String(Math.min(keep, count - 1));
+  }
+}
+
+function calcIcmRun() {
+  var errEl = document.getElementById('icm-error');
+  var emptyEl = document.getElementById('icm-empty');
+  var resEl = document.getElementById('icm-results');
+  var stacksText = document.getElementById('icm-stacks').value;
+  var payoutsText = document.getElementById('icm-payouts').value;
+  var heroSel = document.getElementById('icm-hero');
+  var villSel = document.getElementById('icm-villain');
+
+  function show(state, message) {
+    errEl.style.display = state === 'error' ? '' : 'none';
+    errEl.textContent = state === 'error' ? message : '';
+    emptyEl.style.display = state === 'empty' ? '' : 'none';
+    resEl.style.display = state === 'ok' ? '' : 'none';
+  }
+  if (!stacksText.trim() || !payoutsText.trim()) { show('empty'); return; }
+
+  var parsed = PokerHQICM.parseInputs(stacksText, payoutsText);
+  if (parsed.error) { show('error', parsed.error); return; }
+  var stacks = parsed.stacks, payouts = parsed.payouts;
+
+  calcIcmFill(heroSel, stacks.length, 0);
+  calcIcmFill(villSel, stacks.length, 1);
+  var hero = parseInt(heroSel.value, 10) || 0;
+  var villain = parseInt(villSel.value, 10) || 0;
+
+  var equities = PokerHQICM.icm(stacks, payouts);
+  var chipTotal = stacks.reduce(function (a, b) { return a + b; }, 0);
+  var prizeTotal = payouts.reduce(function (a, b) { return a + b; }, 0);
+  var rows = '';
+  stacks.forEach(function (chips, i) {
+    var chipPct = chipTotal ? chips / chipTotal * 100 : 0;
+    var icmPct = prizeTotal ? equities[i] / prizeTotal * 100 : 0;
+    var diff = icmPct - chipPct;
+    var cls = diff > 0.05 ? 'profit-pos' : (diff < -0.05 ? 'profit-neg' : 'profit-zero');
+    rows += '<tr' + (i === hero ? ' style="font-weight:600"' : '') + '><td>Player ' + (i + 1) + (i === hero ? '<span class="icm-you"> (you)</span>' : '') + '</td>'
+      + '<td>' + fmt(chips) + '</td><td class="icm-hide-sm">' + chipPct.toFixed(1) + '%</td>'
+      + '<td>₱' + fmt(equities[i]) + '</td><td class="icm-hide-sm">' + icmPct.toFixed(1) + '%</td>'
+      + '<td class="' + cls + '">' + (diff > 0 ? '+' : '') + diff.toFixed(1) + '</td></tr>';
+  });
+  document.getElementById('icm-tbody').innerHTML = rows;
+  document.getElementById('icm-note').textContent = 'ICM value is what each stack is worth in prize money right now. Chip leaders are worth less than their chip share and short stacks more — the gap widens as you near a pay jump. Total prizes for these places: ₱' + fmt(prizeTotal) + '.';
+
+  var callEl = document.getElementById('icm-call');
+  if (hero === villain) {
+    callEl.style.display = 'none';
+  } else if (!(stacks[hero] > 0) || !(stacks[villain] > 0)) {
+    callEl.style.display = 'none';
+  } else {
+    var dead = parseFloat(document.getElementById('icm-dead').value) || 0;
+    var a = PokerHQICM.callAnalysis({ stacks: stacks, payouts: payouts, hero: hero, villain: villain, dead: dead });
+    var need = a.required * 100, chip = a.chipBreakeven * 100, tax = a.tax * 100;
+    var cls2 = tax >= 8 ? 'shove' : (tax >= 3 ? 'amber' : 'blue');
+    callEl.className = 'calc-rec-banner ' + cls2;
+    callEl.style.display = '';
+    callEl.innerHTML =
+      '<div class="rec-label">Player ' + (hero + 1) + ' calling Player ' + (villain + 1) + '\'s all-in for ' + fmt(a.eff) + ' chips</div>'
+      + '<div class="rec-action">NEED ' + need.toFixed(1) + '% EQUITY</div>'
+      + '<div class="rec-detail">Chip EV alone says ' + chip.toFixed(1) + '%; ICM adds ' + (tax >= 0 ? tax.toFixed(1) : '0.0') + ' points.'
+      + ' Fold keeps ₱' + fmt(a.eFold) + ' · win ₱' + fmt(a.eWin) + ' · lose ₱' + fmt(a.eLose) + '.</div>';
+  }
+  show('ok');
+}
+
 // Minimum logged (paid) sessions before trusting a measured mean/variance —
 // fewer than this and a single big score or bad run swings the estimate wildly.
 var CALC_RISK_MIN_SESSIONS = 10;

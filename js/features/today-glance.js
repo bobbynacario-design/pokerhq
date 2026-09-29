@@ -178,12 +178,15 @@
     }, 3);
     var bestGrade = ['target', 'stretch', 'skip'][bestRank] || null;
 
-    var label, cls, sub;
+    var label, cls, sub, subHtml = null;
     if (timer.open) {
       label = timer.running ? 'PLAYING' : 'SESSION OPEN';
       cls = 'tg-playing';
       var nm = (window.getActiveSessionLabel && window.getActiveSessionLabel()) || 'Active session';
       sub = nm + (timer.running ? ' · ' + fmtElapsed(timer.elapsedMs) : ' · timer paused');
+      // The running clock lives in its own node so the 1s tick can update just
+      // that text instead of rebuilding the card (which can swallow taps on it).
+      if (timer.running) subHtml = escape(nm) + ' · <span id="tg-elapsed">' + fmtElapsed(timer.elapsedMs) + '</span>';
     } else if (!br) {
       label = 'SET BANKROLL'; cls = 'tg-skip';
       sub = 'Add a Treasury deposit so buy-ins can be graded.';
@@ -268,7 +271,7 @@
       '<div class="tg-card">' +
         '<div class="tg-verdict ' + cls + (eventBased ? ' tg-tappable' : '') + '"' + (eventBased ? jumpHandler : '') + '>' +
           '<div class="tg-verdict-label">' + label + '</div>' +
-          '<div class="tg-verdict-sub">' + escape(sub) + '</div>' +
+          '<div class="tg-verdict-sub">' + (subHtml !== null ? subHtml : escape(sub)) + '</div>' +
         '</div>' +
         '<div class="tg-body">' +
           '<div class="tg-stats">' +
@@ -290,12 +293,16 @@
       '</div>';
   };
 
-  // While a session timer is running, keep the elapsed read live.
-  setInterval(function () {
-    if (window._timerInterval && document.getElementById('today-glance-wrap') && typeof window.renderTodayGlance === 'function') {
-      window.renderTodayGlance();
-    }
-  }, 1000);
+  // While a session timer is running, keep the elapsed read live. Only the clock
+  // text changes each second; a full re-render happens if the card isn't in its
+  // running state yet (timer just started).
+  window.tickTodayGlanceTimer = function () {
+    if (!window._timerInterval || !document.getElementById('today-glance-wrap')) return;
+    var node = document.getElementById('tg-elapsed');
+    if (node) node.textContent = fmtElapsed(timerInfo().elapsedMs);
+    else if (typeof window.renderTodayGlance === 'function') window.renderTodayGlance();
+  };
+  setInterval(window.tickTodayGlanceTimer, 1000);
 
   // Otherwise still refresh once a minute so the "starts in" countdown
   // doesn't sit frozen at whatever it read on the last render.
