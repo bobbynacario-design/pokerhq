@@ -46,10 +46,10 @@ function renderStudyLoop() {
     },
     {
       done: st.briefing,
-      label: 'Briefing<br>imported',
+      label: 'News<br>researched',
       count: st.briefing ? 1 : 0,
-      actionLabel: 'IMPORT',
-      action: 'switchGroup(\'improve\',\'strategy\');setTimeout(function(){var el=document.getElementById(\'strategy-raw\');if(el){el.focus();el.scrollIntoView({behavior:\'smooth\',block:\'center\'});}},250)'
+      actionLabel: 'RESEARCH',
+      action: 'switchGroup(\'improve\',\'strategy\');setTimeout(function(){var el=document.getElementById(\'ai-research-btn\');if(el){el.focus();el.scrollIntoView({behavior:\'smooth\',block:\'center\'});}},250)'
     }
   ];
   var html = '<div class="study-loop-card">';

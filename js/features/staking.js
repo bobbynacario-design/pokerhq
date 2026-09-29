@@ -565,7 +565,7 @@ function exportStakingCSV() {
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   a.href = url;
-  a.download = 'PokerHQ_Staking_' + new Date().toISOString().split('T')[0] + '.csv';
+  a.download = 'PokerHQ_Staking_' + todayLocal() + '.csv';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

@@ -135,7 +135,7 @@ function openNewSatelliteModal() {
     if (el) el.value = '';
   });
   var dateEl = document.getElementById('sat-date');
-  if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
+  if (dateEl) dateEl.value = todayLocal();
   var resultEl = document.getElementById('sat-result');
   if (resultEl) resultEl.value = 'won';
   openModal('modal-satellite');
@@ -178,7 +178,7 @@ function addSatellite() {
   }
   var s = {
     id: Date.now(),
-    date: document.getElementById('sat-date').value || new Date().toISOString().split('T')[0],
+    date: document.getElementById('sat-date').value || todayLocal(),
     name: document.getElementById('sat-name').value || 'Satellite',
     venue: document.getElementById('sat-venue').value || '',
     buyin: parseFloat(document.getElementById('sat-buyin').value) || 0,
@@ -425,21 +425,85 @@ function getBackupSnapshot() {
   };
 }
 
+function downloadBackupPayload(payload, prefix) {
+  var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = prefix + todayLocal() + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 function exportBackupJSON() {
   if (window._demoMode) {
     alert('Clear demo mode first to export your saved PokerHQ backup.');
     return;
   }
-  var payload = getBackupSnapshot();
-  var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a');
-  a.href = url;
-  a.download = 'PokerHQ_Backup_' + new Date().toISOString().split('T')[0] + '.json';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  downloadBackupPayload(getBackupSnapshot(), 'PokerHQ_Backup_');
+}
+
+// ── RESTORE SAFETY NET ──
+// A restore replaces everything, so the state it overwrites is kept on this
+// device (and offered as a file download if storage is full) until the next
+// restore. Undo is available from the toast right away and from the button
+// beside RESTORE JSON afterwards.
+var PRE_RESTORE_STORAGE_KEY = 'pokerhq_pre_restore_snapshot';
+
+function savePreRestoreSnapshot(snapshot) {
+  try {
+    localStorage.setItem(PRE_RESTORE_STORAGE_KEY, JSON.stringify(snapshot));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function loadPreRestoreSnapshot() {
+  try {
+    var raw = localStorage.getItem(PRE_RESTORE_STORAGE_KEY);
+    if (!raw) return null;
+    var parsed = JSON.parse(raw);
+    return parsed && isPlainBackupObject(parsed.data) ? parsed : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function clearPreRestoreSnapshot() {
+  try { localStorage.removeItem(PRE_RESTORE_STORAGE_KEY); } catch (e) {}
+  updateRestoreUndoButton();
+}
+
+function updateRestoreUndoButton() {
+  var btn = document.getElementById('restore-undo-btn');
+  if (!btn) return;
+  var snap = loadPreRestoreSnapshot();
+  btn.style.display = snap ? '' : 'none';
+  if (snap) {
+    var when = snap.exportedAt ? new Date(snap.exportedAt) : null;
+    btn.title = 'Puts back the data you had before the last restore' + (when && !isNaN(when.getTime()) ? ' (' + when.toLocaleString() + ')' : '');
+  }
+}
+
+function revertToSnapshot(snapshot) {
+  applyBackupRestore(snapshot.data);
+  clearPreRestoreSnapshot();
+}
+
+function undoLastRestore() {
+  if (window._demoMode) {
+    alert('Clear demo mode first.');
+    return;
+  }
+  var snap = loadPreRestoreSnapshot();
+  if (!snap) { updateRestoreUndoButton(); return; }
+  var counts = snap.data.sessions.length + ' sessions, ' + snap.data.hands.length + ' hands, ' + snap.data.tourneys.length + ' tournaments';
+  if (!confirm('Undo the last restore?\n\nThis puts back the data you had before it (' + counts + ') and replaces what is there now.')) return;
+  revertToSnapshot(snap);
+  alert('Previous data restored.');
 }
 
 function openBackupRestorePicker() {
@@ -512,63 +576,66 @@ function validateBackupPayload(parsed) {
 }
 
 function applyBackupRestore(data) {
+  // A restore is a replace: records missing from the backup must disappear from
+  // the cloud copy too, so bypass the record-level sync merge.
+  function persist(key, value) { save(key, value, { overwrite: true }); }
   window.sessions = data.sessions;
   sessions = window.sessions;
-  save('sessions', sessions);
+  persist('sessions', sessions);
 
   window.hands = data.hands;
   hands = window.hands;
-  save('hands', hands);
+  persist('hands', hands);
 
   window.tourneys = data.tourneys;
   tourneys = window.tourneys;
-  save('tourneys', tourneys);
+  persist('tourneys', tourneys);
 
   window.strategies = data.strategies;
   strategies = window.strategies;
-  save('strategies', strategies);
+  persist('strategies', strategies);
 
   window.newsItems = data.news;
   newsItems = window.newsItems;
-  save('news', newsItems);
+  persist('news', newsItems);
 
   window.spotlights = data.spotlights;
   spotlights = window.spotlights;
-  save('spotlights', spotlights);
+  persist('spotlights', spotlights);
 
   window.bankroll = data.bankroll;
   bankroll = window.bankroll;
-  save('bankroll', bankroll);
+  persist('bankroll', bankroll);
 
   window.wallet = data.wallet || { balance: 0 };
   wallet = window.wallet;
-  save('wallet', wallet);
+  persist('wallet', wallet);
 
   window.walletLedger = Array.isArray(data.walletLedger) ? data.walletLedger : [];
   walletLedger = window.walletLedger;
-  save('walletLedger', walletLedger);
+  persist('walletLedger', walletLedger);
 
   satellites = data.satellites;
   window.satellites = satellites;
-  save('satellites', satellites);
+  persist('satellites', satellites);
 
   satTarget = data.satTarget;
   window.satTarget = satTarget;
-  save('satTarget', satTarget);
+  persist('satTarget', satTarget);
 
   opponents = data.opponents;
   window.opponents = opponents;
-  save('opponents', opponents);
+  persist('opponents', opponents);
 
   window.goals = data.goals || {};
-  save('goals', window.goals);
+  persist('goals', window.goals);
 
   window.reminderSettings = data.reminderSettings || {};
-  save('reminderSettings', window.reminderSettings);
+  persist('reminderSettings', window.reminderSettings);
 
   var timerState = data.timer || { running: false, startedAt: null, elapsed: 0 };
   if (typeof resetTimerState === 'function') resetTimerState();
-  save('timer', timerState);
+  persist('timer', timerState);
   if (typeof restoreTimerState === 'function') restoreTimerState(timerState);
 
   if (typeof loadBankrollForm === 'function') loadBankrollForm();
@@ -610,10 +677,20 @@ function handleBackupRestoreFile(event) {
         return;
       }
       var summary = checked.data.sessions.length + ' sessions, ' + checked.data.hands.length + ' hands, ' + checked.data.tourneys.length + ' tournaments';
-      var confirmed = confirm('Restore this PokerHQ backup and overwrite the current saved data for this profile?\n\n' + summary + '\n\nThis cannot be undone from inside the app.');
+      var confirmed = confirm('Restore this PokerHQ backup and overwrite the current saved data for this profile?\n\n' + summary + '\n\nA copy of your current data is kept first, so you can undo this right after.');
       if (!confirmed) return;
+      var before = getBackupSnapshot();
+      if (!savePreRestoreSnapshot(before)) {
+        // Too big for local storage — hand over a file instead of risking the data.
+        downloadBackupPayload(before, 'PokerHQ_BeforeRestore_');
+      }
       applyBackupRestore(checked.data);
-      alert('PokerHQ backup restored successfully.');
+      updateRestoreUndoButton();
+      if (typeof showUndoToast === 'function') {
+        showUndoToast('Backup restored · ' + summary, function() { revertToSnapshot(before); }, 30000);
+      } else {
+        alert('PokerHQ backup restored successfully.');
+      }
     } catch (err) {
       alert('Restore failed: ' + err.message);
     } finally {
@@ -653,7 +730,7 @@ function exportCSV() {
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   a.href = url;
-  a.download = 'PokerHQ_Sessions_' + new Date().toISOString().split('T')[0] + '.csv';
+  a.download = 'PokerHQ_Sessions_' + todayLocal() + '.csv';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -771,8 +848,10 @@ function exportPDF() {
       });
     }
 
-    doc.save('PokerHQ_Weekly_' + new Date().toISOString().split('T')[0] + '.pdf');
+    doc.save('PokerHQ_Weekly_' + todayLocal() + '.pdf');
   } catch (err) {
     alert('PDF error: ' + err.message);
   }
 }
+
+updateRestoreUndoButton();

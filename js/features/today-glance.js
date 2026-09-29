@@ -13,7 +13,7 @@
   function escape(s) {
     return typeof window.esc === 'function' ? window.esc(s == null ? '' : s) : ('' + (s == null ? '' : s));
   }
-  function today() { return new Date().toISOString().split('T')[0]; }
+  function today() { return todayLocal(); }
 
   // Robust event date — reuse calendar.js's parser so every format the calendar
   // understands (ranges, "Month DD, YYYY", day+month fields) works here too.

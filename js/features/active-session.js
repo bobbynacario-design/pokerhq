@@ -115,7 +115,7 @@ function clearActiveSessionDraft() {
 function syncActiveDraftFromForm() {
   if (window._editingSessionId) return;
   if (!_activeSessionDraft) return;
-  _activeSessionDraft.date = document.getElementById('s-date').value || _activeSessionDraft.date || new Date().toISOString().split('T')[0];
+  _activeSessionDraft.date = document.getElementById('s-date').value || _activeSessionDraft.date || todayLocal();
   _activeSessionDraft.name = document.getElementById('s-name').value || _activeSessionDraft.name || '';
   _activeSessionDraft.venue = document.getElementById('s-venue').value || _activeSessionDraft.venue || '';
   _activeSessionDraft.packageName = document.getElementById('s-package').value || _activeSessionDraft.packageName || '';
@@ -131,7 +131,7 @@ function hydrateSessionFormFromDraft(force) {
   if (window._editingSessionId) return;
   if (!_activeSessionDraft) return;
   var map = [
-    ['s-date', _activeSessionDraft.date || new Date().toISOString().split('T')[0]],
+    ['s-date', _activeSessionDraft.date || todayLocal()],
     ['s-name', _activeSessionDraft.name || ''],
     ['s-venue', _activeSessionDraft.venue || ''],
     ['s-package', _activeSessionDraft.packageName || ''],
@@ -321,7 +321,7 @@ function applyReadinessToForm(state) {
 }
 
 function openReadinessCheck() {
-  ensureActiveSessionDraft({ date: document.getElementById('s-date').value || new Date().toISOString().split('T')[0] });
+  ensureActiveSessionDraft({ date: document.getElementById('s-date').value || todayLocal() });
   syncActiveDraftFromForm();
   _readinessState = buildInitialReadinessState();
   renderReadinessCheck();
@@ -445,7 +445,7 @@ function openActiveOpponentCapture() {
 }
 
 function openHandModalForActiveSession() {
-  ensureActiveSessionDraft({ date:new Date().toISOString().split('T')[0] });
+  ensureActiveSessionDraft({ date:todayLocal() });
   if (window.prepareNewHandForm) {
     prepareNewHandForm({
       sessionId: 0,
@@ -501,7 +501,7 @@ function cancelSessionStart() {
 function startSessionFromHome() {
   switchGroup('play','sessions');
   if (!_activeSessionDraft) {
-    replaceActiveSessionDraft({ date:new Date().toISOString().split('T')[0] });
+    replaceActiveSessionDraft({ date:todayLocal() });
   }
   hydrateSessionFormFromDraft(false);
   startTimer();
@@ -509,7 +509,7 @@ function startSessionFromHome() {
 
 function startTimer() {
   if (_timerInterval) return;
-  ensureActiveSessionDraft({ date:document.getElementById('s-date').value || new Date().toISOString().split('T')[0] });
+  ensureActiveSessionDraft({ date:document.getElementById('s-date').value || todayLocal() });
   if (!_readinessBypass && !_timerElapsed && !(_activeSessionDraft && _activeSessionDraft.readiness)) {
     openReadinessCheck();
     return;
@@ -663,7 +663,7 @@ function startSessionFromTourney(tid) {
   clearActiveSessionDraft();
   resetTimerState();
   replaceActiveSessionDraft({
-    date: parsedDate || new Date().toISOString().split('T')[0],
+    date: parsedDate || todayLocal(),
     name: t.name || '',
     venue: t.venue || '',
     buyin: t.buyin || 0
@@ -673,7 +673,7 @@ function startSessionFromTourney(tid) {
     document.getElementById('s-name').value  = t.name || '';
     document.getElementById('s-venue').value = t.venue || '';
     document.getElementById('s-buyin').value = t.buyin || '';
-    document.getElementById('s-date').value = parsedDate || new Date().toISOString().split('T')[0];
+    document.getElementById('s-date').value = parsedDate || todayLocal();
     syncActiveDraftFromForm();
     var fc = document.querySelector('.form-card');
     if (fc) fc.scrollIntoView({behavior:'smooth', block:'start'});

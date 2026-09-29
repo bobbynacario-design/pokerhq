@@ -16,9 +16,16 @@
 //    secret and returns the response. The client falls back to this only when
 //    no local BYOK key is stored — see js/data/ai-proxy.js.
 //
+// 3. pokerhqWeeklyBackup — scheduled Sundays 03:00 Asia/Manila. Snapshots all
+//    of the owner's app documents into one JSON file in Cloud Storage
+//    (pokerhq-backups/weekly/), in the same format as the app's JSON BACKUP
+//    button so it can be loaded with RESTORE JSON. Keeps the newest 8 distinct
+//    versions; skips an empty profile and a week identical to the last backup.
+//    Pure logic lives in backup.js (unit-tested).
+//
 // Deployed as its own codebase ("pokerhq") and always with explicitly named
 // targets, e.g.
-//   firebase deploy --only functions:pokerhqEventReminders,functions:pokerhqAiCall
+//   firebase deploy --only functions:pokerhq:pokerhqEventReminders,functions:pokerhq:pokerhqAiCall,functions:pokerhq:pokerhqWeeklyBackup
 // so it can never delete other apps' functions on this shared project.
 
 const {onSchedule} = require("firebase-functions/v2/scheduler");
@@ -27,6 +34,8 @@ const {defineSecret} = require("firebase-functions/params");
 const logger = require("firebase-functions/logger");
 const {initializeApp} = require("firebase-admin/app");
 const {getFirestore} = require("firebase-admin/firestore");
+const {getStorage} = require("firebase-admin/storage");
+const backup = require("./backup");
 
 initializeApp();
 const db = getFirestore();
@@ -267,5 +276,69 @@ exports.pokerhqAiCall = onCall(
       throw new HttpsError("internal", (data && data.error && data.error.message) || ("Anthropic API error " + res.status));
     }
     return data;
+  },
+);
+
+// ─────────────────────────────────────────────────────────────────────────
+// pokerhqWeeklyBackup — server-side safety copy of the owner's data.
+// ─────────────────────────────────────────────────────────────────────────
+
+// Default Firebase Storage bucket for the project. Backups live under the
+// pokerhq-backups/ prefix so they never mix with other apps' files. Keep that
+// prefix private in the project's Storage rules (the Admin SDK ignores rules).
+const BACKUP_BUCKET = process.env.POKERHQ_BACKUP_BUCKET || "pokerhq-a67e4.firebasestorage.app";
+
+exports.pokerhqWeeklyBackup = onSchedule(
+  {
+    schedule: "every sunday 03:00",
+    timeZone: "Asia/Manila",
+    region: "asia-southeast1",
+    timeoutSeconds: 300,
+  },
+  async () => {
+    const keys = backup.BACKUP_KEYS;
+    const snaps = await db.getAll(...keys.map((key) => db.collection(PROFILE).doc(key)));
+    const docsByKey = {};
+    snaps.forEach((snap, i) => {
+      docsByKey[keys[i]] = snap.exists ? snap.data() : undefined;
+    });
+    const data = backup.buildBackupData(docsByKey);
+
+    if (backup.isEmptyBackupData(data)) {
+      // Never rotate good copies out for an empty snapshot.
+      logger.warn("Profile is empty — skipping backup so existing copies are kept.");
+      return;
+    }
+
+    const bucket = getStorage().bucket(BACKUP_BUCKET);
+    const [files] = await bucket.getFiles({prefix: backup.BACKUP_PREFIX});
+    const newestName = backup.sortBackupNames(files.map((f) => f.name))[0];
+    const newest = files.find((f) => f.name === newestName);
+    const hash = backup.hashBackupData(data);
+    const newestHash = newest && newest.metadata && newest.metadata.metadata && newest.metadata.metadata.dataHash;
+    if (newestHash === hash) {
+      logger.info("Data unchanged since " + newestName + "; no new backup written.");
+      return;
+    }
+
+    const now = new Date();
+    const name = backup.backupFileName(now);
+    const payload = backup.buildBackupPayload(data, {
+      now,
+      profile: {id: "legacy-default", firestorePath: PROFILE},
+    });
+    await bucket.file(name).save(JSON.stringify(payload), {
+      contentType: "application/json",
+      resumable: false,
+      metadata: {metadata: {dataHash: hash, source: "pokerhqWeeklyBackup"}},
+    });
+    logger.info("Wrote backup " + name + " (" + JSON.stringify(payload).length + " bytes).");
+
+    const allNames = Array.from(new Set(files.map((f) => f.name).concat(name)));
+    const stale = backup.selectBackupsToDelete(allNames, backup.DEFAULT_KEEP);
+    await Promise.all(stale.map((n) => bucket.file(n).delete().catch((err) => {
+      logger.warn("Could not delete old backup " + n + ": " + err.message);
+    })));
+    if (stale.length) logger.info("Pruned " + stale.length + " old backup(s).");
   },
 );

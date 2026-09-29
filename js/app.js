@@ -3,8 +3,8 @@ import {
   resolveLegacyLocalStorageKey,
   resolveLocalStorageKey,
   resolveLocalReadKeys
-} from "./data/config.js?v=20260612q";
-import { initSync } from "./data/sync.js?v=20260612q";
+} from "./data/config.js?v=20260929a";
+import { initSync } from "./data/sync.js?v=20260929a";
 
 window.PokerHQConfig = Object.assign({}, window.PokerHQConfig || {}, {
   resolveProfileConfig,
