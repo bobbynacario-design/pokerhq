@@ -13,36 +13,74 @@
 <title>PokerHQ — Tournament Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script type="module" src="./js/app.js?v=20260929k"></script>
-<link rel="stylesheet" href="./styles/app.css?v=20260929k">
+<script type="module" src="./js/app.js?v=20260929l"></script>
+<link rel="stylesheet" href="./styles/app.css?v=20260929l">
 </head>
 <body>
 <!-- LOGIN GATE — shown until Firebase auth resolves a signed-in user -->
 <div id="login-overlay">
-  <div class="login-card">
-    <div class="login-logo" aria-hidden="true">
-      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <path d="M50,15 C65,45 80,55 80,68 A15,15 0 0,1 50,72 A15,15 0 0,1 20,68 C20,55 35,45 50,15 Z" fill="currentColor"/>
-        <path d="M45,70 L40,88 L60,88 L55,70 Z" fill="currentColor"/>
-        <text x="50" y="62" font-family="Montserrat, sans-serif" font-weight="800" font-size="20" fill="#121212" text-anchor="middle" letter-spacing="-1">HQ</text>
-      </svg>
+  <main class="login-wrap" aria-labelledby="login-title">
+    <div class="login-shell">
+      <section class="login-story">
+        <div class="login-brand">
+          <div class="login-logo" aria-hidden="true">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <path d="M50,15 C65,45 80,55 80,68 A15,15 0 0,1 50,72 A15,15 0 0,1 20,68 C20,55 35,45 50,15 Z" fill="currentColor"/>
+              <path d="M45,70 L40,88 L60,88 L55,70 Z" fill="currentColor"/>
+              <text x="50" y="62" font-family="Montserrat, sans-serif" font-weight="800" font-size="20" fill="#121212" text-anchor="middle" letter-spacing="-1">HQ</text>
+            </svg>
+          </div>
+          <div>
+            <div class="login-logo-text">POKERHQ</div>
+            <div class="login-tagline">Tournament intelligence</div>
+          </div>
+        </div>
+        <p class="login-eyebrow">Your poker command center</p>
+        <h1 class="login-headline" id="login-title">Play every tournament with a plan.</h1>
+        <p class="login-desc">PokerHQ brings your schedule, bankroll, live notes and post-game analysis into one private workspace—so every decision builds toward your next result.</p>
+        <div class="login-benefits" aria-label="What PokerHQ helps you do">
+          <article class="login-benefit">
+            <span class="login-benefit-index">01</span>
+            <div><h2>Plan the campaign</h2><p>Build your tournament calendar, compare events and keep every buy-in aligned with your bankroll.</p></div>
+          </article>
+          <article class="login-benefit">
+            <span class="login-benefit-index">02</span>
+            <div><h2>Perform at the table</h2><p>Keep fast, structured notes on hands, opponents and decisions while the details are still fresh.</p></div>
+          </article>
+          <article class="login-benefit">
+            <span class="login-benefit-index">03</span>
+            <div><h2>Review and improve</h2><p>Turn results and hand histories into clear insights, study priorities and a stronger next session.</p></div>
+          </article>
+        </div>
+        <div class="login-trust" aria-label="Privacy and access standards">
+          <span>Private workspace</span>
+          <span>Secure cloud sync</span>
+          <span>Google verified sign-in</span>
+        </div>
+      </section>
+      <aside class="login-card" aria-labelledby="login-access-title">
+        <p class="login-card-kicker">Player access</p>
+        <h2 id="login-access-title">Enter PokerHQ</h2>
+        <p class="login-card-desc">Continue with the Google account connected to your private poker workspace.</p>
+        <div class="login-status" id="login-status">Checking sign-in...</div>
+        <div class="login-error" id="login-error" style="display:none"></div>
+        <button class="btn-google" id="login-google-btn" style="display:none" onclick="pokerhqSignIn()">
+          <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+            <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
+            <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
+            <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>
+            <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/>
+          </svg>
+          <span>Continue with Google</span>
+        </button>
+        <button class="login-install" id="login-install-btn" style="display:none" onclick="pokerhqInstallApp()">&#10515; Install as desktop app</button>
+        <div class="login-card-footer">
+          <span>Your account protects access to your tournament data.</span>
+          <span>Private by design</span>
+        </div>
+      </aside>
     </div>
-    <div class="login-title">PokerHQ</div>
-    <div class="login-tagline">// Tournament Intelligence</div>
-    <div class="login-desc">Private command center for planning, playing, and reviewing live tournament poker.</div>
-    <div class="login-status" id="login-status">Checking sign-in...</div>
-    <div class="login-error" id="login-error" style="display:none"></div>
-    <button class="btn-google" id="login-google-btn" style="display:none" onclick="pokerhqSignIn()">
-      <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
-        <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
-        <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
-        <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>
-        <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/>
-      </svg>
-      <span>Sign in with Google</span>
-    </button>
-    <button class="login-install" id="login-install-btn" style="display:none" onclick="pokerhqInstallApp()">&#10515; Install as desktop app</button>
-  </div>
+  </main>
 </div>
 
 
