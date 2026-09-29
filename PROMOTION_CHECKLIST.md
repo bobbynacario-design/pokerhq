@@ -1,12 +1,14 @@
 # PokerHQ Promotion Checklist
 
+> Note (2026-09): `deploy/codex-pages/` is not tracked in this repository, so the Codex test-deploy steps below apply only where that bundle exists locally. Run `node --test "tests/*.test.js"` before promoting anything.
+
 Use this when promoting changes from the Codex test deploy to the live root app.
 
 ## Current Deployment Split
 
 - Live root app: `/pokerhq/`
   - Source of truth: tracked [`index.html`](C:\Users\BobbyNacario\OneDrive - Xcelerate\Desktop\Codex\pokerhq\index.html)
-  - Current model: single-file inline app
+  - Current model: `index.html` loads the extracted `js/` and `styles/` assets directly (Path B below is done). The page still holds some core session/dashboard code inline.
 - Codex test app: `/pokerhq/deploy/codex-pages/`
   - Source of truth:
     - extracted source tree under [`js`](C:\Users\BobbyNacario\OneDrive - Xcelerate\Desktop\Codex\pokerhq\js) and [`styles`](C:\Users\BobbyNacario\OneDrive - Xcelerate\Desktop\Codex\pokerhq\styles)
@@ -60,7 +62,8 @@ Run these on `/pokerhq/deploy/codex-pages/` before any promotion:
 - Confirm build badge matches on desktop and iPhone
 - Confirm sync works on both devices
 - Confirm calendar events sync both ways
-- Confirm weekly intelligence import does not duplicate strategy notes
+- Confirm saving AI Poker Research results does not duplicate strategy notes or news items
+- Confirm a session logged on one device appears on the other, including after one device was offline
 - Confirm demo load/reset works
 - Confirm active session start/resume/timer works
 - Confirm session detail and linked hands work

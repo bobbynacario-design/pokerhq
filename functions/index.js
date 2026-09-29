@@ -233,9 +233,11 @@ exports.pokerhqEventReminders = onSchedule(
 
 const ANTHROPIC_API_KEY = defineSecret("ANTHROPIC_API_KEY");
 const OWNER_EMAIL = "bobbynacario@gmail.com";
-// Kept in sync with the models the four client AI features actually send
-// (calendar.js/strategy.js: claude-opus-4-8; hands.js/review.js: claude-sonnet-4-6).
-// Update alongside any client-side model change.
+// Kept in sync with the models the client's Anthropic features send
+// (strategy.js: claude-opus-4-8; hands.js/review.js: claude-sonnet-4-6). The
+// calendar update no longer goes through here — it calls OpenAI directly.
+// tests/ai-config.test.js fails if a client model or max_tokens would be
+// rejected by this proxy, so update both together.
 const ALLOWED_MODELS = new Set(["claude-opus-4-8", "claude-sonnet-4-6"]);
 const MAX_TOKENS_CEILING = 20000;
 

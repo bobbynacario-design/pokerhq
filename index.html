@@ -13,8 +13,8 @@
 <title>PokerHQ — Tournament Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script type="module" src="./js/app.js?v=20260929a"></script>
-<link rel="stylesheet" href="./styles/app.css?v=20260929a">
+<script type="module" src="./js/app.js?v=20260929b"></script>
+<link rel="stylesheet" href="./styles/app.css?v=20260929b">
 </head>
 <body>
 <!-- LOGIN GATE — shown until Firebase auth resolves a signed-in user -->
@@ -294,6 +294,16 @@
     <div class="sec-title"><span>🎯</span>Performance by Buy-in Level</div>
   </div>
   <div id="buyin-breakdown" style="margin-bottom:2rem"></div>
+
+  <div class="sec-hdr">
+    <div class="sec-title"><span>📍</span>Performance by Venue</div>
+  </div>
+  <div id="venue-breakdown" style="margin-bottom:2rem"></div>
+
+  <div class="sec-hdr">
+    <div class="sec-title"><span>📅</span>Performance by Day of Week</div>
+  </div>
+  <div id="weekday-breakdown" style="margin-bottom:2rem"></div>
 
   <div class="sec-hdr">
     <div class="sec-title"><span>♠</span>Recent Sessions</div>
@@ -1502,6 +1512,7 @@
   <div class="calc-toggle">
     <button class="calc-mode-btn active" id="calc-btn-payout" onclick="calcSwitchMode('payout')">💰 Prize Pool Breakdown</button>
     <button class="calc-mode-btn" id="calc-btn-icm" onclick="calcSwitchMode('icm')">📊 Stack &amp; Bubble Advisor</button>
+    <button class="calc-mode-btn" id="calc-btn-icmcalc" onclick="calcSwitchMode('icmcalc')">🎯 ICM Calculator</button>
     <button class="calc-mode-btn" id="calc-btn-risk" onclick="calcSwitchMode('risk')">🛡 Bankroll Risk</button>
   </div>
 
@@ -1629,6 +1640,45 @@
   </div>
 
   <!-- ── MODE 3: BANKROLL RISK ENGINE ── -->
+  <div class="calc-panel" id="calc-panel-icmcalc">
+    <div class="form-card">
+      <div class="form-group">
+        <label class="form-label">Chip stacks — one per player still in (commas or spaces)</label>
+        <input class="form-input" id="icm-stacks" type="text" inputmode="decimal" placeholder="e.g. 42000 31000 18000 9000 5000" oninput="calcIcmRun()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Prizes for the remaining places — 1st, 2nd, 3rd… (₱)</label>
+        <input class="form-input" id="icm-payouts" type="text" inputmode="decimal" placeholder="e.g. 250000 150000 90000 60000" oninput="calcIcmRun()">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">You are</label>
+          <select class="form-input" id="icm-hero" onchange="calcIcmRun()"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Facing an all-in from</label>
+          <select class="form-input" id="icm-villain" onchange="calcIcmRun()"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Dead money in the pot (blinds + antes)</label>
+          <input class="form-input" id="icm-dead" type="number" min="0" placeholder="e.g. 3000" oninput="calcIcmRun()">
+        </div>
+      </div>
+      <div id="icm-error" class="tip" style="display:none;color:var(--red)"></div>
+      <div id="icm-empty" style="text-align:center;padding:2.5rem 0;font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.22)">Enter the stacks and prizes above to see what each stack is really worth</div>
+      <div id="icm-results" style="display:none">
+        <div class="table-wrap" style="margin-top:.85rem">
+          <table class="tbl icm-table">
+            <thead><tr><th>Player</th><th>Chips</th><th class="icm-hide-sm">Chip %</th><th>ICM value</th><th class="icm-hide-sm">ICM %</th><th>Diff</th></tr></thead>
+            <tbody id="icm-tbody"></tbody>
+          </table>
+        </div>
+        <div class="tip" id="icm-note" style="margin-top:.6rem"></div>
+        <div id="icm-call" class="calc-rec-banner" style="display:none;margin-top:.85rem"></div>
+      </div>
+    </div>
+  </div>
+
   <div class="calc-panel" id="calc-panel-risk">
     <div class="form-card">
       <div class="form-row">
@@ -1849,26 +1899,28 @@
   </div>
 </div>
 
-<script src="./js/data/util.js?v=20260929a"></script>
-<script src="./js/data/merge.js?v=20260929a"></script>
-<script src="./js/data/config-runtime.js?v=20260929a"></script>
-<script src="./js/data/ai-proxy.js?v=20260929a"></script>
-<script src="./js/features/active-session.js?v=20260929a"></script>
-<script src="./js/features/demo-mode.js?v=20260929a"></script>
-<script src="./js/data/pushfold.js?v=20260929a"></script>
-<script src="./js/features/calculator.js?v=20260929a"></script>
-<script src="./js/features/staking.js?v=20260929a"></script>
-<script src="./js/features/package-report.js?v=20260929a"></script>
-<script src="./js/features/review.js?v=20260929a"></script>
-<script src="./js/features/calendar.js?v=20260929a"></script>
-<script src="./js/features/study-loop.js?v=20260929a"></script>
-<script src="./js/features/strategy.js?v=20260929a"></script>
-<script src="./js/features/hands.js?v=20260929a"></script>
-<script src="./js/features/treasury.js?v=20260929a"></script>
-<script src="./js/features/bankroll-chart.js?v=20260929a"></script>
-<script src="./js/features/library.js?v=20260929a"></script>
-<script src="./js/features/onboarding.js?v=20260929a"></script>
-<script src="./js/features/today-glance.js?v=20260929a"></script>
+<script src="./js/data/util.js?v=20260929b"></script>
+<script src="./js/data/merge.js?v=20260929b"></script>
+<script src="./js/data/config-runtime.js?v=20260929b"></script>
+<script src="./js/data/ai-proxy.js?v=20260929b"></script>
+<script src="./js/features/active-session.js?v=20260929b"></script>
+<script src="./js/features/demo-mode.js?v=20260929b"></script>
+<script src="./js/data/pushfold.js?v=20260929b"></script>
+<script src="./js/data/stats.js?v=20260929b"></script>
+<script src="./js/data/icm.js?v=20260929b"></script>
+<script src="./js/features/calculator.js?v=20260929b"></script>
+<script src="./js/features/staking.js?v=20260929b"></script>
+<script src="./js/features/package-report.js?v=20260929b"></script>
+<script src="./js/features/review.js?v=20260929b"></script>
+<script src="./js/features/calendar.js?v=20260929b"></script>
+<script src="./js/features/study-loop.js?v=20260929b"></script>
+<script src="./js/features/strategy.js?v=20260929b"></script>
+<script src="./js/features/hands.js?v=20260929b"></script>
+<script src="./js/features/treasury.js?v=20260929b"></script>
+<script src="./js/features/bankroll-chart.js?v=20260929b"></script>
+<script src="./js/features/library.js?v=20260929b"></script>
+<script src="./js/features/onboarding.js?v=20260929b"></script>
+<script src="./js/features/today-glance.js?v=20260929b"></script>
 <script>
 // ── PWA INSTALL — captures the browser install prompt like Enclave ──
 var _deferredInstallPrompt = null;
@@ -2573,10 +2625,80 @@ function refreshDashboard() {
 }
 
 // ── MODAL ──
-function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-document.querySelectorAll('.modal-overlay').forEach(function(o){
-  o.addEventListener('click', function(e){ if(e.target===o) o.classList.remove('open'); });
+// Dialog behaviour: role/aria-modal, focus moves in on open and back to the
+// opener on close, Tab stays inside, Esc (or a tap on the backdrop) dismisses.
+var _modalStack = [];    // open modal ids, topmost last
+var _modalOpeners = {};  // modal id -> element that had focus when it opened
+// A modal holding something live must be shut down properly when dismissed:
+// without this, tapping outside the voice modal left the microphone recording.
+var MODAL_DISMISS_HOOKS = {
+  'modal-voice': function() { if (typeof clearVoiceModal === 'function') clearVoiceModal(); }
+};
+function openModal(id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  if (_modalStack.indexOf(id) === -1) {
+    _modalOpeners[id] = document.activeElement;
+    _modalStack.push(id);
+  }
+  el.classList.add('open');
+  // Focus the dialog itself (not the first field) so screen readers/keyboards
+  // land inside it without popping the phone keyboard.
+  var box = el.querySelector('.modal');
+  if (box) { box.setAttribute('tabindex', '-1'); try { box.focus({ preventScroll: true }); } catch (e) {} }
+}
+function closeModal(id) {
+  var el = document.getElementById(id);
+  if (el) el.classList.remove('open');
+  var i = _modalStack.indexOf(id);
+  if (i !== -1) _modalStack.splice(i, 1);
+  var opener = _modalOpeners[id];
+  delete _modalOpeners[id];
+  if (opener && document.body.contains(opener) && typeof opener.focus === 'function') {
+    try { opener.focus({ preventScroll: true }); } catch (e) {}
+  }
+}
+function dismissModal(id) {
+  var hook = MODAL_DISMISS_HOOKS[id];
+  if (hook) hook();
+  closeModal(id);
+}
+// Several modals sit below this script in the page, so wiring them up right here
+// missed them (their backdrop never closed them). Set up once the page is parsed,
+// and use one delegated click handler so it covers every modal.
+function setupModalDialogs() {
+  document.querySelectorAll('.modal-overlay').forEach(function(o){
+    o.setAttribute('role', 'dialog');
+    o.setAttribute('aria-modal', 'true');
+    var title = o.querySelector('.modal-title');
+    if (title) {
+      if (!title.id) title.id = o.id + '-title';
+      o.setAttribute('aria-labelledby', title.id);
+    }
+  });
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setupModalDialogs);
+else setupModalDialogs();
+document.addEventListener('click', function(e) {
+  var o = e.target;
+  if (o && o.classList && o.classList.contains('modal-overlay') && o.classList.contains('open')) dismissModal(o.id);
+});
+document.addEventListener('keydown', function(e) {
+  if (!_modalStack.length) return;
+  var id = _modalStack[_modalStack.length - 1];
+  var el = document.getElementById(id);
+  if (e.key === 'Escape') { e.preventDefault(); dismissModal(id); return; }
+  if (e.key !== 'Tab' || !el) return;
+  var focusable = Array.prototype.filter.call(
+    el.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]):not([type=hidden]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'),
+    function(n) { return n.offsetParent !== null; }
+  );
+  if (!focusable.length) return;
+  var first = focusable[0], last = focusable[focusable.length - 1], active = document.activeElement;
+  var box = el.querySelector('.modal');
+  if (!el.contains(active)) { e.preventDefault(); first.focus(); }
+  else if (e.shiftKey && (active === first || active === box)) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && active === last) { e.preventDefault(); first.focus(); }
 });
 
 // ── GROUP SWITCHING — top-level nav; HOME is standalone, others expand sub-tab row ──

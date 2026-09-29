@@ -126,6 +126,8 @@ function renderDashboardExtras() {
     }
   }
 
+  renderBreakdownSections(list);
+
   // Performance by buy-in level
   var wrap = document.getElementById('buyin-breakdown');
   if (!wrap) return;
@@ -162,6 +164,33 @@ function renderDashboardExtras() {
   });
   html += '</tbody></table></div>';
   wrap.innerHTML = html;
+}
+
+// "Performance by Venue" and "by Day of Week" — all-time, like the buy-in table.
+// Rows with fewer than PokerHQStats.LOW_SAMPLE sessions carry a * because a
+// couple of sessions say nothing about a venue or a weekday.
+function breakdownTableHtml(rows, firstColLabel, emptyMessage) {
+  if (!rows.length) {
+    return '<div style="color:rgba(255,255,255,.2);font-family:var(--mono);font-size:11px;width:100%;text-align:center;padding:1.6rem 0;background:var(--bg2);border:1px solid var(--rim);border-radius:12px">' + emptyMessage + '</div>';
+  }
+  var anyLow = false;
+  var html = '<div class="table-wrap"><table class="tbl"><thead><tr><th>' + firstColLabel + '</th><th>Sessions</th><th>ITM</th><th>Invested</th><th>P&amp;L</th><th>ROI</th><th>₱/hr</th></tr></thead><tbody>';
+  rows.forEach(function(r) {
+    var cls = r.pnl > 0 ? 'profit-pos' : r.pnl < 0 ? 'profit-neg' : 'profit-zero';
+    if (r.lowSample) anyLow = true;
+    html += '<tr><td>' + esc(r.label) + (r.lowSample ? ' *' : '') + '</td><td>' + r.count + '</td><td>' + r.itmPct + '%</td><td>₱' + fmt(r.invested) + '</td><td class="' + cls + '">' + fmtCur(r.pnl) + '</td><td class="' + cls + '">' + r.roi + '%</td><td>' + (r.perHour === null ? '—' : fmtCur(Math.round(r.perHour)) + '/hr') + '</td></tr>';
+  });
+  html += '</tbody></table></div>';
+  if (anyLow) html += '<div class="tip" style="margin-top:-.9rem">* Fewer than ' + PokerHQStats.LOW_SAMPLE + ' sessions — too few to trust yet.</div>';
+  return html;
+}
+
+function renderBreakdownSections(list) {
+  if (typeof PokerHQStats === 'undefined') return;
+  var venueEl = document.getElementById('venue-breakdown');
+  if (venueEl) venueEl.innerHTML = breakdownTableHtml(PokerHQStats.byVenue(list), 'Venue', 'Log sessions to compare venues');
+  var dayEl = document.getElementById('weekday-breakdown');
+  if (dayEl) dayEl.innerHTML = breakdownTableHtml(PokerHQStats.byWeekday(list), 'Day', 'Log sessions to compare days of the week');
 }
 
 function renderVarianceWidget() {
