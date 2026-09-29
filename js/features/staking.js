@@ -323,7 +323,7 @@ function getSessionStakingData(session) {
 
   playerSharePct = stakingRound2(Math.max(0, 100 - backerSharePct));
   var markup = markupInfo.valid ? markupInfo.value : 1;
-  var prize = parseFloat(session.prize) || 0;
+  var prize = sessionWinnings(session);
   var packageValue = stakingRound2(totalBuyIn * markup);
 
   var backerResults = backers.map(function(backer) {
@@ -386,7 +386,8 @@ function renderStakingInputSummary() {
 
   var sessionStub = {
     total: (parseFloat((document.getElementById('s-buyin') || {}).value) || 0) + (parseFloat((document.getElementById('s-rebuy') || {}).value) || 0),
-    prize: parseFloat((document.getElementById('s-prize') || {}).value) || 0
+    prize: parseFloat((document.getElementById('s-prize') || {}).value) || 0,
+    bounties: parseFloat((document.getElementById('s-bounty') || {}).value) || 0
   };
   var formData = collectSessionStakingData();
   Object.keys(formData).forEach(function(key) {
@@ -459,7 +460,7 @@ function getStakingPackageRows() {
     grouped[key].backerCost += staking.backerCost;
     grouped[key].playerNet += staking.playerNet;
     grouped[key].backerNet += staking.backerNet;
-    grouped[key].prizes += parseFloat(session.prize) || 0;
+    grouped[key].prizes += sessionWinnings(session);
   });
 
   return Object.keys(grouped).map(function(key) {

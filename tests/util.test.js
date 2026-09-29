@@ -96,3 +96,18 @@ test("bankrollCheck: drift shows up as a non-zero implied start", () => {
   assert.equal(check.ok, false);
   assert.equal(check.target, 0);
 });
+
+test("sessionWinnings adds bounties to the placement prize", () => {
+  assert.equal(u.sessionWinnings({prize: 5000, bounties: 1500}), 6500);
+  assert.equal(u.sessionWinnings({prize: 5000}), 5000, "sessions saved before bounties existed");
+  assert.equal(u.sessionWinnings({bounties: 800}), 800);
+  assert.equal(u.sessionWinnings({prize: "abc", bounties: null}), 0);
+  assert.equal(u.sessionWinnings(null), 0);
+});
+
+test("bounties never turn a bust into a cash", () => {
+  // result follows the placement prize only; bounty-only sessions stay 'bust' but the P&L is real money
+  assert.equal(u.sessionResult(0, 40), "bust");
+  const s = {prize: 0, bounties: 1500, total: 3000, pnl: 1500 - 3000};
+  assert.equal(u.sessionWinnings(s) - s.total, s.pnl);
+});

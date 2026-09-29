@@ -161,7 +161,7 @@ function buildStakingPackageReport(label) {
         : (String(staking.packageName || '').trim() || 'Single Event');
     }
     var investment = getSessionInvestmentBreakdown(session);
-    var prize = packageReportRound(parseFloat(session.prize) || 0);
+    var prize = packageReportRound(sessionWinnings(session));
     return {
       packageLabel: packageLabel,
       sessionName: session.name || 'Session',

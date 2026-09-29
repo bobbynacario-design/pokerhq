@@ -715,12 +715,12 @@ function exportCSV() {
     alert('No sessions to export.');
     return;
   }
-  var headers = ['Date', 'Tournament', 'Venue', 'Buy-in', 'Rebuys', 'Total Invested', 'Field', 'Position', 'Prize', 'P&L', 'Hours', 'Result', 'Notes', 'Focus', 'Energy', 'Sleep', 'Fasting'];
+  var headers = ['Date', 'Tournament', 'Venue', 'Buy-in', 'Rebuys', 'Total Invested', 'Field', 'Position', 'Prize', 'Bounties', 'P&L', 'Hours', 'Result', 'Notes', 'Focus', 'Energy', 'Sleep', 'Fasting'];
   var rows = sessions.map(function(s) {
     return [
       s.date || '', s.name || '', s.venue || '',
       s.buyin || 0, s.rebuy || 0, s.total || 0,
-      s.field || '', s.position || '', s.prize || 0, s.pnl || 0,
+      s.field || '', s.position || '', s.prize || 0, s.bounties || 0, s.pnl || 0,
       s.hours || 0, s.result || '', s.notes || '',
       s.focus || '', s.energy || '', s.sleep || '', s.fasting || ''
     ].map(csvField).join(',');
@@ -776,7 +776,7 @@ function exportPDF() {
     var totalIn = 0, totalOut = 0, itm = 0;
     sessions.forEach(function(s) {
       totalIn += s.total || 0;
-      totalOut += s.prize || 0;
+      totalOut += sessionWinnings(s);
       if (s.result === 'itm' || s.result === 'final') itm++;
     });
     var pnl = totalOut - totalIn, roi = totalIn > 0 ? ((pnl / totalIn) * 100).toFixed(1) : 0;
@@ -813,7 +813,7 @@ function exportPDF() {
       chk(7);
       var isPos = s.pnl >= 0;
       var cx2 = ML;
-      var vals = [s.date, s.name.substring(0, 28), '₱' + s.total.toLocaleString(), s.position || '—', s.prize ? '₱' + s.prize.toLocaleString() : '—', (s.pnl >= 0 ? '+' : '') + '₱' + fmt(s.pnl), { itm: 'ITM', final: 'Final', bust: 'Bust' }[s.result] || ''];
+      var vals = [s.date, s.name.substring(0, 28), '₱' + s.total.toLocaleString(), s.position || '—', sessionWinnings(s) ? '₱' + sessionWinnings(s).toLocaleString() : '—', (s.pnl >= 0 ? '+' : '') + '₱' + fmt(s.pnl), { itm: 'ITM', final: 'Final', bust: 'Bust' }[s.result] || ''];
       doc.setTextColor(40, 40, 40);
       vals.forEach(function(v, i) {
         if (i === 5) doc.setTextColor(isPos ? 26 : 192, isPos ? 122 : 57, isPos ? 74 : 43);

@@ -26,9 +26,96 @@ async function getAnthropicErrorMessage(response, fallback) {
   return fallback + (message ? ': ' + message : ' (' + response.status + ')');
 }
 
+// Keyless access: signed in as the owner, the OpenAI features go through the
+// pokerhqOpenAiCall Cloud Function (server-held key). A key saved on this
+// device still wins, exactly like the Anthropic path below.
+function hasOpenAIProxyAccess() {
+  return !!window.__pokerhqAuthUid && typeof window.pokerhqOpenAiCall === 'function';
+}
+
 function hasOpenAIResponsesAccess() {
   var key = (typeof getStoredOpenAIKey === 'function') ? getStoredOpenAIKey() : '';
-  return !!key;
+  return !!key || hasOpenAIProxyAccess();
+}
+
+// Cloud Function error → the fetch-Response-shaped object callers already handle.
+function openAIProxyErrorResponse(err) {
+  var code = err && err.code;
+  var status = code === 'functions/permission-denied' ? 403
+    : code === 'functions/unauthenticated' ? 401
+    : code === 'functions/invalid-argument' ? 400
+    : code === 'functions/not-found' ? 404
+    : code === 'functions/failed-precondition' ? 412
+    : code === 'functions/resource-exhausted' ? 429
+    : code === 'functions/deadline-exceeded' ? 504
+    : 500;
+  var message = (err && err.message) || 'OpenAI proxy request failed.';
+  if (code === 'functions/not-found') {
+    message = 'The OpenAI server function is not deployed yet — add your OpenAI key in AI Assistant, or deploy the Cloud Functions.';
+  } else if (code === 'functions/deadline-exceeded') {
+    message = 'The OpenAI request took too long. Please try again.';
+  }
+  return { ok: false, status: status, json: function () { return Promise.resolve({ error: { message: message } }); } };
+}
+
+// payload: {kind:'responses'|'transcribe'|'ping', ...}. Resolves to a Response-like object.
+async function callOpenAIProxy(payload, timeoutMs, timeoutMessage) {
+  if (!hasOpenAIProxyAccess()) {
+    return {
+      ok: false,
+      status: 401,
+      json: function () { return Promise.resolve({ error: { message: 'Add your OpenAI API key in AI Assistant, or sign in with the owner account for keyless access.' } }); }
+    };
+  }
+  var timer = null;
+  try {
+    var pending = window.pokerhqOpenAiCall(payload);
+    var result = timeoutMs
+      ? await Promise.race([
+        pending,
+        new Promise(function (_, reject) {
+          timer = setTimeout(function () { var e = new Error(timeoutMessage || 'The OpenAI request timed out.'); e.code = 'timeout'; reject(e); }, timeoutMs);
+        })
+      ])
+      : await pending;
+    return { ok: true, status: 200, json: function () { return Promise.resolve(result.data); } };
+  } catch (err) {
+    if (err && err.code === 'timeout') {
+      return { ok: false, status: 408, json: function () { return Promise.resolve({ error: { message: err.message } }); } };
+    }
+    return openAIProxyErrorResponse(err);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+async function blobToBase64(blob) {
+  var bytes = new Uint8Array(await blob.arrayBuffer());
+  var binary = '';
+  for (var i = 0; i < bytes.length; i += 0x8000) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(binary);
+}
+
+// Speech-to-text for voice hand capture. Local key → straight to OpenAI (as
+// before); otherwise the recording goes up as base64 through the proxy.
+async function callOpenAITranscription(blob, filename, model, prompt) {
+  var key = (typeof getStoredOpenAIKey === 'function') ? getStoredOpenAIKey() : '';
+  if (key) {
+    var fd = new FormData();
+    fd.append('file', blob, filename);
+    fd.append('model', model);
+    if (prompt) fd.append('prompt', prompt);
+    return fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + key },
+      body: fd
+    });
+  }
+  if (!hasOpenAIProxyAccess()) return callOpenAIProxy({}, 0);
+  var audioBase64 = await blobToBase64(blob);
+  return callOpenAIProxy({ kind: 'transcribe', audioBase64: audioBase64, mime: blob.type || 'audio/webm', model: model, prompt: prompt || undefined }, 120000, 'Transcription timed out. Please try again.');
 }
 
 async function getOpenAIErrorMessage(response, fallback) {
@@ -43,14 +130,10 @@ async function getOpenAIErrorMessage(response, fallback) {
 
 async function callOpenAIResponses(bodyObj, options) {
   var key = (typeof getStoredOpenAIKey === 'function') ? getStoredOpenAIKey() : '';
-  if (!key) {
-    return {
-      ok: false,
-      status: 401,
-      json: function () { return Promise.resolve({ error: { message: 'Add your OpenAI API key in AI Assistant first.' } }); }
-    };
-  }
   var timeoutMs = options && options.timeoutMs ? Number(options.timeoutMs) : 0;
+  if (!key) {
+    return callOpenAIProxy({ kind: 'responses', body: bodyObj }, timeoutMs, 'The OpenAI event search timed out. Please try again.');
+  }
   var controller = timeoutMs && typeof AbortController !== 'undefined' ? new AbortController() : null;
   var timer = controller ? setTimeout(function () { controller.abort(); }, timeoutMs) : null;
   try {

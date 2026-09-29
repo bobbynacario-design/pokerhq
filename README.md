@@ -16,7 +16,7 @@ Live app: <https://bobbynacario-design.github.io/pokerhq/> (the repo root, serve
 | `js/features/*.js` | One file per feature (calendar, hands, treasury, calculator, review, …) |
 | `styles/app.css` | All styles |
 | `sw.js` | Service worker (offline shell); bump `CACHE_NAME` when the precache list changes |
-| `functions/` | Cloud Functions: event reminder email, AI proxy, weekly backup |
+| `functions/` | Cloud Functions: event reminder email, Anthropic + OpenAI proxies, phone notifications, weekly backup |
 | `tests/` | Node tests (see below) |
 | `deploy/firestore.rules` | Reference copy only — rules are deployed from the sonicvault repo |
 
@@ -45,6 +45,9 @@ Both run in CI on every push and pull request (`.github/workflows/test.yml`).
 - `tests/sync-glue.test.js` — the real `js/data/sync.js` against an in-memory Firestore fake (`tests/fakes/`)
 - `tests/backup.test.js` — weekly backup logic (`functions/backup.js`)
 - `tests/ai-config.test.js` — fails if a client AI model or `max_tokens` would be rejected by the Cloud Function proxy
+- `tests/openai-proxy.test.js` — the OpenAI proxy's allowlists (`functions/openai-proxy.js`), checked against the app's real requests
+- `tests/ai-proxy-client.test.js` — client fallback: local key → direct, otherwise the proxy (`js/data/ai-proxy.js`)
+- `tests/events.test.js`, `tests/push.test.js`, `tests/sw-push.test.js` — event dates/times, notification selection and messages, and the service worker's push handlers
 
 `scripts/gen-hand-ranking.js` regenerates the 169-hand ordering embedded in `js/data/pushfold.js`
 (seeded Monte Carlo; it self-checks against known equities).
@@ -61,6 +64,27 @@ Both run in CI on every push and pull request (`.github/workflows/test.yml`).
   bucket, keeps the newest 8 distinct versions, and skips empty or unchanged data. The file is
   the same format as **JSON BACKUP**, so it loads with **RESTORE JSON**. Deploy with
   `npm run deploy` in `functions/`; keep the `pokerhq-backups/` Storage prefix private.
+
+## AI without keys
+
+Signed in as the owner, the AI features work without pasting an API key on each device:
+Anthropic goes through `pokerhqAiCall` and OpenAI (calendar **Update Events**, voice hand
+capture) through `pokerhqOpenAiCall`. A key saved on a device still takes priority. The OpenAI
+function needs a secret — `npm run deploy` in `functions/` asks for `OPENAI_API_KEY` the first
+time (or run `firebase functions:secrets:set OPENAI_API_KEY`). Requests are checked against strict
+allowlists in `functions/openai-proxy.js`, so it can't be used as a general relay.
+
+## Phone notifications
+
+Calendar → **Phone Notifications** → *Enable on this device*. You get a heads-up before events
+marked ★ planning (they need a start time) and a morning summary of today's events.
+
+- It's standard Web Push. The server generates its own key pair the first time it's needed and
+  keeps it in `pokerhq-server/vapid` (a collection browsers can't read) — nothing to configure.
+- `pokerhqPush` (owner-only callable) registers devices; `pokerhqPushAlerts` runs every 15 minutes.
+- **iPhone/iPad:** works only from the Home Screen app (iOS 16.4+): Share → Add to Home Screen,
+  open PokerHQ from there, then tap Enable.
+- Deploy with `npm run deploy` in `functions/`, then use **Send a test** to confirm delivery.
 
 ## Releasing
 

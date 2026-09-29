@@ -3,7 +3,7 @@
    half-applied (fresh HTML must pair with fresh JS/CSS); the cache is the
    offline fallback. Cross-origin CDN assets (fonts, jspdf, gstatic modules)
    are stale-while-revalidate. Sync/API traffic is never cached. */
-var CACHE_NAME = 'pokerhq-shell-v44';
+var CACHE_NAME = 'pokerhq-shell-v45';
 
 var PRECACHE = [
   './',
@@ -33,6 +33,7 @@ var PRECACHE = [
   './js/features/treasury.js',
   './js/features/bankroll-chart.js',
   './js/features/library.js',
+  './js/features/push.js',
   './js/features/onboarding.js',
   './js/features/today-glance.js',
   './assets/icons/icon-192.png',
@@ -77,6 +78,35 @@ self.addEventListener('activate', function(event) {
       }));
     }).then(function() { return self.clients.claim(); })
   );
+});
+
+/* Phone notifications (Web Push). The server sends {title, body, tag, url}.
+   Browsers require every push to show a notification, so this always does. */
+self.addEventListener('push', function(event) {
+  var data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (e) {
+    data = { body: event.data ? event.data.text() : '' };
+  }
+  event.waitUntil(self.registration.showNotification(data.title || 'PokerHQ', {
+    body: data.body || '',
+    tag: data.tag || 'pokerhq',
+    icon: './assets/icons/icon-192.png',
+    data: { url: data.url || './' }
+  }));
+});
+
+/* Tapping a notification focuses the app if it's open, otherwise opens it. */
+self.addEventListener('notificationclick', function(event) {
+  event.notification.close();
+  var target = (event.notification.data && event.notification.data.url) || './';
+  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(list) {
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].url.indexOf(self.registration.scope) === 0 && 'focus' in list[i]) return list[i].focus();
+    }
+    return self.clients.openWindow(target);
+  }));
 });
 
 self.addEventListener('fetch', function(event) {

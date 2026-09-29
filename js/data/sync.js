@@ -15,14 +15,19 @@ import {
   FIRESTORE_KEYS,
   resolveProfileConfig,
   resolveLocalStorageKey
-} from "./config.js?v=20260929b";
+} from "./config.js?v=20260929c";
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 // Region must match functions/index.js's pokerhqAiCall deployment region.
 // Bridges the callable to plain window scope so classic (non-module) feature
 // scripts (js/data/ai-proxy.js) can call it without their own SDK import.
-window.pokerhqAiCall = httpsCallable(getFunctions(app, "asia-southeast1"), "pokerhqAiCall");
+// Web-search calls can run for a minute or more; the SDK default is 70s.
+const AI_CALL_TIMEOUT_MS = 300000;
+window.pokerhqAiCall = httpsCallable(getFunctions(app, "asia-southeast1"), "pokerhqAiCall", { timeout: AI_CALL_TIMEOUT_MS });
+window.pokerhqOpenAiCall = httpsCallable(getFunctions(app, "asia-southeast1"), "pokerhqOpenAiCall", { timeout: AI_CALL_TIMEOUT_MS });
+// Phone notifications: enable/disable this device, send a test (functions/index.js pokerhqPush).
+window.pokerhqPushCall = httpsCallable(getFunctions(app, "asia-southeast1"), "pokerhqPush", { timeout: 60000 });
 
 let resolvedProfile = null;
 let unsubscribeListeners = [];
@@ -394,6 +399,8 @@ function startSyncForUser(user) {
   window.__pokerhqAuthUid = user.uid;
   window.__pokerhqAuthEmail = user.email || "";
   if (window.renderBuildBadge) window.renderBuildBadge();
+  if (window.renderAiSettings) window.renderAiSettings();
+  if (window.refreshPushUi) window.refreshPushUi();
   setLoginUiState("hidden");
   if (syncStarted) return;
   syncStarted = true;
