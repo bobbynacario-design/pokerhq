@@ -251,7 +251,7 @@ function exportCalendarICS() {
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   a.href = url;
-  a.download = 'PokerHQ_Targets_' + new Date().toISOString().split('T')[0] + '.ics';
+  a.download = 'PokerHQ_Targets_' + todayLocal() + '.ics';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -260,7 +260,7 @@ function exportCalendarICS() {
 
 function dedupeTourneys() {
   var list = window.tourneys || [];
-  // Same identity key the weekly-briefing import uses: canonical date + name + venue.
+  // Same identity key the event importers use: canonical date + name + venue.
   var keyOf = (typeof getImportedTourneyFingerprint === 'function')
     ? getImportedTourneyFingerprint
     : function(t) { return [(t.date || ''), (t.name || ''), (t.venue || '')].join('|').toLowerCase(); };

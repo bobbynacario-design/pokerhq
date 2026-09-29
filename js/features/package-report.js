@@ -546,7 +546,7 @@ function exportBackerPackageReportPDF(packageLabel) {
       }
     });
 
-    doc.save('PokerHQ_Backer_Report_' + packageReportSlug(report.packageLabel) + '_' + new Date().toISOString().split('T')[0] + '.pdf');
+    doc.save('PokerHQ_Backer_Report_' + packageReportSlug(report.packageLabel) + '_' + todayLocal() + '.pdf');
   } catch (err) {
     alert('Backer PDF error: ' + err.message);
   }

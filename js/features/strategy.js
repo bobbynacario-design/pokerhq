@@ -1,21 +1,3 @@
-function addStrategy() {
-  var raw = document.getElementById('strategy-raw').value.trim();
-  if (!raw) return;
-  var s = {
-    id: Date.now(),
-    week: new Date().toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' }),
-    topic: 'Weekly Intelligence Update',
-    note: raw,
-    type: 'gemini'
-  };
-  strategies.unshift(s);
-  save('strategies', strategies);
-  save('news', newsItems.slice(0, 100));
-  save('spotlights', spotlights.slice(0, 20));
-  document.getElementById('strategy-raw').value = '';
-  renderStrategy();
-}
-
 function addManualStrategy() {
   var note = document.getElementById('strat-note').value.trim();
   if (!note) return;
@@ -117,7 +99,7 @@ function renderStrategy() {
   var el = document.getElementById('strategy-list');
   if (!el) return;
   if (!strategies.length) {
-    el.innerHTML = '<div style="padding:2rem;text-align:center;color:rgba(255,255,255,.2);font-family:var(--mono);font-size:13px">No strategy notes yet. Import a weekly briefing or add a manual note.</div>';
+    el.innerHTML = '<div style="padding:2rem;text-align:center;color:rgba(255,255,255,.2);font-family:var(--mono);font-size:13px">No strategy notes yet. Run AI Poker Research or add a manual note.</div>';
     return;
   }
   el.innerHTML = strategies.map(function(s) {
@@ -154,130 +136,6 @@ function getImportedTourneyFingerprint(t) {
     normalizeImportToken(t.name),
     normalizeImportToken(t.venue)
   ].join('|');
-}
-
-function getImportedStrategyFingerprint(s) {
-  return [
-    normalizeImportToken(s.week),
-    normalizeImportToken(s.topic),
-    normalizeImportToken(s.note),
-    normalizeImportToken(s.source),
-    normalizeImportToken(s.type)
-  ].join('|');
-}
-
-function parseGeminiJSON() {
-  var raw = document.getElementById('strategy-raw').value.trim();
-  if (!raw) return;
-
-  var data = null;
-  try {
-    var js = raw.indexOf('{'), je = raw.lastIndexOf('}');
-    if (js !== -1 && je !== -1) data = JSON.parse(raw.substring(js, je + 1));
-  } catch (e) {}
-
-  if (!data || !data.sections) {
-    alert('Could not parse JSON. Check your Gemini output and try again.');
-    return;
-  }
-
-  var imported = { calendars: [], news: [], strategies: [], spotlight: null, watch: null };
-  data.sections.forEach(function(sec) {
-    if (sec.id === 'ph_calendar' || sec.id === 'apac_calendar') {
-      (sec.events || []).forEach(function(ev) {
-        var bi = parseFloat(ev.buyin) || 0;
-        var status = gradeBuyin(bi);
-        var t = {
-          id: Date.now() + Math.random(),
-          date: ev.date || '',
-          time: ev.time || '',
-          day: ev.day || '',
-          month: ev.month || '',
-          series: ev.series || ev.name || 'Tournament',
-          name: ev.name || 'Tournament',
-          type: ev.type || 'side',
-          venue: ev.venue || '',
-          buyin: bi,
-          gtd: ev.guarantee || '',
-          structure: ev.structure || 'Regular',
-          notes: ev.notes || '',
-          source: ev.source || '',
-          status: status
-        };
-        var tfp = getImportedTourneyFingerprint(t);
-        var exists = tourneys.some(function(x) { return getImportedTourneyFingerprint(x) === tfp; });
-        if (!exists) {
-          tourneys.push(t);
-          imported.calendars.push(t);
-        }
-      });
-    }
-
-    if (sec.id === 'news') {
-      (sec.stories || []).forEach(function(st) {
-        var tagged = {
-          id: Date.now() + Math.random(),
-          week: data.week || new Date().toLocaleDateString(),
-          headline: st.headline || '',
-          body: st.body || '',
-          source: st.source || '',
-          relevant: st.relevant,
-          relevance: st.relevance || ''
-        };
-        var exists = newsItems.some(function(x) { return x.headline === tagged.headline; });
-        if (!exists) {
-          newsItems.unshift(tagged);
-          imported.news.push(tagged);
-        }
-      });
-    }
-
-    if (sec.id === 'strategy') {
-      (sec.insights || []).forEach(function(ins) {
-        var s = {
-          id: Date.now() + Math.random(),
-          week: data.week || new Date().toLocaleDateString(),
-          topic: ins.topic || 'Strategy Insight',
-          note: (ins.concept || '') + (ins.application ? ' In practice: ' + ins.application : ''),
-          source: ins.source || '',
-          type: 'gemini'
-        };
-        var sfp = getImportedStrategyFingerprint(s);
-        var exists = strategies.some(function(x) { return getImportedStrategyFingerprint(x) === sfp; });
-        if (!exists) {
-          strategies.unshift(s);
-          imported.strategies.push(s);
-        }
-      });
-    }
-
-    if (sec.id === 'spotlight') {
-      var sp = { id: Date.now() + Math.random(), week: data.week || '', content: sec.content || '', source: sec.source || '' };
-      var spExists = spotlights.some(function(x) { return x.content === sp.content; });
-      if (!spExists) spotlights.unshift(sp);
-      imported.spotlight = sp;
-    }
-  });
-
-  if (data.watch) imported.watch = { text: data.watch, source: data.watch_source || '' };
-
-  if (imported.calendars.length) {
-    window.tourneys = tourneys;
-    tourneys.sort(function(a, b) { return (a.date || '').localeCompare(b.date || ''); });
-    save('tourneys', tourneys);
-  }
-  window.strategies = strategies;
-  save('strategies', strategies);
-  document.getElementById('strategy-raw').value = '';
-  renderStrategy();
-  renderCalendar();
-
-  var msg = 'Gemini briefing imported:\n';
-  if (imported.calendars.length) msg += '• ' + imported.calendars.length + ' tournament(s) added to Calendar\n';
-  if (imported.strategies.length) msg += '• ' + imported.strategies.length + ' strategy insight(s) added\n';
-  if (imported.news.length) msg += '• ' + imported.news.length + ' news stories rendered\n';
-  if (imported.spotlight) msg += '• Weekly spotlight captured\n';
-  alert(msg);
 }
 
 // ── AI POKER RESEARCH ──

@@ -13,8 +13,8 @@
 <title>PokerHQ — Tournament Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script type="module" src="./js/app.js?v=20260816a"></script>
-<link rel="stylesheet" href="./styles/app.css?v=20260816a">
+<script type="module" src="./js/app.js?v=20260929a"></script>
+<link rel="stylesheet" href="./styles/app.css?v=20260929a">
 </head>
 <body>
 <!-- LOGIN GATE — shown until Firebase auth resolves a signed-in user -->
@@ -343,6 +343,7 @@
     <div style="display:flex;gap:.55rem;flex-wrap:wrap;margin-top:-.35rem;margin-bottom:1.15rem">
       <button class="sec-action" onclick="exportBackupJSON()">JSON BACKUP</button>
       <button class="sec-action" onclick="openBackupRestorePicker()">RESTORE JSON</button>
+      <button class="sec-action" id="restore-undo-btn" style="display:none" onclick="undoLastRestore()">↩ UNDO LAST RESTORE</button>
     </div>
     <input type="file" id="backup-restore-input" accept=".json,application/json" style="display:none" onchange="handleBackupRestoreFile(event)">
   </div>
@@ -591,6 +592,7 @@
       </div>
     </div>
     <div class="tip" id="wallet-transfer-tip">Net transfer to bankroll: ₱0</div>
+    <div class="tip" id="bankroll-check" style="margin-top:.6rem"></div>
   </div>
 
   <div class="form-card">
@@ -1569,6 +1571,28 @@
           <input class="form-input" id="calc-paid" type="number" min="1" placeholder="e.g. 9" oninput="calcStackAdvisor()">
         </div>
       </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Your Position (first in, nobody has raised)</label>
+          <select class="form-input" id="calc-position" onchange="calcStackAdvisor()">
+            <option value="utg">UTG</option>
+            <option value="utg1">UTG+1</option>
+            <option value="mp">Middle (MP)</option>
+            <option value="lj">Lojack (LJ)</option>
+            <option value="hj">Hijack (HJ)</option>
+            <option value="co">Cutoff (CO)</option>
+            <option value="btn" selected>Button (BTN)</option>
+            <option value="sb">Small blind (SB)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Antes</label>
+          <select class="form-input" id="calc-ante" onchange="calcAnteChanged()">
+            <option value="0">No antes</option>
+            <option value="1">Antes / big-blind ante</option>
+          </select>
+        </div>
+      </div>
 
       <!-- Empty state -->
       <div id="calc-advisor-empty" style="text-align:center;padding:2.5rem 0;font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.22)">Enter values above to see calculations</div>
@@ -1593,29 +1617,11 @@
         <!-- Recommendation banner -->
         <div id="adv-rec-banner" class="calc-rec-banner" style="margin-top:.85rem"></div>
 
-        <!-- Push/Fold Guide -->
+        <!-- Push/Fold by position (rendered by calcStackAdvisor) -->
         <div class="calc-pushfold-guide">
-          <div class="calc-pushfold-title">Push / Fold Guide</div>
-          <div class="calc-pushfold-row" id="pfrow-10">
-            <span class="pfrow-range">Under 10BB</span>
-            <span class="pfrow-desc">Shove any two cards</span>
-          </div>
-          <div class="calc-pushfold-row" id="pfrow-13">
-            <span class="pfrow-range">10 – 13BB</span>
-            <span class="pfrow-desc">Shove top 40% — any pair, Ax, KJ+, QJ</span>
-          </div>
-          <div class="calc-pushfold-row" id="pfrow-17">
-            <span class="pfrow-range">13 – 17BB</span>
-            <span class="pfrow-desc">Shove top 25% — 66+, AJ+, KQ</span>
-          </div>
-          <div class="calc-pushfold-row" id="pfrow-20">
-            <span class="pfrow-range">17 – 20BB</span>
-            <span class="pfrow-desc">Shove top 15% — 88+, AQ+</span>
-          </div>
-          <div class="calc-pushfold-row" id="pfrow-deep">
-            <span class="pfrow-range">Over 20BB</span>
-            <span class="pfrow-desc">Normal raise / fold strategy</span>
-          </div>
+          <div class="calc-pushfold-title" id="adv-pf-title">Push / Fold by Position</div>
+          <div id="adv-pf-rows"></div>
+          <div class="tip" id="adv-pf-note" style="margin-top:.6rem"></div>
         </div>
 
       </div><!-- /calc-advisor-results -->
@@ -1843,23 +1849,26 @@
   </div>
 </div>
 
-<script src="./js/data/config-runtime.js?v=20260816a"></script>
-<script src="./js/data/ai-proxy.js?v=20260816a"></script>
-<script src="./js/features/active-session.js?v=20260816a"></script>
-<script src="./js/features/demo-mode.js?v=20260816a"></script>
-<script src="./js/features/calculator.js?v=20260816a"></script>
-<script src="./js/features/staking.js?v=20260816a"></script>
-<script src="./js/features/package-report.js?v=20260816a"></script>
-<script src="./js/features/review.js?v=20260816a"></script>
-<script src="./js/features/calendar.js?v=20260816a"></script>
-<script src="./js/features/study-loop.js?v=20260816a"></script>
-<script src="./js/features/strategy.js?v=20260816a"></script>
-<script src="./js/features/hands.js?v=20260816a"></script>
-<script src="./js/features/treasury.js?v=20260816a"></script>
-<script src="./js/features/bankroll-chart.js?v=20260816a"></script>
-<script src="./js/features/library.js?v=20260816a"></script>
-<script src="./js/features/onboarding.js?v=20260816a"></script>
-<script src="./js/features/today-glance.js?v=20260816a"></script>
+<script src="./js/data/util.js?v=20260929a"></script>
+<script src="./js/data/merge.js?v=20260929a"></script>
+<script src="./js/data/config-runtime.js?v=20260929a"></script>
+<script src="./js/data/ai-proxy.js?v=20260929a"></script>
+<script src="./js/features/active-session.js?v=20260929a"></script>
+<script src="./js/features/demo-mode.js?v=20260929a"></script>
+<script src="./js/data/pushfold.js?v=20260929a"></script>
+<script src="./js/features/calculator.js?v=20260929a"></script>
+<script src="./js/features/staking.js?v=20260929a"></script>
+<script src="./js/features/package-report.js?v=20260929a"></script>
+<script src="./js/features/review.js?v=20260929a"></script>
+<script src="./js/features/calendar.js?v=20260929a"></script>
+<script src="./js/features/study-loop.js?v=20260929a"></script>
+<script src="./js/features/strategy.js?v=20260929a"></script>
+<script src="./js/features/hands.js?v=20260929a"></script>
+<script src="./js/features/treasury.js?v=20260929a"></script>
+<script src="./js/features/bankroll-chart.js?v=20260929a"></script>
+<script src="./js/features/library.js?v=20260929a"></script>
+<script src="./js/features/onboarding.js?v=20260929a"></script>
+<script src="./js/features/today-glance.js?v=20260929a"></script>
 <script>
 // ── PWA INSTALL — captures the browser install prompt like Enclave ──
 var _deferredInstallPrompt = null;
@@ -1951,11 +1960,13 @@ function queueFailedSave(key, val) {
   renderReliability();
 }
 
-function save(key, val) {
+// opts.overwrite: replace the cloud copy instead of merging it record-by-record
+// (backup restore). Ignored while offline — the queued value then merges on flush.
+function save(key, val, opts) {
   if (window._demoMode) return; // Never persist demo data
   localStorage.setItem(resolveScopedLocalKey(key), JSON.stringify(val));
   if (_isOnline && window.fbSave) {
-    window.fbSave(key, val);
+    window.fbSave(key, val, opts);
   } else {
     // Queue for later sync
     _offlineQueue[key] = val;
@@ -1964,7 +1975,7 @@ function save(key, val) {
   renderReliability();
 }
 
-window.sessions   = load('sessions', []);
+window.sessions   = normalizeSessions(load('sessions', [])).list;
 window.tourneys   = load('tourneys', []);
 window.hands      = load('hands', []);
 window.strategies = load('strategies', []);
@@ -2159,7 +2170,7 @@ function updateSessionSortIndicators() {
 var _undoTimer = null;
 var _undoRestore = null;
 
-function showUndoToast(label, restoreFn) {
+function showUndoToast(label, restoreFn, durationMs) {
   _undoRestore = restoreFn;
   var el = document.getElementById('undo-toast');
   var msg = document.getElementById('undo-toast-label');
@@ -2167,7 +2178,7 @@ function showUndoToast(label, restoreFn) {
   if (msg) msg.textContent = label;
   el.classList.add('show');
   clearTimeout(_undoTimer);
-  _undoTimer = setTimeout(hideUndoToast, 6000);
+  _undoTimer = setTimeout(hideUndoToast, durationMs || 6000);
 }
 
 function hideUndoToast() {
@@ -2264,7 +2275,7 @@ function addSession() {
   if (_editingSessionId) {
     var existing = sessions.find(function(x){ return x.id===_editingSessionId; });
     if (!existing) { _editingSessionId = null; renderSessionEditBanner(); return; }
-    var oldPnl = existing.pnl || 0;
+    var oldApplied = sessionBankrollDelta(existing);
     existing.date = document.getElementById('s-date').value || existing.date;
     existing.name = document.getElementById('s-name').value || 'Tournament';
     existing.venue = document.getElementById('s-venue').value || '';
@@ -2273,7 +2284,7 @@ function addSession() {
     existing.prize = prize; existing.pnl = pnl;
     existing.hours = parseFloat(document.getElementById('s-hours').value)||0;
     existing.notes = document.getElementById('s-notes').value || '';
-    existing.result = prize>0 ? (pos<=3?'final':'itm') : 'bust';
+    existing.result = sessionResult(prize, pos);
     existing.focus = parseFloat(document.getElementById('s-focus').value)||0;
     existing.energy = parseFloat(document.getElementById('s-energy').value)||0;
     existing.sleep = parseFloat(document.getElementById('s-sleep').value)||0;
@@ -2284,8 +2295,10 @@ function addSession() {
     hands = hands.map(function(h){ if (h.sessionId===existing.id) h.session = editedLabel; return h; });
     window.hands = hands;
     save('hands', hands);
+    var editApplied = applySessionToBankroll(bankroll.amount, oldApplied, pnl);
+    existing.bankrollApplied = editApplied.applied;
     save('sessions', sessions);
-    bankroll.amount = Math.max(0, bankroll.amount + (pnl - oldPnl));
+    bankroll.amount = editApplied.amount;
     save('bankroll', bankroll);
     var editedId = existing.id;
     _editingSessionId = null;
@@ -2302,7 +2315,7 @@ function addSession() {
 
   var s = {
     id: Date.now(),
-    date: document.getElementById('s-date').value || new Date().toISOString().split('T')[0],
+    date: document.getElementById('s-date').value || todayLocal(),
     name: document.getElementById('s-name').value || 'Tournament',
     venue: document.getElementById('s-venue').value || '',
     buyin: buyin, rebuy: rebuy, total: total,
@@ -2310,7 +2323,7 @@ function addSession() {
     prize: prize, pnl: pnl,
     hours: parseFloat(document.getElementById('s-hours').value)||0,
     notes: document.getElementById('s-notes').value || '',
-    result: prize>0 ? (pos<=3?'final':'itm') : 'bust',
+    result: sessionResult(prize, pos),
     focus:   parseFloat(document.getElementById('s-focus').value)||0,
     energy:  parseFloat(document.getElementById('s-energy').value)||0,
     sleep:   parseFloat(document.getElementById('s-sleep').value)||0,
@@ -2323,6 +2336,8 @@ function addSession() {
   if (_activeSessionDraft && _activeSessionDraft.readiness) {
     s.readiness = Object.assign({}, _activeSessionDraft.readiness);
   }
+  var newApplied = applySessionToBankroll(bankroll.amount, 0, pnl);
+  s.bankrollApplied = newApplied.applied;
   window.sessions.unshift(s); sessions = window.sessions;
   save('sessions', sessions);
 
@@ -2340,8 +2355,8 @@ function addSession() {
     save('hands', hands);
   }
 
-  // Update bankroll
-  bankroll.amount = Math.max(0, bankroll.amount + pnl);
+  // Update bankroll (floored at ₱0; s.bankrollApplied records what actually moved)
+  bankroll.amount = newApplied.amount;
   save('bankroll', bankroll);
 
   clearSessionForm();
@@ -2360,8 +2375,8 @@ function clearSessionForm() {
   ['s-date','s-name','s-venue','s-buyin','s-rebuy','s-field','s-position','s-prize','s-hours','s-notes','s-package','s-player-share','s-markup','s-backer-count','s-backers'].forEach(function(id){
     document.getElementById(id).value='';
   });
-  document.getElementById('s-date').value = new Date().toISOString().split('T')[0];
-var satDateEl = document.getElementById('sat-date'); if (satDateEl) satDateEl.value = new Date().toISOString().split('T')[0];
+  document.getElementById('s-date').value = todayLocal();
+var satDateEl = document.getElementById('sat-date'); if (satDateEl) satDateEl.value = todayLocal();
   if (window.renderStakingInputSummary) renderStakingInputSummary();
   populateSessionDropdowns();
 }
@@ -2370,7 +2385,7 @@ function deleteSession(id) {
   var idx = sessions.findIndex(function(x){ return x.id===id; });
   if (idx === -1) return;
   var removed = sessions[idx];
-  bankroll.amount -= removed.pnl;
+  bankroll.amount = removeSessionFromBankroll(bankroll.amount, sessionBankrollDelta(removed));
   save('bankroll', bankroll);
   sessions = sessions.filter(function(x){ return x.id!==id; });
   window.sessions = sessions;
@@ -2379,10 +2394,12 @@ function deleteSession(id) {
   refreshDashboard();
   if (typeof renderTreasury === 'function') renderTreasury();
   showUndoToast('Session deleted: ' + (removed.name || ''), function() {
+    var restored = applySessionToBankroll(bankroll.amount, 0, removed.pnl);
+    removed.bankrollApplied = restored.applied;
     sessions.splice(Math.min(idx, sessions.length), 0, removed);
     window.sessions = sessions;
     save('sessions', sessions);
-    bankroll.amount += removed.pnl;
+    bankroll.amount = restored.amount;
     save('bankroll', bankroll);
     renderSessionTable();
     refreshDashboard();
@@ -2398,7 +2415,7 @@ function resultBadge(r) {
 
 function clearAllSessions() {
   if (!sessions.length) { alert('No sessions to clear.'); return; }
-  var totalPnl = sessions.reduce(function(sum, s){ return sum + (s.pnl || 0); }, 0);
+  var totalPnl = sessions.reduce(function(sum, s){ return sum + sessionBankrollDelta(s); }, 0);
   var prevBankroll = bankroll.amount || 0;
   var nextBankroll = Math.max(0, prevBankroll - totalPnl);
   var n = sessions.length;
@@ -2615,8 +2632,8 @@ function toggleTheme() {
 }
 
 // ── INIT ──
-document.getElementById('s-date').value = new Date().toISOString().split('T')[0];
-var satDateEl = document.getElementById('sat-date'); if (satDateEl) satDateEl.value = new Date().toISOString().split('T')[0];
+document.getElementById('s-date').value = todayLocal();
+var satDateEl = document.getElementById('sat-date'); if (satDateEl) satDateEl.value = todayLocal();
 populateSessionDropdowns();
 var savedTheme = localStorage.getItem('pokerhq_theme');
 if (savedTheme === 'light') {

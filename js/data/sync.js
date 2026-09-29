@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, onSnapshot, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import {
   getAuth,
   GoogleAuthProvider,
@@ -15,7 +15,7 @@ import {
   FIRESTORE_KEYS,
   resolveProfileConfig,
   resolveLocalStorageKey
-} from "./config.js?v=20260612q";
+} from "./config.js?v=20260929a";
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -42,7 +42,20 @@ function getFirestoreDocKey(key) {
   return prefix + key;
 }
 
+// Firestore key → the window global that holds it in the app.
+const WINDOW_VAR = { news: "newsItems" };
+function windowVarFor(key) { return WINDOW_VAR[key] || key; }
+
+// Keys whose value is a list of records (each with an id). These are merged
+// record-by-record on save so one device can't overwrite another's additions —
+// see js/data/merge.js. Everything else is a small single value (last write wins).
+const MERGE_KEYS = [
+  "sessions", "tourneys", "hands", "strategies", "news",
+  "spotlights", "walletLedger", "satellites", "opponents"
+];
+
 function applyLoadedValue(key, value) {
+  if (key === "sessions" && typeof window.normalizeSessions === "function") window.normalizeSessions(value);
   if (key === "sessions") window.sessions = value;
   if (key === "tourneys") window.tourneys = value;
   if (key === "hands") window.hands = value;
@@ -76,7 +89,7 @@ function refreshAllUi() {
   if (window.renderActiveSessionSurface) window.renderActiveSessionSurface();
 }
 
-function refreshRealtimeUi(key) {
+function refreshRealtimeUi(keys) {
   if (window.refreshDashboard) window.refreshDashboard();
   if (window.loadBankrollForm) window.loadBankrollForm();
   if (window.renderTreasury) window.renderTreasury();
@@ -84,9 +97,28 @@ function refreshRealtimeUi(key) {
   if (window.renderCalendarList) window.renderCalendarList();
   if (window.renderStrategy) window.renderStrategy();
   if (window.renderHands) window.renderHands();
-  if (key === "satellites" && window.renderSatellites) window.renderSatellites();
-  if (key === "opponents" && window.renderOpponents) window.renderOpponents();
+  if (keys.has("satellites") && window.renderSatellites) window.renderSatellites();
+  if (keys.has("opponents") && window.renderOpponents) window.renderOpponents();
   if (window.renderActiveSessionSurface) window.renderActiveSessionSurface();
+}
+
+// Fifteen listeners deliver their first snapshot back-to-back on load, and each
+// used to re-render the whole UI. Coalesce a burst into one refresh.
+let pendingRefreshKeys = new Set();
+let refreshTimer = null;
+function scheduleRealtimeRefresh(key) {
+  pendingRefreshKeys.add(key);
+  if (refreshTimer) return;
+  refreshTimer = setTimeout(function() {
+    const keys = pendingRefreshKeys;
+    pendingRefreshKeys = new Set();
+    refreshTimer = null;
+    try {
+      refreshRealtimeUi(keys);
+    } catch (error) {
+      console.error("refreshRealtimeUi error:", error);
+    }
+  }, 60);
 }
 
 export function setSyncStatus(status, msg) {
@@ -114,35 +146,143 @@ function getFirestorePath() {
   return getResolvedProfile().firestorePath;
 }
 
-export async function fbSave(key, data) {
+// ── record-level sync ──────────────────────────────────────────────────────
+// The engine (js/data/merge.js) holds the merge/queue logic; this file supplies
+// Firestore and localStorage. `base` is a compact {recordKey: hash} map of the
+// cloud copy this device last saw, kept per key in localStorage.
+function readSyncBase(key) {
   try {
-    setSyncStatus("syncing", "Saving...");
+    const raw = localStorage.getItem(getLocalStorageKey("syncbase_" + key));
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeSyncBase(key, map) {
+  try {
+    localStorage.setItem(getLocalStorageKey("syncbase_" + key), JSON.stringify(map));
+  } catch (error) {
+    // Out of space: without a base the next merge falls back to a safe union.
+    console.warn("Could not store sync base for", key, error);
+  }
+}
+
+function parseStoredValue(snap) {
+  try {
+    return JSON.parse(snap.data().value);
+  } catch {
+    return undefined;
+  }
+}
+
+const firestoreIo = {
+  // Read the cloud copy and (maybe) replace it atomically. fn(remote) → {value, write}.
+  async transact(key, fn) {
+    const ref = doc(db, getFirestorePath(), getFirestoreDocKey(key));
+    let result;
+    await runTransaction(db, async function(tx) {
+      const snap = await tx.get(ref);
+      result = fn(snap.exists() ? parseStoredValue(snap) : undefined);
+      if (result.write) tx.set(ref, { value: JSON.stringify(result.value), updated: Date.now() });
+    });
+    return result.value;
+  },
+  async write(key, value) {
     await setDoc(doc(db, getFirestorePath(), getFirestoreDocKey(key)), {
-      value: JSON.stringify(data),
+      value: JSON.stringify(value),
       updated: Date.now()
     });
-    setSyncStatus("ok", "Synced");
-  } catch (error) {
-    setSyncStatus("error", "Save failed");
-    console.error("fbSave error:", error);
+  }
+};
+
+const engineStore = {
+  getLocal(key) { return window[windowVarFor(key)]; },
+  applyLocal(key, value) {
+    try {
+      applyLoadedValue(key, value);
+    } catch (error) {
+      console.error("applyLoadedValue error for " + key + ":", error);
+    }
+    scheduleRealtimeRefresh(key);
+  },
+  readBase: readSyncBase,
+  writeBase: writeSyncBase
+};
+
+function createSyncEngine() {
+  const Merge = window.PokerHQMerge;
+  if (!Merge) {
+    // merge.js failed to load — fall back to plain last-write-wins rather than not syncing.
+    console.warn("PokerHQMerge missing; falling back to overwrite sync.");
+    return {
+      push(key, data) {
+        return firestoreIo.write(key, data).catch(function(error) {
+          if (typeof window.queueFailedSave === "function") window.queueFailedSave(key, data);
+          throw error;
+        });
+      },
+      ingest(key, value) { engineStore.applyLocal(key, value); }
+    };
+  }
+  return Merge.createEngine({
+    mergeKeys: MERGE_KEYS,
+    io: firestoreIo,
+    store: engineStore,
+    isDemo() { return !!window._demoMode; },
+    onStatus(state) {
+      if (state === "syncing") setSyncStatus("syncing", "Saving...");
+      else if (state === "ok") setSyncStatus("ok", "Synced");
+      else if (state === "error") setSyncStatus("error", "Save failed");
+    },
+    onError(key, error) {
+      console.error("fbSave error (" + key + "):", error);
+    },
     // Failed while believed online (a real offline write never reaches fbSave —
     // save() queues it directly). Re-queue so the next reconnect or sign-in
     // retries it instead of silently losing the change.
-    if (typeof window.queueFailedSave === "function") window.queueFailedSave(key, data);
+    onFailure(key, data) {
+      if (typeof window.queueFailedSave === "function") window.queueFailedSave(key, data);
+    }
+  });
+}
+
+let syncEngine = null;
+function getSyncEngine() {
+  if (!syncEngine) syncEngine = createSyncEngine();
+  return syncEngine;
+}
+
+// opts.overwrite: replace the cloud copy instead of merging (used by backup
+// restore, where records missing from the backup must disappear everywhere).
+export async function fbSave(key, data, opts) {
+  try {
+    await getSyncEngine().push(key, data, opts);
+  } catch (error) {
+    setSyncStatus("error", "Save failed");
+    console.error("fbSave error:", error);
   }
 }
 
 export async function fbLoadAll() {
   try {
     setSyncStatus("syncing", "Syncing...");
-    for (const key of FIRESTORE_KEYS) {
-      const snap = await getDoc(doc(db, getFirestorePath(), getFirestoreDocKey(key)));
-      if (!snap.exists()) continue;
-      const value = JSON.parse(snap.data().value);
-      applyLoadedValue(key, value);
-    }
+    const engine = getSyncEngine();
+    const snaps = await Promise.all(FIRESTORE_KEYS.map(function(key) {
+      return getDoc(doc(db, getFirestorePath(), getFirestoreDocKey(key)));
+    }));
+    FIRESTORE_KEYS.forEach(function(key, index) {
+      const snap = snaps[index];
+      if (!snap.exists()) return;
+      const value = parseStoredValue(snap);
+      if (value === undefined) {
+        console.error("fbLoadAll: unreadable value for " + key + " — keeping local copy");
+        return;
+      }
+      engine.ingest(key, value);
+    });
     setSyncStatus("ok", "Synced");
-    refreshAllUi();
+    if (!window._demoMode) refreshAllUi();
   } catch (error) {
     if (error && error.code === "permission-denied") {
       handleAccessDenied();
@@ -164,13 +304,14 @@ function teardownRealtimeListeners() {
 
 function startRealtimeListeners() {
   teardownRealtimeListeners();
+  const engine = getSyncEngine();
   FIRESTORE_KEYS.forEach(function(key) {
     const unsubscribe = onSnapshot(doc(db, getFirestorePath(), getFirestoreDocKey(key)), function(snap) {
       if (!snap.exists()) return;
-      const value = JSON.parse(snap.data().value);
-      applyLoadedValue(key, value);
+      const value = parseStoredValue(snap);
+      if (value === undefined) return;
+      engine.ingest(key, value);
       setSyncStatus("ok", "Synced");
-      refreshRealtimeUi(key);
     }, function(error) {
       if (error && error.code === "permission-denied") handleAccessDenied();
     });

@@ -4,7 +4,7 @@ function initTreasuryFeature() {
   wallet = window.wallet;
   walletLedger = window.walletLedger;
   var dateEl = document.getElementById('wallet-date');
-  if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
+  if (dateEl && !dateEl.value) dateEl.value = todayLocal();
   updateWalletTransactionHelp();
   renderTreasury();
 }
@@ -135,7 +135,7 @@ function updateWalletTransactionHelp() {
 
 function addWalletTransaction() {
   var type = (document.getElementById('wallet-type') || {}).value || 'deposit';
-  var date = (document.getElementById('wallet-date') || {}).value || new Date().toISOString().split('T')[0];
+  var date = (document.getElementById('wallet-date') || {}).value || todayLocal();
   var rawAmount = parseFloat((document.getElementById('wallet-amount') || {}).value);
   var notes = ((document.getElementById('wallet-notes') || {}).value || '').trim();
   var amount = type === 'adjustment' ? (isFinite(rawAmount) ? rawAmount : 0) : Math.abs(isFinite(rawAmount) ? rawAmount : 0);
@@ -239,7 +239,7 @@ function renderTreasury() {
   bankroll = window.bankroll || { amount: 0, rule: 15 };
 
   var dateEl = document.getElementById('wallet-date');
-  if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
+  if (dateEl && !dateEl.value) dateEl.value = todayLocal();
 
   var stats = getTreasuryStats();
   var walletEl = document.getElementById('wallet-balance-current');
@@ -259,6 +259,7 @@ function renderTreasury() {
     tipEl.innerHTML = 'Net transfer to bankroll: <span class="treasury-signed ' + netClass + '">' + formatTreasuryHTML(fmtTreasurySigned(stats.netToBankroll)) + '</span>';
   }
   if (countEl) countEl.textContent = stats.entries.length === 1 ? '1 entry' : stats.entries.length + ' entries';
+  renderBankrollCheck(stats);
 
   if (!listEl) return;
   if (!stats.entries.length) {
@@ -281,6 +282,63 @@ function renderTreasury() {
   listEl.innerHTML = '<div class="table-wrap"><table class="tbl"><thead><tr><th>Date</th><th>Type</th><th>Wallet</th><th>Bankroll</th><th>Notes / Destination</th></tr></thead><tbody>'
     + rows
     + '</tbody></table></div>';
+}
+
+// Compares the stored bankroll with what session results + Treasury transfers
+// explain. A profile that started at ₱0 and funded itself through the Treasury
+// should imply a ₱0 starting bankroll; anything else is drift (or money the
+// ledger never recorded). Shows the gap and offers a one-click, undoable fix.
+function getBankrollCheck() {
+  var stats = getTreasuryStats();
+  return bankrollCheck(
+    stats.bankrollBalance,
+    window.sessions || [],
+    stats.entries.map(function(entry) { return entry.bankrollDelta; })
+  );
+}
+
+function renderBankrollCheck(stats) {
+  var el = document.getElementById('bankroll-check');
+  if (!el) return;
+  var hasHistory = (window.sessions || []).length || (window.walletLedger || []).length;
+  // Demo data is hand-authored and never meant to reconcile.
+  if (window._demoMode || !hasHistory) { el.style.display = 'none'; return; }
+  el.style.display = '';
+  var check = getBankrollCheck();
+  if (check.ok) {
+    el.innerHTML = '✓ Bankroll check: your ' + formatTreasuryHTML(fmtCur(check.stored)) + ' matches your sessions and Treasury transfers.';
+    return;
+  }
+  el.innerHTML = '⚠ Bankroll check: stored bankroll is ' + formatTreasuryHTML(fmtCur(check.stored))
+    + ', but sessions (' + formatTreasuryHTML(fmtTreasurySigned(check.sessionsDelta)) + ') and Treasury transfers ('
+    + formatTreasuryHTML(fmtTreasurySigned(check.ledgerDelta)) + ') add up to ' + formatTreasuryHTML(fmtCur(check.target))
+    + '. Implied starting bankroll: ' + formatTreasuryHTML(fmtCur(check.impliedStart))
+    + ' (should be ₱0 if you began tracking from nothing). '
+    + '<button class="sec-action" style="margin-left:.4rem" onclick="alignBankrollToHistory()">SET TO ' + formatTreasuryHTML(fmtCur(check.target)) + '</button>';
+}
+
+function alignBankrollToHistory() {
+  if (window._demoMode) return;
+  var check = getBankrollCheck();
+  if (check.ok) return;
+  if (!confirm('Set the bankroll to ' + fmtCur(check.target) + '?\n\nThat is the total of your logged sessions and Treasury bankroll transfers. Currently stored: ' + fmtCur(check.stored) + '.\n\nOnly do this if you began tracking with nothing already in the bankroll. You can undo right after.')) return;
+  var prev = window.bankroll.amount || 0;
+  window.bankroll.amount = check.target;
+  bankroll = window.bankroll;
+  save('bankroll', bankroll);
+  if (typeof loadBankrollForm === 'function') loadBankrollForm();
+  if (typeof refreshDashboard === 'function') refreshDashboard();
+  renderTreasury();
+  if (typeof showUndoToast === 'function') {
+    showUndoToast('Bankroll set to ' + fmtCur(check.target), function() {
+      window.bankroll.amount = prev;
+      bankroll = window.bankroll;
+      save('bankroll', bankroll);
+      if (typeof loadBankrollForm === 'function') loadBankrollForm();
+      if (typeof refreshDashboard === 'function') refreshDashboard();
+      renderTreasury();
+    });
+  }
 }
 
 function formatTreasuryHTML(value) {

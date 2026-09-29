@@ -265,7 +265,7 @@ function buildBankrollTimelineEvents() {
   (window.sessions || []).forEach(function(s) {
     var d = new Date((s.date || '') + 'T00:00:00');
     if (isNaN(d.getTime())) return;
-    events.push({ time: d.getTime(), delta: s.pnl || 0, label: s.name || 'Session', id: s.id || 0 });
+    events.push({ time: d.getTime(), delta: sessionBankrollDelta(s), label: s.name || 'Session', id: s.id || 0 });
   });
   if (typeof getWalletTransactionDeltas === 'function') {
     (window.walletLedger || []).forEach(function(entry) {

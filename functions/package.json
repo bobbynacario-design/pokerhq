@@ -1,8 +1,8 @@
 {
   "name": "pokerhq-functions",
-  "description": "PokerHQ scheduled email reminders + AI proxy (separate codebase on shared project)",
+  "description": "PokerHQ scheduled email reminders, weekly backup + AI proxy (separate codebase on shared project)",
   "scripts": {
-    "deploy": "firebase deploy --only functions:pokerhq:pokerhqEventReminders,functions:pokerhq:pokerhqAiCall --project pokerhq-a67e4"
+    "deploy": "firebase deploy --only functions:pokerhq:pokerhqEventReminders,functions:pokerhq:pokerhqAiCall,functions:pokerhq:pokerhqWeeklyBackup --project pokerhq-a67e4"
   },
   "engines": {
     "node": "24"

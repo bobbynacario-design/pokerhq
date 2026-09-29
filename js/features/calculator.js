@@ -191,6 +191,25 @@ function calcPayouts() {
   totalEl.textContent = 'Total: ₱'+Math.round(totalPayout).toLocaleString()+' across '+_calcPcts.length+' place'+((_calcPcts.length!==1)?'s':'');
 }
 
+// Antes are a table-wide setting, so remember the choice on this device.
+var CALC_ANTE_STORAGE_KEY = 'pokerhq_calc_ante';
+(function calcRestoreAnte() {
+  try {
+    var el = document.getElementById('calc-ante');
+    if (el && localStorage.getItem(CALC_ANTE_STORAGE_KEY) === '1') el.value = '1';
+  } catch (e) {}
+})();
+
+function calcAnteChanged() {
+  try {
+    var el = document.getElementById('calc-ante');
+    localStorage.setItem(CALC_ANTE_STORAGE_KEY, el && el.value === '1' ? '1' : '0');
+  } catch (e) {}
+  calcStackAdvisor();
+}
+
+// Stack & Bubble advisor. Ranges come from js/data/pushfold.js: a position-aware
+// chip-EV open-shove baseline (first in, nobody has raised) — not an ICM solve.
 function calcStackAdvisor() {
   var stack   = parseFloat(document.getElementById('calc-stack').value)  || 0;
   var bb      = parseFloat(document.getElementById('calc-bb').value)     || 0;
@@ -206,14 +225,19 @@ function calcStackAdvisor() {
   emptyEl.style.display   = 'none';
   resultsEl.style.display = '';
 
+  var ante = document.getElementById('calc-ante').value === '1';
+  var posKey = document.getElementById('calc-position').value;
   var bbDepth          = stack / bb;
-  var mRatio           = stack / (bb * 2);
   var playersFromMoney = Math.max(0, players - paid);
-  var nearBubble       = playersFromMoney <= 10;
+  // Tighten only when the money is actually close: within 5% of the paid spots
+  // (never fewer than 3). Once in the money there is no bubble.
+  var bubbleWindow     = Math.max(3, Math.round(paid * 0.05));
+  var nearBubble       = playersFromMoney >= 1 && playersFromMoney <= bubbleWindow;
   var pctPaid          = (paid / players * 100).toFixed(0);
+  var advice           = PokerHQPushFold.advise({ stackBB: bbDepth, position: posKey, ante: ante, bubble: nearBubble });
 
   document.getElementById('adv-bb-val').textContent  = bbDepth.toFixed(1)+' BB';
-  document.getElementById('adv-m-val').textContent   = 'M-ratio: '+mRatio.toFixed(1)+'x';
+  document.getElementById('adv-m-val').textContent   = 'M-ratio: '+advice.m.toFixed(1)+'x'+(ante ? ' (with antes)' : '');
 
   var bubbleTxt = playersFromMoney === 0
     ? 'In the money ✓'
@@ -221,22 +245,17 @@ function calcStackAdvisor() {
   document.getElementById('adv-bubble-val').textContent = bubbleTxt;
   document.getElementById('adv-pct-paid').textContent   = pctPaid+'% of field paid';
 
+  var sel = advice.selected;
   var rec, cls, detail;
-  if (bbDepth <= 10) {
-    rec = 'SHOVE ANY TWO'; cls = 'shove';
-    detail = bbDepth.toFixed(1)+'BB — push/fold only. Get it in before the blinds cripple you.';
-  } else if (bbDepth <= 15 && nearBubble) {
-    rec = 'SHOVE TOP 40%'; cls = 'amber';
-    detail = 'Short stack near the bubble — shove any pair, Ax, KJ+, QJ from any position.';
-  } else if (bbDepth <= 20 && nearBubble) {
-    rec = 'SHOVE TOP 25%'; cls = 'amber';
-    detail = 'Bubble pressure — shove 66+, AJ+, KQ. Fold marginal hands and preserve your equity.';
-  } else if (bbDepth <= 20) {
-    rec = 'PLAY AGGRESSIVE'; cls = 'blue';
-    detail = bbDepth.toFixed(1)+'BB — steal blinds, squeeze spots, and build a stack.';
-  } else {
+  if (!advice.applies) {
     rec = 'NORMAL PLAY'; cls = 'normal';
-    detail = bbDepth.toFixed(1)+'BB — play your A-game. Open wide in position, use your stack leverage.';
+    detail = bbDepth.toFixed(1)+'BB is deeper than push/fold territory (over '+PokerHQPushFold.MAX_STACK+'BB). Play a standard raise/fold game and keep your stack flexible.';
+  } else {
+    rec = sel.pct >= 99 ? 'SHOVE ANY TWO' : 'SHOVE ' + Math.round(sel.pct) + '%';
+    cls = bbDepth <= 7 ? 'shove' : (bbDepth <= 15 ? 'amber' : 'blue');
+    detail = sel.label + ' at ' + bbDepth.toFixed(1) + 'BB: ' + sel.text + ' (' + sel.range.combos + ' combos).';
+    if (bbDepth > 15) detail += ' At this depth a raise usually beats an open-shove — read this as the hands you are happy to get all-in with.';
+    if (nearBubble) detail += ' Bubble pressure applied — range tightened ~15%.';
   }
   var bannerEl = document.getElementById('adv-rec-banner');
   bannerEl.className = 'calc-rec-banner '+cls;
@@ -245,17 +264,23 @@ function calcStackAdvisor() {
     '<div class="rec-action">'+rec+'</div>'+
     '<div class="rec-detail">'+detail+'</div>';
 
-  var pfRows = [
-    {id:'pfrow-10',  min:0,  max:10},
-    {id:'pfrow-13',  min:10, max:13},
-    {id:'pfrow-17',  min:13, max:17},
-    {id:'pfrow-20',  min:17, max:20},
-    {id:'pfrow-deep',min:20, max:Infinity}
-  ];
-  pfRows.forEach(function(r) {
-    var el = document.getElementById(r.id);
-    if (el) el.classList.toggle('active', bbDepth >= r.min && bbDepth < r.max);
-  });
+  var titleEl = document.getElementById('adv-pf-title');
+  var rowsEl  = document.getElementById('adv-pf-rows');
+  var noteEl  = document.getElementById('adv-pf-note');
+  if (titleEl) titleEl.textContent = 'Push / Fold by Position · ' + bbDepth.toFixed(1) + ' BB' + (ante ? ' · antes' : ' · no antes') + (nearBubble ? ' · bubble' : '');
+  if (rowsEl) {
+    rowsEl.innerHTML = advice.applies ? advice.all.map(function(p) {
+      var active = p.key === sel.key;
+      return '<div class="calc-pushfold-row pf-dyn' + (active ? ' active' : '') + '">'
+        + '<span class="pfrow-range">' + p.label + '</span>'
+        + '<span class="pfrow-pct">' + (p.pct >= 99 ? 'any two' : Math.round(p.pct * 10) / 10 + '%') + '</span>'
+        + (active ? '<span class="pfrow-hands">' + (p.pct >= 99 ? 'Any two cards.' : p.text) + '</span>' : '')
+        + '</div>';
+    }).join('') : '';
+  }
+  if (noteEl) {
+    noteEl.textContent = 'Approximate chip-EV baseline for a player who is first in (nobody has raised). It is not an ICM solve — pay jumps and the stack distribution move the real answer, so confirm big spots in a solver (ICMIZER / HRC).';
+  }
 }
 
 // Minimum logged (paid) sessions before trusting a measured mean/variance —

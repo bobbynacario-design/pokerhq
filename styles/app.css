@@ -757,6 +757,14 @@ body.light .pct-input{background:#fff;border-color:var(--rim);color:#1A1A1A}
 .pfrow-range{font-family:var(--mono);font-size:11px;font-weight:500;color:rgba(255,255,255,.45);white-space:nowrap;flex-shrink:0;min-width:80px}
 .pfrow-desc{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.3);text-align:right}
 .calc-pushfold-row.active{background:rgba(212,175,55,0.12);border-color:rgba(212,175,55,0.22)}
+/* Dynamic push/fold rows: keep the ranges visible on phones (the legacy .pfrow-desc is hidden there) */
+.calc-pushfold-row.pf-dyn{flex-wrap:wrap}
+.calc-pushfold-row.pf-dyn .pfrow-pct{font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.55);margin-left:auto}
+.calc-pushfold-row.pf-dyn .pfrow-hands{flex-basis:100%;font-family:var(--mono);font-size:10px;line-height:1.6;color:rgba(255,255,255,.7);word-break:break-word}
+.calc-pushfold-row.pf-dyn.active .pfrow-pct{color:var(--gold)}
+body.light .calc-pushfold-row.pf-dyn .pfrow-pct{color:rgba(0,0,0,.55)}
+body.light .calc-pushfold-row.pf-dyn .pfrow-hands{color:rgba(0,0,0,.7)}
+
 .calc-pushfold-row.active .pfrow-range{color:var(--gold)}
 .calc-pushfold-row.active .pfrow-desc{color:rgba(255,255,255,.65)}
 body.light .calc-advisor-card{background:var(--bg3)}
