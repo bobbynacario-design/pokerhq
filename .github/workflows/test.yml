@@ -19,3 +19,32 @@ jobs:
         run: node --test "tests/*.test.js"
       - name: AI request compatibility checks
         run: node scripts/check-ai-request-compat.js
+
+  # Real-browser tests: the app is served locally and driven in Chromium with the
+  # Firebase pieces faked (see e2e/lib.js), so nothing touches live data.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install test tools
+        run: npm ci
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Browser tests
+        run: npm run test:e2e
+        env:
+          E2E_OUT: ${{ github.workspace }}/e2e-output
+      - name: Keep screenshots from a failed run
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-output
+          path: e2e-output
+          if-no-files-found: ignore

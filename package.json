@@ -1,0 +1,13 @@
+{
+  "name": "pokerhq",
+  "private": true,
+  "description": "PokerHQ — tournament poker command centre (static PWA on GitHub Pages + Firebase). This file only exists to run the tests.",
+  "scripts": {
+    "test": "node --test \"tests/*.test.js\" && node scripts/check-ai-request-compat.js",
+    "test:unit": "node --test \"tests/*.test.js\"",
+    "test:e2e": "node e2e/run.js"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}
