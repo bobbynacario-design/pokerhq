@@ -3,8 +3,8 @@
   "short_name": "PokerHQ",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#080A0E",
-  "theme_color": "#080A0E",
+  "background_color": "#0E131C",
+  "theme_color": "#0E131C",
   "icons": [
     {
       "src": "./assets/icons/icon-192.png",

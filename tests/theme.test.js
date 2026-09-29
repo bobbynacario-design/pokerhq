@@ -96,3 +96,34 @@ test("on tablets and phones the sign-in card is placed before the story, so the 
   const html = read("index.html");
   assert.ok(html.indexOf('class="login-story"') < html.indexOf('class="login-card"'));
 });
+
+// ── the page backdrop ──
+test("the shaded backdrop works: html has no background of its own, body paints it, and the glow layers sit behind everything", () => {
+  const rule = (sel) => { const i = css.indexOf("\n" + sel + "{"); assert.ok(i >= 0, sel + " rule exists"); return css.slice(i, css.indexOf("}", i)); };
+  // if <html> had a background, the body's background (and so the glow layers above it) would be hidden
+  assert.doesNotMatch(rule("html,body"), /background/);
+  assert.match(rule("body"), /background:var\(--bg\)/);
+  const layers = rule("body::before,body::after");
+  assert.match(layers, /position:fixed/);
+  assert.match(layers, /z-index:-1/);
+  assert.match(layers, /pointer-events:none/);
+  // both themes have their own glow
+  assert.match(css, /\nbody\.light::before\{/);
+  assert.match(css, /\nbody\.light::after\{/);
+});
+
+test("the dark tone scale only gets brighter as the step number goes up", () => {
+  const steps = [...rootBlock.matchAll(/--wa-(\d+)\s*:\s*rgba\(255,255,255,(\.?\d+)\)/g)].map((m) => [Number(m[1]), Number(m[2])]).sort((a, b) => a[0] - b[0]);
+  assert.ok(steps.length > 20);
+  steps.forEach(([n, alpha], i) => { if (i) assert.ok(alpha >= steps[i - 1][1], "--wa-" + n + " (" + alpha + ") is dimmer than the step below it"); });
+});
+
+test("the installed-app / browser colours match the page background", () => {
+  const bg = /--bg:(#[0-9a-fA-F]{6})/.exec(rootBlock)[1].toLowerCase();
+  const manifest = JSON.parse(read("manifest.webmanifest"));
+  assert.equal(String(manifest.theme_color).toLowerCase(), bg);
+  assert.equal(String(manifest.background_color).toLowerCase(), bg);
+  const meta = /<meta name="theme-color" content="([^"]*)">/.exec(read("index.html"));
+  assert.ok(meta, "theme-color meta exists");
+  assert.equal(meta[1].toLowerCase(), bg, "theme-color must be a real hex colour (a URL-escaped # is ignored by browsers)");
+});
