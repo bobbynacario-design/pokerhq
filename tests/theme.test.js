@@ -75,3 +75,24 @@ test("the light tone steps keep their order, and never get fainter than 60%", ()
     if (i) assert.ok(alpha >= steps[i - 1][1], "a brighter dark-theme step must not become fainter in the light theme");
   });
 });
+
+// ── the sign-in page ──
+test("the sign-in error and the Google button have light-theme rules", () => {
+  // the error text is a pale salmon for the dark card; on the light card it needs a darker red
+  assert.match(css, /body\.light \.login-error\{[^}]*color:var\(--rose\)/);
+  // the button is white, so on the white light-theme card it needs an outline to be visible
+  assert.match(css, /body\.light \.btn-google\{[^}]*box-shadow:inset 0 0 0 1px/);
+});
+
+test("on tablets and phones the sign-in card is placed before the story, so the button is on the first screen", () => {
+  const start = css.indexOf("@media(max-width:900px){.login-wrap");
+  assert.ok(start >= 0, "the 900px sign-in rules exist");
+  const rule = css.slice(start, css.indexOf("\n", start));
+  assert.match(rule, /\.login-story\{display:contents\}/);
+  assert.match(rule, /\.login-brand\{order:1/);
+  assert.match(rule, /\.login-card\{order:2/);
+  assert.match(rule, /\.login-story>\*\{order:3\}/);
+  // and the story must still come first in the page itself (desktop reads left to right)
+  const html = read("index.html");
+  assert.ok(html.indexOf('class="login-story"') < html.indexOf('class="login-card"'));
+});
