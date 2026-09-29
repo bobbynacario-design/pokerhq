@@ -127,3 +127,16 @@ test("the installed-app / browser colours match the page background", () => {
   assert.ok(meta, "theme-color meta exists");
   assert.equal(meta[1].toLowerCase(), bg, "theme-color must be a real hex colour (a URL-escaped # is ignored by browsers)");
 });
+
+// ── calendar entries ──
+test("calendar bars: dark-theme text is the main text colour, and the light theme keeps its own colours", () => {
+  // every light-theme rule whose selector list mentions the given bar class
+  const lightRules = (cls) => css.split("\n").filter((l) => l.startsWith("body.light") && l.split("{")[0].split(",").some((sel) => sel.trim() === "body.light .cal-event-bar." + cls));
+  for (const cls of ["target", "stretch", "main-event-bar", "side-event-bar", "sat-event-bar"]) {
+    const dark = new RegExp("\\n\\.cal-event-bar\\." + cls + "\\{[^}]*color:var\\(--ink\\)").test(css);
+    assert.ok(dark, cls + " text should be var(--ink), not a tint of its own fill");
+    const rules = lightRules(cls).join("\n");
+    assert.match(rules, /color:#/, cls + " has a light-theme text colour");
+    assert.match(rules, /background:rgba/, cls + " keeps its light-theme fill");
+  }
+});
