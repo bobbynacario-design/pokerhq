@@ -383,7 +383,7 @@ function calcRiskAutoFillFromSessions() {
   list.forEach(function(s) {
     var buyin = s.total || 0;
     totalInvested += buyin;
-    totalReturned += (s.prize || 0);
+    totalReturned += sessionWinnings(s);
     ratios.push((s.pnl || 0) / buyin);
   });
 

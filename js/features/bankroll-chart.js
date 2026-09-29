@@ -141,7 +141,7 @@ function renderDashboardExtras() {
     var invested = 0, returned = 0, hours = 0, itm = 0;
     inRange.forEach(function(s) {
       invested += s.total || 0;
-      returned += s.prize || 0;
+      returned += sessionWinnings(s);
       hours += s.hours || 0;
       if (s.result === 'itm' || s.result === 'final') itm++;
     });
@@ -214,7 +214,7 @@ function renderVarianceWidget() {
 
   // Stake yardstick: average buy-in across all sessions
   var totalIn = 0, totalOut = 0;
-  list.forEach(function(s) { totalIn += s.total || 0; totalOut += s.prize || 0; });
+  list.forEach(function(s) { totalIn += s.total || 0; totalOut += sessionWinnings(s); });
   var avgBuyin = list.length ? totalIn / list.length : 0;
   var ddBuyins = avgBuyin > 0 ? Math.round((drawdown / avgBuyin) * 10) / 10 : 0;
   var worstBuyins = avgBuyin > 0 ? Math.round((worstDD / avgBuyin) * 10) / 10 : 0;

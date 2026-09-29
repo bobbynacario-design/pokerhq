@@ -158,6 +158,7 @@ function buildAiDebriefPrompt(session, linkedHands, localReport) {
     buyin: session.buyin || 0,
     total: session.total || 0,
     prize: session.prize || 0,
+    bounties: session.bounties || 0,
     pnl: session.pnl || 0,
     result: session.result || '',
     hours: session.hours || 0,
@@ -360,7 +361,7 @@ function renderHeatmap() {
     var n = s.name || 'Unknown';
     if (!nameMap[n]) nameMap[n] = {invested:0,returned:0};
     nameMap[n].invested += s.total || 0;
-    nameMap[n].returned += s.prize || 0;
+    nameMap[n].returned += sessionWinnings(s);
   });
   renderHeatmapBars('hmap-roi', Object.keys(nameMap).map(function(k) {
     var v = nameMap[k];

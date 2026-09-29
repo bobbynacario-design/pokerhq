@@ -13,8 +13,8 @@
 <title>PokerHQ — Tournament Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script type="module" src="./js/app.js?v=20260929b"></script>
-<link rel="stylesheet" href="./styles/app.css?v=20260929b">
+<script type="module" src="./js/app.js?v=20260929c"></script>
+<link rel="stylesheet" href="./styles/app.css?v=20260929c">
 </head>
 <body>
 <!-- LOGIN GATE — shown until Firebase auth resolves a signed-in user -->
@@ -418,6 +418,10 @@
         <input class="form-input" type="number" id="s-prize" placeholder="0">
       </div>
       <div class="form-group">
+        <label class="form-label">Bounties Won (₱) — PKO / bounty events</label>
+        <input class="form-input" type="number" id="s-bounty" placeholder="0">
+      </div>
+      <div class="form-group">
         <label class="form-label">Hours Played</label>
         <input class="form-input" type="number" id="s-hours" placeholder="e.g. 6" step="0.5">
       </div>
@@ -688,6 +692,35 @@
     <div id="reminder-saved-note" style="display:none;font-family:var(--mono);font-size:11px;color:var(--green);margin-top:.6rem"></div>
   </div>
 
+  <div class="form-card" id="push-settings-card" style="margin-bottom:1.25rem">
+    <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem">
+      <span style="font-size:15px">📱</span>
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--gold);text-transform:uppercase">Phone Notifications</div>
+    </div>
+    <div id="push-status" class="tip" style="margin-top:0">Checking this device…</div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.7rem">
+      <button class="sec-action primary" id="push-enable-btn" onclick="enablePush()" style="display:none">ENABLE ON THIS DEVICE</button>
+      <button class="sec-action" id="push-test-btn" onclick="sendTestPush()" style="display:none">SEND A TEST</button>
+      <button class="sec-action" id="push-disable-btn" onclick="disablePush()" style="display:none;border-color:var(--red);color:var(--red)">TURN OFF ON THIS DEVICE</button>
+    </div>
+    <div id="push-result" style="display:none;font-family:var(--mono);font-size:11px;margin-top:.6rem"></div>
+    <div style="display:flex;flex-direction:column;gap:.55rem;margin-top:1rem">
+      <label style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.7);cursor:pointer">
+        <input type="checkbox" id="push-start" onchange="saveReminderSettings()"> Alert me before events I'm planning to play (★)
+        <select class="form-input" id="push-lead" onchange="saveReminderSettings()" style="width:auto;padding:.3rem .5rem">
+          <option value="30">30 min</option>
+          <option value="60">60 min</option>
+          <option value="120">2 hours</option>
+        </select>
+        <span style="color:rgba(255,255,255,.45)">before the start</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:.5rem;font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.7);cursor:pointer">
+        <input type="checkbox" id="push-morning" onchange="saveReminderSettings()"> Morning summary of today's events (around 8am Manila time)
+      </label>
+    </div>
+    <div class="tip" id="push-help" style="margin-top:.9rem">Alerts need an event's start time and the ★ "planning to play" star on the calendar. These switches apply to every device you've enabled. <strong>iPhone:</strong> add PokerHQ to your Home Screen first (Share → Add to Home Screen), open it from there, then tap Enable.</div>
+  </div>
+
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;margin-bottom:1rem">
     <div class="view-toggle">
       <button class="view-btn active" id="vbtn-month" onclick="setView('month')">📅 MONTH</button>
@@ -776,7 +809,7 @@
       </select>
     </div>
 
-    <div class="tip" style="margin-top:1rem">Both keys are stored only on this device — never synced, never shared. The Anthropic key powers 🎙 hand structuring, ✨ debriefs, and Strategy research (console.anthropic.com). The OpenAI key powers 🎤 voice transcription and Plan → ✨ Update Events web research (platform.openai.com). Set a spending limit on each.</div>
+    <div class="tip" style="margin-top:1rem">Both keys are stored only on this device — never synced, never shared. The Anthropic key powers 🎙 hand structuring, ✨ debriefs, and Strategy research (console.anthropic.com). The OpenAI key powers 🎤 voice transcription and Plan → ✨ Update Events web research (platform.openai.com). Set a spending limit on each. <strong>No key needed on a device where you're signed in with the owner account:</strong> both AI providers then work through your own server functions (once deployed), and a key saved here takes priority.</div>
   </div>
 
   <!-- AI Poker Research -->
@@ -1899,28 +1932,29 @@
   </div>
 </div>
 
-<script src="./js/data/util.js?v=20260929b"></script>
-<script src="./js/data/merge.js?v=20260929b"></script>
-<script src="./js/data/config-runtime.js?v=20260929b"></script>
-<script src="./js/data/ai-proxy.js?v=20260929b"></script>
-<script src="./js/features/active-session.js?v=20260929b"></script>
-<script src="./js/features/demo-mode.js?v=20260929b"></script>
-<script src="./js/data/pushfold.js?v=20260929b"></script>
-<script src="./js/data/stats.js?v=20260929b"></script>
-<script src="./js/data/icm.js?v=20260929b"></script>
-<script src="./js/features/calculator.js?v=20260929b"></script>
-<script src="./js/features/staking.js?v=20260929b"></script>
-<script src="./js/features/package-report.js?v=20260929b"></script>
-<script src="./js/features/review.js?v=20260929b"></script>
-<script src="./js/features/calendar.js?v=20260929b"></script>
-<script src="./js/features/study-loop.js?v=20260929b"></script>
-<script src="./js/features/strategy.js?v=20260929b"></script>
-<script src="./js/features/hands.js?v=20260929b"></script>
-<script src="./js/features/treasury.js?v=20260929b"></script>
-<script src="./js/features/bankroll-chart.js?v=20260929b"></script>
-<script src="./js/features/library.js?v=20260929b"></script>
-<script src="./js/features/onboarding.js?v=20260929b"></script>
-<script src="./js/features/today-glance.js?v=20260929b"></script>
+<script src="./js/data/util.js?v=20260929c"></script>
+<script src="./js/data/merge.js?v=20260929c"></script>
+<script src="./js/data/config-runtime.js?v=20260929c"></script>
+<script src="./js/data/ai-proxy.js?v=20260929c"></script>
+<script src="./js/features/active-session.js?v=20260929c"></script>
+<script src="./js/features/demo-mode.js?v=20260929c"></script>
+<script src="./js/data/pushfold.js?v=20260929c"></script>
+<script src="./js/data/stats.js?v=20260929c"></script>
+<script src="./js/data/icm.js?v=20260929c"></script>
+<script src="./js/features/calculator.js?v=20260929c"></script>
+<script src="./js/features/staking.js?v=20260929c"></script>
+<script src="./js/features/package-report.js?v=20260929c"></script>
+<script src="./js/features/review.js?v=20260929c"></script>
+<script src="./js/features/calendar.js?v=20260929c"></script>
+<script src="./js/features/study-loop.js?v=20260929c"></script>
+<script src="./js/features/strategy.js?v=20260929c"></script>
+<script src="./js/features/hands.js?v=20260929c"></script>
+<script src="./js/features/treasury.js?v=20260929c"></script>
+<script src="./js/features/bankroll-chart.js?v=20260929c"></script>
+<script src="./js/features/library.js?v=20260929c"></script>
+<script src="./js/features/push.js?v=20260929c"></script>
+<script src="./js/features/onboarding.js?v=20260929c"></script>
+<script src="./js/features/today-glance.js?v=20260929c"></script>
 <script>
 // ── PWA INSTALL — captures the browser install prompt like Enclave ──
 var _deferredInstallPrompt = null;
@@ -2284,6 +2318,7 @@ function editSession(id) {
   document.getElementById('s-field').value = s.field||'';
   document.getElementById('s-position').value = s.position||'';
   document.getElementById('s-prize').value = s.prize||'';
+  document.getElementById('s-bounty').value = s.bounties||'';
   document.getElementById('s-hours').value = s.hours||'';
   document.getElementById('s-notes').value = s.notes||'';
   document.getElementById('s-package').value = s.packageName||'';
@@ -2317,8 +2352,9 @@ function addSession() {
   var buyin  = parseFloat(document.getElementById('s-buyin').value)||0;
   var rebuy  = parseFloat(document.getElementById('s-rebuy').value)||0;
   var prize  = parseFloat(document.getElementById('s-prize').value)||0;
+  var bounties = parseFloat(document.getElementById('s-bounty').value)||0;
   var total  = buyin+rebuy;
-  var pnl    = prize-total;
+  var pnl    = prize+bounties-total;
   var pos    = parseInt(document.getElementById('s-position').value)||0;
   var field  = parseInt(document.getElementById('s-field').value)||0;
   var itm    = field>0 ? Math.ceil(field*0.15) : 0;
@@ -2333,7 +2369,7 @@ function addSession() {
     existing.venue = document.getElementById('s-venue').value || '';
     existing.buyin = buyin; existing.rebuy = rebuy; existing.total = total;
     existing.field = field; existing.position = pos;
-    existing.prize = prize; existing.pnl = pnl;
+    existing.prize = prize; existing.bounties = bounties; existing.pnl = pnl;
     existing.hours = parseFloat(document.getElementById('s-hours').value)||0;
     existing.notes = document.getElementById('s-notes').value || '';
     existing.result = sessionResult(prize, pos);
@@ -2372,7 +2408,7 @@ function addSession() {
     venue: document.getElementById('s-venue').value || '',
     buyin: buyin, rebuy: rebuy, total: total,
     field: field, position: pos,
-    prize: prize, pnl: pnl,
+    prize: prize, bounties: bounties, pnl: pnl,
     hours: parseFloat(document.getElementById('s-hours').value)||0,
     notes: document.getElementById('s-notes').value || '',
     result: sessionResult(prize, pos),
@@ -2424,7 +2460,7 @@ function addSession() {
 
 function clearSessionForm() {
   clearRatings();
-  ['s-date','s-name','s-venue','s-buyin','s-rebuy','s-field','s-position','s-prize','s-hours','s-notes','s-package','s-player-share','s-markup','s-backer-count','s-backers'].forEach(function(id){
+  ['s-date','s-name','s-venue','s-buyin','s-rebuy','s-field','s-position','s-prize','s-bounty','s-hours','s-notes','s-package','s-player-share','s-markup','s-backer-count','s-backers'].forEach(function(id){
     document.getElementById(id).value='';
   });
   document.getElementById('s-date').value = todayLocal();
@@ -2457,6 +2493,15 @@ function deleteSession(id) {
     refreshDashboard();
     if (typeof renderTreasury === 'function') renderTreasury();
   });
+}
+
+// Prize cell: placement prize, plus bounties shown separately when there are any.
+function prizeCellHtml(s) {
+  var prize = s.prize || 0, bounty = s.bounties || 0;
+  if (!prize && !bounty) return '—';
+  var out = prize ? '₱' + prize.toLocaleString() : '';
+  if (bounty) out += (out ? ' ' : '') + '<span title="Bounties won" style="opacity:.7">' + (prize ? '+' : '') + '₱' + bounty.toLocaleString() + ' bty</span>';
+  return out;
 }
 
 function resultBadge(r) {
@@ -2517,7 +2562,7 @@ function renderSessionTable() {
   }
   tbody.innerHTML = list.map(function(s) {
     var pnlCls = s.pnl>0?'profit-pos':s.pnl<0?'profit-neg':'profit-zero';
-    return '<tr style="cursor:pointer" onclick="viewSessionDetail('+s.id+')"><td>'+esc(s.date)+'</td><td>'+esc(s.name)+'</td><td>'+esc(s.venue)+'</td><td>₱'+s.total.toLocaleString()+'</td><td>'+(s.field||'—')+'</td><td>'+(s.position||'—')+'</td><td>'+(s.prize?'₱'+s.prize.toLocaleString():'—')+'</td><td class="'+pnlCls+'">'+fmtCur(s.pnl)+'</td><td>'+(s.hours||'—')+'h</td><td>'+resultBadge(s.result)+'</td><td style="white-space:nowrap"><button class="del-btn" title="Edit session" onclick="event.stopPropagation();editSession('+s.id+')">✎</button><button class="del-btn" onclick="event.stopPropagation();deleteSession('+s.id+')">✕</button></td></tr>';
+    return '<tr style="cursor:pointer" onclick="viewSessionDetail('+s.id+')"><td>'+esc(s.date)+'</td><td>'+esc(s.name)+'</td><td>'+esc(s.venue)+'</td><td>₱'+s.total.toLocaleString()+'</td><td>'+(s.field||'—')+'</td><td>'+(s.position||'—')+'</td><td>'+prizeCellHtml(s)+'</td><td class="'+pnlCls+'">'+fmtCur(s.pnl)+'</td><td>'+(s.hours||'—')+'h</td><td>'+resultBadge(s.result)+'</td><td style="white-space:nowrap"><button class="del-btn" title="Edit session" onclick="event.stopPropagation();editSession('+s.id+')">✎</button><button class="del-btn" onclick="event.stopPropagation();deleteSession('+s.id+')">✕</button></td></tr>';
   }).join('');
 }
 
@@ -2560,11 +2605,11 @@ function refreshDashboard() {
   var totalIn=0, totalOut=0, cashes=0, itm=0, biggest=0, biggestName='', finals=0, depthSum=0, depthCount=0;
   statSessions.forEach(function(s){
     totalIn  += s.total||0;
-    totalOut += s.prize||0;
+    totalOut += sessionWinnings(s);
     if (s.prize>0) cashes++;
     if (s.result==='itm'||s.result==='final') itm++;
     if (s.result==='final') finals++;
-    if (s.prize>biggest){ biggest=s.prize; biggestName=s.name; }
+    if (sessionWinnings(s)>biggest){ biggest=sessionWinnings(s); biggestName=s.name; }
     if (s.position>0 && s.field>0) { depthSum += 1-(s.position/s.field); depthCount++; }
   });
   var pnl = totalOut-totalIn;
@@ -2597,7 +2642,7 @@ function refreshDashboard() {
   if (!recent.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="7">No sessions yet. Log your first tournament.</td></tr>'; }
   else tbody.innerHTML = recent.map(function(s){
     var pnlCls = s.pnl>0?'profit-pos':s.pnl<0?'profit-neg':'profit-zero';
-    return '<tr style="cursor:pointer" onclick="viewSessionDetail('+s.id+')"><td>'+esc(s.date)+'</td><td>'+esc(s.name)+'</td><td>₱'+s.total.toLocaleString()+'</td><td>'+(s.position||'—')+'</td><td>'+(s.prize?'₱'+s.prize.toLocaleString():'—')+'</td><td class="'+pnlCls+'">'+fmtCur(s.pnl)+'</td><td>'+resultBadge(s.result)+'</td></tr>';
+    return '<tr style="cursor:pointer" onclick="viewSessionDetail('+s.id+')"><td>'+esc(s.date)+'</td><td>'+esc(s.name)+'</td><td>₱'+s.total.toLocaleString()+'</td><td>'+(s.position||'—')+'</td><td>'+prizeCellHtml(s)+'</td><td class="'+pnlCls+'">'+fmtCur(s.pnl)+'</td><td>'+resultBadge(s.result)+'</td></tr>';
   }).join('');
 
   if (typeof renderBankrollChart === 'function') renderBankrollChart();

@@ -89,3 +89,14 @@ test("byVenue / byWeekday tolerate empty and junk input", () => {
   assert.doesNotThrow(() => S.byVenue([null, undefined, {}]));
   assert.doesNotThrow(() => S.byWeekday([null, {}]));
 });
+
+test("bounties count as returns in venue/weekday ROI and P&L", () => {
+  const r = S.summarize("x", [
+    sess({total: 3000, prize: 0, bounties: 1500, result: "bust"}),
+    sess({total: 3000, prize: 6000, bounties: 1000, result: "itm"}),
+  ]);
+  assert.equal(r.invested, 6000);
+  assert.equal(r.pnl, 2500);               // (0+1500) + (6000+1000) - 6000
+  assert.equal(r.roi, 41.7);
+  assert.equal(r.itmPct, 50, "bounty-only session is not ITM");
+});

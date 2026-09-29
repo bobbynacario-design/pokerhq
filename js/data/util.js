@@ -23,6 +23,15 @@
     return pos >= 1 && pos <= 3 ? "final" : "itm";
   }
 
+  // Everything a tournament paid you: the placement prize plus any bounties
+  // (PKO / bounty events). Bounties never make a cash on their own — the result
+  // badge follows the placement prize only — but they are real money: they count
+  // toward P&L, ROI, and what backers are owed.
+  function sessionWinnings(s) {
+    if (!s) return 0;
+    return (Number(s.prize) || 0) + (Number(s.bounties) || 0);
+  }
+
   // Repairs sessions saved by the old classifier (cash + blank position tagged
   // "final"). Mutates in place, returns {list, changed}; idempotent.
   function normalizeSessions(list) {
@@ -86,6 +95,7 @@
   var api = {
     todayLocal: todayLocal,
     sessionResult: sessionResult,
+    sessionWinnings: sessionWinnings,
     normalizeSessions: normalizeSessions,
     sessionBankrollDelta: sessionBankrollDelta,
     applySessionToBankroll: applySessionToBankroll,

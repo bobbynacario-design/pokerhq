@@ -371,7 +371,9 @@ function renderAiSettings() {
     statusEl.innerHTML = '<span style="color:var(--green)">✓ Key saved on this device</span> · <span class="ai-mask">' + esc(maskAnthropicKey(key)) + '</span>';
     if (clearBtn) clearBtn.style.display = '';
   } else {
-    statusEl.innerHTML = '<span class="ai-muted">○ No key set — structuring &amp; debriefs disabled</span>';
+    statusEl.innerHTML = window.__pokerhqAuthUid && typeof window.pokerhqAiCall === 'function'
+      ? '<span class="ai-muted">○ No key on this device — using keyless access through your signed-in account</span>'
+      : '<span class="ai-muted">○ No key set — structuring &amp; debriefs disabled</span>';
     if (clearBtn) clearBtn.style.display = 'none';
   }
   var oaStatus = document.getElementById('ai-openai-status');
@@ -382,7 +384,9 @@ function renderAiSettings() {
       oaStatus.innerHTML = '<span style="color:var(--green)">✓ Key saved on this device</span> · <span class="ai-mask">' + esc(maskAnthropicKey(oaKey)) + '</span>';
       if (oaClear) oaClear.style.display = '';
     } else {
-      oaStatus.innerHTML = '<span class="ai-muted">○ No key set — voice recording &amp; calendar research disabled</span>';
+      oaStatus.innerHTML = hasOpenAIProxyAccess()
+        ? '<span class="ai-muted">○ No key on this device — using keyless access through your signed-in account</span>'
+        : '<span class="ai-muted">○ No key set — voice recording &amp; calendar research disabled</span>';
       if (oaClear) oaClear.style.display = 'none';
     }
   }
@@ -484,6 +488,13 @@ async function testOpenAIKey() {
   var input = document.getElementById('ai-openai-input');
   var typed = input ? input.value.trim() : '';
   var key = typed || getStoredOpenAIKey();
+  if (!key && hasOpenAIProxyAccess()) {
+    setAiTestResult('Testing keyless connection…', 'muted', 'ai-openai-test-result');
+    var proxied = await callOpenAIProxy({ kind: 'ping' }, 30000, 'The server did not answer in time.');
+    if (proxied.ok) setAiTestResult('✓ Keyless access works — voice recording and calendar research are ready.', 'ok', 'ai-openai-test-result');
+    else setAiTestResult('✗ ' + (await getOpenAIErrorMessage(proxied, 'Keyless access failed')), 'error', 'ai-openai-test-result');
+    return;
+  }
   if (!key) { setAiTestResult('No key to test — paste one above first.', 'error', 'ai-openai-test-result'); return; }
   setAiTestResult('Testing connection…', 'muted', 'ai-openai-test-result');
   try {
@@ -572,8 +583,8 @@ async function toggleVoiceRecording() {
     errEl.style.display = 'block';
     return;
   }
-  if (!getStoredOpenAIKey()) {
-    errEl.textContent = 'Add your OpenAI key first — IMPROVE → Strategy → AI Assistant → OpenAI (Whisper).';
+  if (!hasOpenAIResponsesAccess()) {
+    errEl.textContent = 'Sign in with the owner account, or add your OpenAI key — IMPROVE → Strategy → AI Assistant → OpenAI (Whisper).';
     errEl.style.display = 'block';
     return;
   }
@@ -600,10 +611,9 @@ async function toggleVoiceRecording() {
 
 async function transcribeVoiceRecording() {
   var errEl = document.getElementById('voice-error');
-  var key = getStoredOpenAIKey();
   var recorder = _voiceMediaRecorder;
   _voiceMediaRecorder = null;
-  if (!key) { setVoiceRecordUi('idle', ''); return; }
+  if (!hasOpenAIResponsesAccess()) { setVoiceRecordUi('idle', ''); return; }
   var type = (recorder && recorder.mimeType) || pickVoiceAudioMime() || 'audio/webm';
   var blob = new Blob(_voiceChunks, { type: type });
   _voiceChunks = [];
@@ -617,18 +627,10 @@ async function transcribeVoiceRecording() {
   try {
     var ext = type.indexOf('mp4') !== -1 ? 'mp4' : type.indexOf('ogg') !== -1 ? 'ogg' : type.indexOf('mpeg') !== -1 ? 'mp3' : 'webm';
     var model = getTranscribeModel();
-    var fd = new FormData();
-    fd.append('file', blob, 'recording.' + ext);
-    fd.append('model', model);
-    fd.append('prompt', TRANSCRIBE_PROMPT);
-    var res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + key },
-      body: fd
-    });
+    var res = await callOpenAITranscription(blob, 'recording.' + ext, model, TRANSCRIBE_PROMPT);
     if (!res.ok) {
-      if (res.status === 401) throw new Error('OpenAI key was rejected (401) — re-check it in AI Assistant settings');
-      throw new Error('Whisper error (' + res.status + ')');
+      if (res.status === 401) throw new Error('OpenAI key was rejected (401) — re-check it in AI Assistant settings, or sign in for keyless access');
+      throw new Error(await getOpenAIErrorMessage(res, 'Whisper error'));
     }
     var data = await res.json();
     var text = (data.text || '').trim();

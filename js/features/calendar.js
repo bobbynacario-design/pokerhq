@@ -148,7 +148,11 @@ function getReminderSettings() {
   return {
     enabled: r.enabled === true,
     leadDays: Math.max(0, Math.min(14, parseInt(r.leadDays, 10) || 1)),
-    email: r.email || window.__pokerhqAuthEmail || ''
+    email: r.email || window.__pokerhqAuthEmail || '',
+    // phone notifications — on by default, like the server (functions/push.js pushPrefs)
+    pushStartAlerts: r.pushStartAlerts !== false,
+    pushMorning: r.pushMorning !== false,
+    pushLeadMinutes: [30, 60, 120].indexOf(Number(r.pushLeadMinutes)) !== -1 ? Number(r.pushLeadMinutes) : 60
   };
 }
 
@@ -162,6 +166,13 @@ function renderReminderSettings() {
   if (toggle) toggle.checked = s.enabled;
   if (lead) lead.value = s.leadDays;
   if (emailEl) emailEl.textContent = s.email || 'sign in to set';
+  var pStart = document.getElementById('push-start');
+  var pLead = document.getElementById('push-lead');
+  var pMorning = document.getElementById('push-morning');
+  if (pStart) pStart.checked = s.pushStartAlerts;
+  if (pLead) pLead.value = String(s.pushLeadMinutes);
+  if (pMorning) pMorning.checked = s.pushMorning;
+  if (typeof refreshPushUi === 'function') refreshPushUi();
 }
 
 function saveReminderSettings() {
@@ -170,7 +181,10 @@ function saveReminderSettings() {
   var settings = {
     enabled: !!(toggle && toggle.checked),
     leadDays: Math.max(0, Math.min(14, parseInt(lead && lead.value, 10) || 1)),
-    email: window.__pokerhqAuthEmail || (window.reminderSettings && window.reminderSettings.email) || ''
+    email: window.__pokerhqAuthEmail || (window.reminderSettings && window.reminderSettings.email) || '',
+    pushStartAlerts: document.getElementById('push-start') ? document.getElementById('push-start').checked : getReminderSettings().pushStartAlerts,
+    pushMorning: document.getElementById('push-morning') ? document.getElementById('push-morning').checked : getReminderSettings().pushMorning,
+    pushLeadMinutes: document.getElementById('push-lead') ? parseInt(document.getElementById('push-lead').value, 10) || 60 : getReminderSettings().pushLeadMinutes
   };
   window.reminderSettings = settings;
   if (typeof save === 'function') save('reminderSettings', settings);
@@ -541,7 +555,7 @@ function extractEventObjects(text) {
 async function runCalendarUpdate() {
   var btn = document.getElementById('cal-update-btn');
   if (!hasOpenAIResponsesAccess()) {
-    setCalUpdateStatus('Add your OpenAI API key first — IMPROVE → ♥ Strategy → AI Assistant.', 'error');
+    setCalUpdateStatus('Sign in with the owner account, or add your OpenAI API key — IMPROVE → ♥ Strategy → AI Assistant.', 'error');
     return;
   }
   var lastRunTs = 0;
