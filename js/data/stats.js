@@ -41,6 +41,47 @@
 
   function cleanVenue(v) { return String(v == null ? "" : v).trim().replace(/\s+/g, " "); }
 
+  var NO_VENUE = "__none__";
+
+  // Stable identity for a venue name: case and spacing don't matter.
+  function venueKey(v) {
+    var name = cleanVenue(v);
+    return name ? name.toLowerCase() : NO_VENUE;
+  }
+
+  // The venues that appear in a list of events, for a filter dropdown. Each is
+  // labelled with its most-used spelling; busiest first, then A–Z. Events with
+  // no venue collect under "(no venue)" (always last).
+  function venueChoices(events) {
+    var groups = {}, order = [];
+    records(events).forEach(function (e) {
+      var key = venueKey(e.venue);
+      if (!groups[key]) { groups[key] = { spellings: {}, count: 0 }; order.push(key); }
+      groups[key].count++;
+      var name = cleanVenue(e.venue);
+      if (name) groups[key].spellings[name] = (groups[key].spellings[name] || 0) + 1;
+    });
+    var out = order.map(function (key) {
+      var label = "(no venue)", best = 0;
+      Object.keys(groups[key].spellings).forEach(function (sp) {
+        if (groups[key].spellings[sp] > best) { best = groups[key].spellings[sp]; label = sp; }
+      });
+      return { key: key, label: label, count: groups[key].count };
+    });
+    out.sort(function (a, b) {
+      if ((a.key === NO_VENUE) !== (b.key === NO_VENUE)) return a.key === NO_VENUE ? 1 : -1;
+      return b.count - a.count || a.label.toLowerCase().localeCompare(b.label.toLowerCase());
+    });
+    return out;
+  }
+
+  // key falsy = everything. Otherwise only events at that venue.
+  function filterByVenue(events, key) {
+    var list = records(events);
+    if (!key) return list;
+    return list.filter(function (e) { return venueKey(e.venue) === key; });
+  }
+
   // Group by venue, ignoring case/extra spaces, labelled with the spelling used
   // most often. Busiest venues first; anything beyond `limit` rolls into one row.
   function byVenue(sessions, limit) {
@@ -184,6 +225,10 @@
     LOW_SAMPLE: LOW_SAMPLE,
     summarize: summarize,
     byVenue: byVenue,
+    NO_VENUE: NO_VENUE,
+    venueKey: venueKey,
+    venueChoices: venueChoices,
+    filterByVenue: filterByVenue,
     byWeekday: byWeekday,
     byMonth: byMonth,
     byStructure: byStructure,

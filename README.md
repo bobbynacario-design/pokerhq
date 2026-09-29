@@ -40,7 +40,7 @@ Both run in CI on every push and pull request (`.github/workflows/test.yml`).
 - `tests/util.test.js` — local date, session result, bankroll bookkeeping
 - `tests/pushfold.test.js` — push/fold ranges and notation (`js/data/pushfold.js`)
 - `tests/icm.test.js` — ICM maths, cross-checked against brute-force enumeration (`js/data/icm.js`)
-- `tests/stats.test.js` — venue / weekday breakdowns (`js/data/stats.js`)
+- `tests/stats.test.js` — venue / weekday / month / format breakdowns and the calendar's location filter (`js/data/stats.js`)
 - `tests/merge.test.js` — record-level sync merge, including multi-device scenarios (`js/data/merge.js`)
 - `tests/sync-glue.test.js` — the real `js/data/sync.js` against an in-memory Firestore fake (`tests/fakes/`)
 - `tests/backup.test.js` — weekly backup logic (`functions/backup.js`)
@@ -51,6 +51,13 @@ Both run in CI on every push and pull request (`.github/workflows/test.yml`).
 
 `scripts/gen-hand-ranking.js` regenerates the 169-hand ordering embedded in `js/data/pushfold.js`
 (seeded Monte Carlo; it self-checks against known equities).
+
+## Calendar location filter
+
+Calendar → the location selector (next to MONTH / LIST / PLANNED ONLY) narrows the month grid and
+the list to one location. Spellings that differ only by case or spacing count as one place, events
+with no venue collect under "(no venue)", and the choice is remembered on that device. It combines
+with **Planned only**; the "Playing These" card and the .ics export always include everything.
 
 ## Sync and backups
 

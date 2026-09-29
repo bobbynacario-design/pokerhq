@@ -366,6 +366,18 @@ body.light .cal-legend-item{color:rgba(0,0,0,.4)}
 .view-btn.active{background:var(--gold-dim);color:var(--gold);border-color:rgba(212,175,55,.3)}
 body.light .view-btn{color:rgba(0,0,0,.4)}
 body.light .view-btn.active{color:var(--gold)}
+.cal-venue{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:1.25rem}
+.cal-venue-select{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:.4rem .7rem;border-radius:6px;border:1px solid var(--rim2);background:var(--bg3);color:rgba(255,255,255,.55);cursor:pointer;max-width:16rem}
+.cal-venue-select.active{background:var(--gold-dim);color:var(--gold);border-color:rgba(212,175,55,.3)}
+.cal-venue-select option{background:var(--bg3);color:var(--text)}
+.cal-venue-count{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.4)}
+body.light .cal-venue-select{color:rgba(0,0,0,.55)}
+body.light .cal-venue-select.active{color:var(--gold)}
+body.light .cal-venue-count{color:rgba(0,0,0,.4)}
+@media(max-width:600px){
+  .cal-venue{width:100%}
+  .cal-venue-select{flex:1 1 auto;max-width:none;min-width:0}
+}
 @media(max-width:768px){
   .cal-day{min-height:48px;padding:.3rem .2rem}
   .cal-day-num{font-size:10px}

@@ -169,3 +169,39 @@ test("byStructure: 'Not recorded' stays last even when it has the most sessions"
   assert.equal(rows[rows.length - 1].label, "Not recorded");
   assert.equal(rows[0].label, "PKO");
 });
+
+// ── venue filter (calendar) ──
+const evt = (venue, extra) => Object.assign({id: Math.random(), name: "E", venue}, extra || {});
+
+test("venueKey ignores case and spacing; empty is its own bucket", () => {
+  assert.equal(S.venueKey("Metro Card Club"), S.venueKey("  metro   card club "));
+  assert.notEqual(S.venueKey("Metro Card Club"), S.venueKey("Okada"));
+  assert.equal(S.venueKey(""), S.NO_VENUE);
+  assert.equal(S.venueKey(undefined), S.NO_VENUE);
+  assert.equal(S.venueKey("   "), S.NO_VENUE);
+});
+
+test("venueChoices: counts, most-used spelling, busiest first then A–Z, '(no venue)' last", () => {
+  const choices = S.venueChoices([
+    evt("Metro Card Club"), evt("metro card club"), evt("Metro Card Club"),
+    evt("Okada Manila"), evt("Okada Manila"),
+    evt("Solaire"), evt("City of Dreams"),
+    evt(""), evt(undefined), evt("  "),
+  ]);
+  assert.deepEqual(choices.map((c) => c.label), ["Metro Card Club", "Okada Manila", "City of Dreams", "Solaire", "(no venue)"]);
+  assert.deepEqual(choices.map((c) => c.count), [3, 2, 1, 1, 3]);
+  assert.equal(choices[choices.length - 1].key, S.NO_VENUE, "no-venue last even though it has 3 events");
+  assert.deepEqual(S.venueChoices([]), []);
+  assert.deepEqual(S.venueChoices(null), []);
+  assert.doesNotThrow(() => S.venueChoices([null, undefined, {}]));
+});
+
+test("filterByVenue: all, one venue (any spelling), no venue, unknown venue", () => {
+  const list = [evt("Metro Card Club", {id: 1}), evt("METRO CARD CLUB ", {id: 2}), evt("Okada", {id: 3}), evt("", {id: 4})];
+  assert.deepEqual(S.filterByVenue(list, "").map((e) => e.id), [1, 2, 3, 4]);
+  assert.deepEqual(S.filterByVenue(list, null).map((e) => e.id), [1, 2, 3, 4]);
+  assert.deepEqual(S.filterByVenue(list, S.venueKey("metro card club")).map((e) => e.id), [1, 2]);
+  assert.deepEqual(S.filterByVenue(list, S.NO_VENUE).map((e) => e.id), [4]);
+  assert.deepEqual(S.filterByVenue(list, "atlantis"), []);
+  assert.deepEqual(S.filterByVenue(null, "x"), []);
+});

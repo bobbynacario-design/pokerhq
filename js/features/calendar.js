@@ -724,12 +724,69 @@ var calMonth = new Date().getMonth();
 // The "Playing These" shortlist card is unaffected — it always shows your picks.
 var calPlannedOnly = false;
 
-// The events both calendar views should render — all tourneys, or just the
-// pinned ones when the "Planned only" filter is active.
+// Which location the month and list views are narrowed to: a PokerHQStats
+// venue key, or '' for every location. Remembered on this device.
+var CAL_VENUE_KEY = 'pokerhq_cal_venue';
+var calVenueFilter = (function () {
+  try { return localStorage.getItem(CAL_VENUE_KEY) || ''; } catch (e) { return ''; }
+})();
+var _calVenueSig = null;
+
+// The events both calendar views should render — all tourneys, narrowed by the
+// "Planned only" filter and the location selector when they are active.
 function visibleTourneys() {
-  return calPlannedOnly
+  var base = calPlannedOnly
     ? (tourneys || []).filter(function (t) { return t && t.planning; })
     : (tourneys || []);
+  return window.PokerHQStats ? window.PokerHQStats.filterByVenue(base, calVenueFilter) : base;
+}
+
+// Fills the location selector from ALL events (so the choices don't shrink when
+// "Planned only" is on) and shows how many events the current choice leaves.
+function renderCalendarVenueFilter() {
+  var sel = document.getElementById('cal-venue-filter');
+  if (!sel || !window.PokerHQStats) return;
+  var all = (tourneys || []).filter(function (t) { return t && typeof t === 'object'; });
+  var choices = window.PokerHQStats.venueChoices(all);
+  if (calVenueFilter && !choices.some(function (c) { return c.key === calVenueFilter; })) {
+    // The saved location no longer has any events (deleted / synced away) — show everything.
+    calVenueFilter = '';
+    try { localStorage.removeItem(CAL_VENUE_KEY); } catch (e) {}
+  }
+  var sig = all.length + '|' + choices.map(function (c) { return c.key + ':' + c.label + ':' + c.count; }).join('|');
+  if (sig !== _calVenueSig) {
+    _calVenueSig = sig;
+    var html = '<option value="">All locations (' + all.length + ')</option>';
+    choices.forEach(function (c) {
+      html += '<option value="' + esc(c.key) + '">' + esc(c.label) + ' (' + c.count + ')</option>';
+    });
+    sel.innerHTML = html;
+  }
+  sel.value = calVenueFilter;
+  sel.classList.toggle('active', !!calVenueFilter);
+  var wrap = document.getElementById('cal-venue-wrap');
+  if (wrap) wrap.style.display = choices.length > 1 || calVenueFilter ? '' : 'none';
+  var note = document.getElementById('cal-venue-count');
+  if (note) {
+    if (calVenueFilter) {
+      var shown = visibleTourneys().length;
+      note.textContent = 'Showing ' + shown + ' of ' + all.length;
+      note.style.display = '';
+    } else {
+      note.textContent = '';
+      note.style.display = 'none';
+    }
+  }
+}
+
+function setCalVenueFilter(value) {
+  calVenueFilter = String(value || '');
+  try {
+    if (calVenueFilter) localStorage.setItem(CAL_VENUE_KEY, calVenueFilter);
+    else localStorage.removeItem(CAL_VENUE_KEY);
+  } catch (e) {}
+  renderCalendarMonth();
+  renderCalendarList();
 }
 
 function togglePlannedOnly() {
@@ -761,6 +818,11 @@ function jumpToCalendarEvent(id) {
   // otherwise be hidden inside a collapsed group and the jump would land on
   // nothing.
   var t = (tourneys || []).find(function (e) { return e && e.id === id; });
+  if (t && calVenueFilter && window.PokerHQStats &&
+      window.PokerHQStats.venueKey(t.venue) !== calVenueFilter) {
+    // The location filter would hide the event we're jumping to — clear it.
+    setCalVenueFilter('');
+  }
   if (t) {
     var key = t.series || t.name;
     // Mark expanded regardless of the current state (stored collapse OR the
@@ -886,6 +948,7 @@ function renderCalendarMonth() {
   var daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
   var daysInPrev = new Date(calYear, calMonth, 0).getDate();
 
+  renderCalendarVenueFilter();
   var tourneyRanges = visibleTourneys().map(function(t) {
     var range = parseTourneyDateRange(t);
     return range ? { t: t, start: range.start, end: range.end } : null;
@@ -985,6 +1048,10 @@ function renderCalendarList() {
   var el = document.getElementById('calendar-list');
   if (!el) return;
   var list = visibleTourneys();
+  if (!list.length && calVenueFilter) {
+    el.innerHTML = '<div style="padding:3rem;text-align:center;color:rgba(255,255,255,.2);font-family:var(--mono);font-size:13px">No ' + (calPlannedOnly ? 'pinned ' : '') + 'events at this location. Pick "All locations" to see everything.</div>';
+    return;
+  }
   if (!list.length) {
     el.innerHTML = calPlannedOnly
       ? '<div style="padding:3rem;text-align:center;color:rgba(255,255,255,.2);font-family:var(--mono);font-size:13px">No events pinned yet. Tap the ☆ on an event to add it to your plan.</div>'
