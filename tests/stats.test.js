@@ -181,15 +181,49 @@ test("venueKey ignores case and spacing; empty is its own bucket", () => {
   assert.equal(S.venueKey("   "), S.NO_VENUE);
 });
 
-test("venueChoices: counts, most-used spelling, busiest first then A–Z, '(no venue)' last", () => {
+test("venueKey: every spelling of a known Manila room is one place", () => {
+  const okada = ["Okada Manila", "Okada", "OKADA MANILA Casino & Resort", "Okada Manila, Parañaque", "Okada Manila - Grand Ballroom", "PokerStars LIVE Manila at Okada"];
+  for (const v of okada) assert.equal(S.venueKey(v), S.venueKey("Okada"), v);
+  const metro = ["Metro Card Club", "Metrocard Club", "metro  card club, Pasig", "Metro Card Club at Metrowalk Pasig", "Metrowalk Pasig"];
+  for (const v of metro) assert.equal(S.venueKey(v), S.venueKey("Metro Card Club"), v);
+  for (const v of ["Solaire", "Solaire Resort", "Solaire Resort North", "Solaire Poker Room", "SOLAIRE RESORT & CASINO"]) assert.equal(S.venueKey(v), S.venueKey("Solaire"), v);
+  for (const v of ["City of Dreams", "City of Dreams Manila", "Soul Poker Club at City of Dreams"]) assert.equal(S.venueKey(v), S.venueKey("City of Dreams"), v);
+  for (const v of ["Newport World Resorts", "Newport Poker Room"]) assert.equal(S.venueKey(v), S.venueKey("Newport"), v);
+  // …and they stay apart from each other
+  const keys = new Set(["Okada", "Metro Card Club", "Solaire", "City of Dreams", "Newport"].map(S.venueKey));
+  assert.equal(keys.size, 5);
+});
+
+test("venueKey: unfamiliar venues drop address / city / building suffixes but stay distinct", () => {
+  const prime = S.venueKey("Prime Poker Club");
+  for (const v of ["PRIME POKER CLUB", "Prime Poker Club, Makati", "Prime Poker Club - Hall 2", "Prime Poker Club (BGC)", "Prime Poker Club Manila", "prime poker club at Some Mall"]) {
+    assert.equal(S.venueKey(v), prime, v);
+  }
+  assert.notEqual(S.venueKey("Masters Poker Club"), prime);
+  assert.notEqual(S.venueKey("Resorts World Manila"), S.venueKey("Resorts World Sentosa"), "different cities are different places");
+  assert.equal(S.venueKey("Resorts World Manila"), S.venueKey("Resorts World"));
+  assert.equal(S.venueKey("2Ace Poker Club (Metro Manila)"), S.venueKey("2Ace Poker Club"));
+  assert.notEqual(S.venueKey("Manila"), S.NO_VENUE, "a name made only of filler words is kept, not lost");
+});
+
+test("venueChoices: known rooms merge under one standard name, counts add up", () => {
   const choices = S.venueChoices([
-    evt("Metro Card Club"), evt("metro card club"), evt("Metro Card Club"),
-    evt("Okada Manila"), evt("Okada Manila"),
-    evt("Solaire"), evt("City of Dreams"),
+    evt("Okada Manila"), evt("Okada Manila, Parañaque"), evt("Okada"), evt("PokerStars LIVE Manila at Okada"),
+    evt("Metro Card Club"), evt("Metrocard Club"), evt("Metro Card Club, Pasig"),
+    evt("Solaire Resort"), evt("Solaire Resort North"),
+  ]);
+  assert.deepEqual(choices.map((c) => [c.label, c.count]), [["Okada Manila", 4], ["Metro Card Club", 3], ["Solaire", 2]]);
+});
+
+test("venueChoices: unfamiliar rooms use their most-used spelling (ties: the shorter), busiest first then A–Z, '(no venue)' last", () => {
+  const choices = S.venueChoices([
+    evt("Prime Poker Club, Makati"), evt("Prime Poker Club"), evt("Prime Poker Club"),
+    evt("Masters Poker Club"), evt("Masters Poker Club, Manila"),
+    evt("Crown Melbourne"),
     evt(""), evt(undefined), evt("  "),
   ]);
-  assert.deepEqual(choices.map((c) => c.label), ["Metro Card Club", "Okada Manila", "City of Dreams", "Solaire", "(no venue)"]);
-  assert.deepEqual(choices.map((c) => c.count), [3, 2, 1, 1, 3]);
+  assert.deepEqual(choices.map((c) => c.label), ["Prime Poker Club", "Masters Poker Club", "Crown Melbourne", "(no venue)"]);
+  assert.deepEqual(choices.map((c) => c.count), [3, 2, 1, 3]);
   assert.equal(choices[choices.length - 1].key, S.NO_VENUE, "no-venue last even though it has 3 events");
   assert.deepEqual(S.venueChoices([]), []);
   assert.deepEqual(S.venueChoices(null), []);
@@ -197,10 +231,11 @@ test("venueChoices: counts, most-used spelling, busiest first then A–Z, '(no v
 });
 
 test("filterByVenue: all, one venue (any spelling), no venue, unknown venue", () => {
-  const list = [evt("Metro Card Club", {id: 1}), evt("METRO CARD CLUB ", {id: 2}), evt("Okada", {id: 3}), evt("", {id: 4})];
-  assert.deepEqual(S.filterByVenue(list, "").map((e) => e.id), [1, 2, 3, 4]);
-  assert.deepEqual(S.filterByVenue(list, null).map((e) => e.id), [1, 2, 3, 4]);
-  assert.deepEqual(S.filterByVenue(list, S.venueKey("metro card club")).map((e) => e.id), [1, 2]);
+  const list = [evt("Metro Card Club", {id: 1}), evt("METRO CARD CLUB ", {id: 2}), evt("Okada", {id: 3}), evt("", {id: 4}), evt("Metrocard Club, Pasig", {id: 5}), evt("Okada Manila, Parañaque", {id: 6})];
+  assert.deepEqual(S.filterByVenue(list, "").map((e) => e.id), [1, 2, 3, 4, 5, 6]);
+  assert.deepEqual(S.filterByVenue(list, null).map((e) => e.id), [1, 2, 3, 4, 5, 6]);
+  assert.deepEqual(S.filterByVenue(list, S.venueKey("metro card club")).map((e) => e.id), [1, 2, 5]);
+  assert.deepEqual(S.filterByVenue(list, S.venueKey("Okada")).map((e) => e.id), [3, 6]);
   assert.deepEqual(S.filterByVenue(list, S.NO_VENUE).map((e) => e.id), [4]);
   assert.deepEqual(S.filterByVenue(list, "atlantis"), []);
   assert.deepEqual(S.filterByVenue(null, "x"), []);

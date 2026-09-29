@@ -55,8 +55,12 @@ Both run in CI on every push and pull request (`.github/workflows/test.yml`).
 ## Calendar location filter
 
 Calendar → the location selector (next to MONTH / LIST / PLANNED ONLY) narrows the month grid and
-the list to one location. Spellings that differ only by case or spacing count as one place, events
-with no venue collect under "(no venue)", and the choice is remembered on that device. It combines
+the list to one location. Each place is listed once however it was typed: Okada, Metro Card Club,
+Solaire, City of Dreams and Newport are recognised by name ("Okada Manila, Parañaque", "Metrocard
+Club, Pasig", "Solaire Resort North" …), and for any other venue the address / city / building
+suffix is ignored (`js/data/stats.js`, `placeOf` — add a room to `KNOWN_PLACES` to give it a
+standard name). Events with no venue collect under "(no venue)", and the choice is remembered on
+that device. It combines
 with **Planned only**; the "Playing These" card and the .ics export always include everything.
 
 ## Sync and backups
