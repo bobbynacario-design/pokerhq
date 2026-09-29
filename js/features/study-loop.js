@@ -62,7 +62,7 @@ function renderStudyLoop() {
     if (!item.done) {
       html += '<div class="sli-action" onclick="' + item.action + '">' + item.actionLabel + ' →</div>';
     } else {
-      html += '<div style="font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.5)">' + item.count + (item.count === 1 ? ' time' : ' times') + '</div>';
+      html += '<div style="font-family:var(--mono);font-size:10px;color:var(--wa-50)">' + item.count + (item.count === 1 ? ' time' : ' times') + '</div>';
     }
     html += '</div>';
   });

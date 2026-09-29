@@ -43,15 +43,45 @@
 
   var NO_VENUE = "__none__";
 
-  // The Manila rooms that turn up under many spellings ("Okada Manila",
-  // "Okada Manila, Parañaque", "PokerStars LIVE Manila at Okada", "Metrocard Club",
-  // "Metro Card Club at Metrowalk Pasig" ...). Anything matching is one place.
+  // Places that turn up under many spellings. The Manila rooms are matched by
+  // name ("Okada Manila", "Okada Manila, Parañaque", "PokerStars LIVE Manila at
+  // Okada", "Metrocard Club", "Metro Card Club at Metrowalk Pasig" ...). Outside
+  // Manila the festivals are mostly hotel / casino ballrooms, so those are grouped
+  // by destination ("Sheraton Hanoi", "Hanoi, Vietnam" -> Hanoi). First match wins,
+  // so Macau sits above City of Dreams (there is one in Manila and one in Macau).
   var KNOWN_PLACES = [
+    { key: "macau", label: "Macau", re: /\bmaca[uo]\b/ },
     { key: "okada", label: "Okada Manila", re: /okada/ },
     { key: "metrocardclub", label: "Metro Card Club", re: /metro\s*card|metrowalk/ },
     { key: "solaire", label: "Solaire", re: /solaire/ },
     { key: "cityofdreams", label: "City of Dreams", re: /city\s+of\s+dreams/ },
-    { key: "newport", label: "Newport World Resorts", re: /newport/ }
+    { key: "newport", label: "Newport World Resorts", re: /newport/ },
+    { key: "paradisecity", label: "Paradise City", re: /paradise\s*city|paradise\s+incheon/ },
+    { key: "hanoi", label: "Hanoi", re: /\bha\s*noi\b/ },
+    { key: "hochiminh", label: "Ho Chi Minh City", re: /ho\s+chi\s+minh|\bsaigon\b|\bhcmc\b/ },
+    { key: "danang", label: "Da Nang", re: /\bda\s*nang\b/ },
+    { key: "cebu", label: "Cebu", re: /\bcebu\b/ },
+    { key: "singapore", label: "Singapore", re: /\bsingapore\b|\bsentosa\b|marina\s+bay/ },
+    { key: "seoul", label: "Seoul", re: /\bseoul\b/ },
+    { key: "jeju", label: "Jeju", re: /\bjeju\b/ },
+    { key: "busan", label: "Busan", re: /\bbusan\b/ },
+    { key: "tokyo", label: "Tokyo", re: /\btokyo\b/ },
+    { key: "osaka", label: "Osaka", re: /\bosaka\b/ },
+    { key: "taipei", label: "Taipei", re: /\btaipei\b/ },
+    { key: "bangkok", label: "Bangkok", re: /\bbangkok\b/ },
+    { key: "pattaya", label: "Pattaya", re: /\bpattaya\b/ },
+    { key: "phuket", label: "Phuket", re: /\bphuket\b/ },
+    { key: "kualalumpur", label: "Kuala Lumpur", re: /kuala\s+lumpur|\bgenting\b/ },
+    { key: "phnompenh", label: "Phnom Penh", re: /phnom\s+penh|\bnagaworld\b/ },
+    { key: "siemreap", label: "Siem Reap", re: /siem\s+reap/ },
+    { key: "jakarta", label: "Jakarta", re: /\bjakarta\b/ },
+    { key: "bali", label: "Bali", re: /\bbali\b/ },
+    { key: "kathmandu", label: "Kathmandu", re: /\bkathmandu\b/ },
+    { key: "sydney", label: "Sydney", re: /\bsydney\b/ },
+    { key: "melbourne", label: "Melbourne", re: /\bmelbourne\b/ },
+    { key: "goldcoast", label: "Gold Coast", re: /gold\s+coast/ },
+    { key: "brisbane", label: "Brisbane", re: /\bbrisbane\b/ },
+    { key: "perth", label: "Perth", re: /\bperth\b/ }
   ];
   // Words that only say where / what kind of building it is. Dropped from the END
   // of an unfamiliar name so "Prime Poker Club" and "Prime Poker Club, Makati" match.

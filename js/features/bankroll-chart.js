@@ -84,7 +84,7 @@ function renderMonthlyGoals() {
   if (!hasGoals) {
     wrap.innerHTML = '<div class="chart-wrap"><div class="chart-title">Goals — ' + esc(monthName) + '</div>' +
       '<div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;padding:.4rem 0">' +
-      '<div style="color:rgba(255,255,255,.4);font-family:var(--mono);font-size:12px">Set profit, volume, and study targets to track this month.</div>' +
+      '<div style="color:var(--wa-40);font-family:var(--mono);font-size:12px">Set profit, volume, and study targets to track this month.</div>' +
       '<button class="sec-action primary" onclick="editMonthlyGoals()">SET GOALS</button></div></div>';
     return;
   }
@@ -132,7 +132,7 @@ function renderDashboardExtras() {
   var wrap = document.getElementById('buyin-breakdown');
   if (!wrap) return;
   if (!list.length) {
-    wrap.innerHTML = '<div style="color:rgba(255,255,255,.2);font-family:var(--mono);font-size:11px;width:100%;text-align:center;padding:1.6rem 0;background:var(--bg2);border:1px solid var(--rim);border-radius:12px">Log sessions to compare buy-in levels</div>';
+    wrap.innerHTML = '<div style="color:var(--wa-20);font-family:var(--mono);font-size:11px;width:100%;text-align:center;padding:1.6rem 0;background:var(--bg2);border:1px solid var(--rim);border-radius:12px">Log sessions to compare buy-in levels</div>';
     return;
   }
   var rows = BUYIN_BREAKDOWN_RANGES.map(function(range) {
@@ -171,7 +171,7 @@ function renderDashboardExtras() {
 // couple of sessions say nothing about a venue or a weekday.
 function breakdownTableHtml(rows, firstColLabel, emptyMessage) {
   if (!rows.length) {
-    return '<div style="color:rgba(255,255,255,.2);font-family:var(--mono);font-size:11px;width:100%;text-align:center;padding:1.6rem 0;background:var(--bg2);border:1px solid var(--rim);border-radius:12px">' + emptyMessage + '</div>';
+    return '<div style="color:var(--wa-20);font-family:var(--mono);font-size:11px;width:100%;text-align:center;padding:1.6rem 0;background:var(--bg2);border:1px solid var(--rim);border-radius:12px">' + emptyMessage + '</div>';
   }
   var anyLow = false;
   var html = '<div class="table-wrap"><table class="tbl"><thead><tr><th>' + firstColLabel + '</th><th>Sessions</th><th>ITM</th><th>Invested</th><th>P&amp;L</th><th>ROI</th><th>₱/hr</th></tr></thead><tbody>';
@@ -369,7 +369,7 @@ function renderBankrollChart() {
   if (!wrap) return;
   var points = buildBankrollTimelinePoints();
   if (points.length < 2) {
-    wrap.innerHTML = '<div style="color:rgba(255,255,255,.2);font-family:var(--mono);font-size:11px;width:100%;text-align:center;padding:2rem 0">Log sessions or treasury transfers to see your bankroll curve</div>';
+    wrap.innerHTML = '<div style="color:var(--wa-20);font-family:var(--mono);font-size:11px;width:100%;text-align:center;padding:2rem 0">Log sessions or treasury transfers to see your bankroll curve</div>';
     return;
   }
 

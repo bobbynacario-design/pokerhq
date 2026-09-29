@@ -15,7 +15,7 @@ import {
   FIRESTORE_KEYS,
   resolveProfileConfig,
   resolveLocalStorageKey
-} from "./config.js?v=20260929f";
+} from "./config.js?v=20260929h";
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -131,10 +131,10 @@ export function setSyncStatus(status, msg, extra) {
   const el = document.getElementById("sync-status");
   if (!el) return;
   const colors = {
-    syncing: "#F0A832",
-    ok: "#2ECC71",
-    error: "#E74C3C",
-    offline: "rgba(255,255,255,.3)"
+    syncing: "var(--amber)",
+    ok: "var(--green)",
+    error: "var(--red)",
+    offline: "var(--wa-30)"
   };
   const icons = {
     syncing: "⟳",
@@ -143,7 +143,7 @@ export function setSyncStatus(status, msg, extra) {
     offline: "○"
   };
   el.textContent = (icons[status] || "○") + " " + msg;
-  el.style.color = colors[status] || "rgba(255,255,255,.3)";
+  el.style.color = colors[status] || "var(--wa-30)";
   if (window.renderReliability) window.renderReliability();
 }
 

@@ -72,10 +72,10 @@ function renderStrategy() {
     newsEl.innerHTML = newsItems.map(function(st) {
       var rel = st.relevant !== false && st.relevance;
       return '<div class="hand-card" style="border-left:4px solid var(--blue);border-radius:0 12px 12px 0;border-top:1px solid var(--rim);border-right:1px solid var(--rim);border-bottom:1px solid var(--rim);margin-bottom:.6rem">'
-        + '<div style="font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:rgba(255,255,255,.3);margin-bottom:.35rem">' + esc(st.week || '') + '</div>'
+        + '<div style="font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--wa-30);margin-bottom:.35rem">' + esc(st.week || '') + '</div>'
         + '<div class="hand-title">' + esc(st.headline) + '</div>'
         + '<div class="hand-body" style="margin-top:.4rem">' + esc(st.body) + '</div>'
-        + (st.source || /^https?:\/\//i.test(st.url || '') ? '<div style="margin-top:.5rem;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.3)">📍 ' + (/^https?:\/\//i.test(st.url || '') ? '<a href="' + esc(st.url) + '" target="_blank" rel="noopener noreferrer" style="color:var(--blue)">' + esc(st.source || st.url) + '</a>' : esc(st.source)) + '</div>' : '')
+        + (st.source || /^https?:\/\//i.test(st.url || '') ? '<div style="margin-top:.5rem;font-family:var(--mono);font-size:10px;color:var(--wa-30)">📍 ' + (/^https?:\/\//i.test(st.url || '') ? '<a href="' + esc(st.url) + '" target="_blank" rel="noopener noreferrer" style="color:var(--blue)">' + esc(st.source || st.url) + '</a>' : esc(st.source)) + '</div>' : '')
         + (rel ? '<div style="margin-top:.5rem;font-size:11px;color:var(--gold);font-family:var(--mono)">→ Bob: ' + esc(st.relevance) + '</div>' : '')
         + '<button class="del-btn" style="margin-top:.4rem" onclick="deleteNews(' + st.id + ')">✕ remove</button>'
         + '</div>';
@@ -88,9 +88,9 @@ function renderStrategy() {
     spotSec.style.display = 'block';
     spotEl.innerHTML = spotlights.map(function(sp) {
       return '<div class="strategy-card" style="border-left-color:var(--gold);margin-bottom:.6rem">'
-        + '<div style="font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:rgba(255,255,255,.3);margin-bottom:.35rem">' + esc(sp.week || '') + '</div>'
+        + '<div style="font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--wa-30);margin-bottom:.35rem">' + esc(sp.week || '') + '</div>'
         + '<p>' + esc(sp.content) + '</p>'
-        + (sp.source ? '<div style="margin-top:.5rem;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.3)">📍 ' + esc(sp.source) + '</div>' : '')
+        + (sp.source ? '<div style="margin-top:.5rem;font-family:var(--mono);font-size:10px;color:var(--wa-30)">📍 ' + esc(sp.source) + '</div>' : '')
         + '<button class="del-btn" style="margin-top:.4rem" onclick="deleteSpotlight(' + sp.id + ')">✕ remove</button>'
         + '</div>';
     }).join('');
@@ -99,7 +99,7 @@ function renderStrategy() {
   var el = document.getElementById('strategy-list');
   if (!el) return;
   if (!strategies.length) {
-    el.innerHTML = '<div style="padding:2rem;text-align:center;color:rgba(255,255,255,.2);font-family:var(--mono);font-size:13px">No strategy notes yet. Run AI Poker Research or add a manual note.</div>';
+    el.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--wa-20);font-family:var(--mono);font-size:13px">No strategy notes yet. Run AI Poker Research or add a manual note.</div>';
     return;
   }
   el.innerHTML = strategies.map(function(s) {
@@ -321,12 +321,12 @@ function renderResearchResults(items, asOf, meta) {
       + '<div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.35rem">'
       + '<span style="font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:' + cat.color + '">' + cat.label + '</span>'
       + badge
-      + (dateBits.length ? '<span style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.3)">' + dateBits.join(' · ') + '</span>' : '')
+      + (dateBits.length ? '<span style="font-family:var(--mono);font-size:9px;color:var(--wa-30)">' + dateBits.join(' · ') + '</span>' : '')
       + '</div>'
       + '<div class="hand-title">' + esc(it.headline) + '</div>'
       + '<div class="hand-body" style="margin-top:.4rem">' + esc(it.summary) + '</div>'
       + (it._cited ? '<div class="research-quote">“' + esc(String(it._cited).slice(0, 160)) + '”</div>' : '')
-      + (it.source || urlOk ? '<div style="margin-top:.5rem;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.35)">📍 ' + (urlOk ? '<a href="' + esc(it.url) + '" target="_blank" rel="noopener noreferrer" style="color:var(--blue)">' + esc(it.source || it.url) + '</a>' : esc(it.source)) + '</div>' : '')
+      + (it.source || urlOk ? '<div style="margin-top:.5rem;font-family:var(--mono);font-size:10px;color:var(--wa-35)">📍 ' + (urlOk ? '<a href="' + esc(it.url) + '" target="_blank" rel="noopener noreferrer" style="color:var(--blue)">' + esc(it.source || it.url) + '</a>' : esc(it.source)) + '</div>' : '')
       + '<button class="sec-action primary" style="margin-top:.55rem" onclick="savePokerResearchItem(' + i + ')">+ SAVE' + (it._verified ? '' : ' ANYWAY') + '</button>'
       + '</div>';
   }).join('');
