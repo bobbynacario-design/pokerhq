@@ -365,7 +365,7 @@ function showCalUpdateLastRun() {
   try { last = localStorage.getItem(CAL_UPDATE_LAST_KEY) || ''; } catch (e) {}
   if (!last) return;
   el.style.display = 'block';
-  el.style.color = 'rgba(255,255,255,.4)';
+  el.style.color = 'var(--wa-40)';
   el.textContent = 'Last AI event update: ' + last + ' · safe to run every 2–3 weeks.';
 }
 
@@ -1049,13 +1049,13 @@ function renderCalendarList() {
   if (!el) return;
   var list = visibleTourneys();
   if (!list.length && calVenueFilter) {
-    el.innerHTML = '<div style="padding:3rem;text-align:center;color:rgba(255,255,255,.2);font-family:var(--mono);font-size:13px">No ' + (calPlannedOnly ? 'pinned ' : '') + 'events at this location. Pick "All locations" to see everything.</div>';
+    el.innerHTML = '<div style="padding:3rem;text-align:center;color:var(--wa-20);font-family:var(--mono);font-size:13px">No ' + (calPlannedOnly ? 'pinned ' : '') + 'events at this location. Pick "All locations" to see everything.</div>';
     return;
   }
   if (!list.length) {
     el.innerHTML = calPlannedOnly
-      ? '<div style="padding:3rem;text-align:center;color:rgba(255,255,255,.2);font-family:var(--mono);font-size:13px">No events pinned yet. Tap the ☆ on an event to add it to your plan.</div>'
-      : '<div style="padding:3rem;text-align:center;color:rgba(255,255,255,.2);font-family:var(--mono);font-size:13px">No tournaments added. Click + ADD TOURNAMENT to start.</div>';
+      ? '<div style="padding:3rem;text-align:center;color:var(--wa-20);font-family:var(--mono);font-size:13px">No events pinned yet. Tap the ☆ on an event to add it to your plan.</div>'
+      : '<div style="padding:3rem;text-align:center;color:var(--wa-20);font-family:var(--mono);font-size:13px">No tournaments added. Click + ADD TOURNAMENT to start.</div>';
     return;
   }
 

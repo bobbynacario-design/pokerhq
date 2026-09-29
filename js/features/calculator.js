@@ -105,9 +105,9 @@ function calcRenderPctEditor() {
   var html = '<div style="display:flex;flex-wrap:wrap;gap:.5rem .75rem;align-items:center;margin-bottom:.5rem">';
   for (var i=0; i<_calcPcts.length; i++) {
     html += '<div style="display:flex;align-items:center;gap:.3rem">';
-    html += '<span style="font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.4)">'+ordinal(i+1)+'</span>';
+    html += '<span style="font-family:var(--mono);font-size:10px;color:var(--wa-40)">'+ordinal(i+1)+'</span>';
     html += '<input class="pct-input" type="number" step="0.5" min="0" max="100" value="'+_calcPcts[i]+'" data-idx="'+i+'" oninput="onPercentChange(+this.getAttribute(\'data-idx\'))">';
-    html += '<span style="font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.3)">%</span>';
+    html += '<span style="font-family:var(--mono);font-size:10px;color:var(--wa-30)">%</span>';
     html += '</div>';
   }
   html += '</div>';

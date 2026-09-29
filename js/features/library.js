@@ -246,7 +246,7 @@ function renderSatellites() {
   var el = document.getElementById('satellite-list');
   if (!el) return;
   if (!satellites.length) {
-    el.innerHTML = '<div style="padding:3rem;text-align:center;color:rgba(255,255,255,.2);font-family:var(--mono);font-size:13px">No satellites logged yet. Set a target and start logging your satellite attempts.</div>';
+    el.innerHTML = '<div style="padding:3rem;text-align:center;color:var(--wa-20);font-family:var(--mono);font-size:13px">No satellites logged yet. Set a target and start logging your satellite attempts.</div>';
     return;
   }
   el.innerHTML = satellites.map(function(s) {
@@ -371,7 +371,7 @@ function renderOpponents() {
   }) : opponents;
 
   if (!filtered.length) {
-    el.innerHTML = '<div style="padding:3rem;text-align:center;color:rgba(255,255,255,.2);font-family:var(--mono);font-size:13px">' + (q ? 'No villains matching "' + esc(q) + '"' : 'No villains logged yet. Add a player you want to remember.') + '</div>';
+    el.innerHTML = '<div style="padding:3rem;text-align:center;color:var(--wa-20);font-family:var(--mono);font-size:13px">' + (q ? 'No villains matching "' + esc(q) + '"' : 'No villains logged yet. Add a player you want to remember.') + '</div>';
     return;
   }
   el.innerHTML = filtered.map(function(o) {

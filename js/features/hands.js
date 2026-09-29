@@ -58,7 +58,7 @@ function getHandResultMeta(result) {
   return {
     className: { won: 'hand-won', lost: 'hand-lost', fold: 'hand-fold' }[result] || 'hand-fold',
     label: { won: 'WON', lost: 'LOST', fold: 'FOLD' }[result] || 'FOLD',
-    color: { won: '#2DB87A', lost: '#E85C5C', fold: 'rgba(255,255,255,.4)' }[result] || 'rgba(255,255,255,.4)'
+    color: { won: 'var(--mint)', lost: 'var(--rose)', fold: 'var(--wa-40)' }[result] || 'var(--wa-40)'
   };
 }
 
@@ -115,36 +115,36 @@ function buildHandReplayHtml(hand) {
   var html = '';
 
   html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;margin-bottom:1rem">';
-  html += '<div><div style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:rgba(255,255,255,.35);text-transform:uppercase;margin-bottom:.25rem">Linked Session</div><div style="font-size:14px;color:#fff;line-height:1.5">' + esc(sessionLabel) + '</div></div>';
-  html += '<div style="font-family:var(--mono);font-size:10px;padding:4px 10px;border-radius:999px;background:rgba(0,0,0,.28);color:' + resultMeta.color + ';border:1px solid var(--rim2)">' + resultMeta.label + '</div>';
+  html += '<div><div style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--wa-35);text-transform:uppercase;margin-bottom:.25rem">Linked Session</div><div style="font-size:14px;color:var(--ink);line-height:1.5">' + esc(sessionLabel) + '</div></div>';
+  html += '<div style="font-family:var(--mono);font-size:10px;padding:4px 10px;border-radius:999px;background:var(--chip-bg);color:' + resultMeta.color + ';border:1px solid var(--rim2)">' + resultMeta.label + '</div>';
   html += '</div>';
 
   if (metaRows.length) {
     html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.65rem;margin-bottom:1rem">';
     metaRows.forEach(function(row) {
-      html += '<div style="background:var(--bg3);border-radius:10px;padding:.8rem .9rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;color:rgba(255,255,255,.35);text-transform:uppercase;margin-bottom:.35rem">' + row.label + '</div><div style="font-size:13px;color:#fff;line-height:1.6">' + esc(row.value) + '</div></div>';
+      html += '<div style="background:var(--bg3);border-radius:10px;padding:.8rem .9rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;color:var(--wa-35);text-transform:uppercase;margin-bottom:.35rem">' + row.label + '</div><div style="font-size:13px;color:var(--ink);line-height:1.6">' + esc(row.value) + '</div></div>';
     });
     html += '</div>';
   }
 
   if (!streetRows.length) {
-    html += '<div style="background:rgba(255,255,255,.03);border:1px solid var(--rim);border-radius:12px;padding:.9rem 1rem;margin-bottom:1rem;font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.45)">Replay details were not captured for this hand. Summary and lesson are still available below.</div>';
+    html += '<div style="background:rgba(255,255,255,.03);border:1px solid var(--rim);border-radius:12px;padding:.9rem 1rem;margin-bottom:1rem;font-family:var(--mono);font-size:11px;color:var(--wa-45)">Replay details were not captured for this hand. Summary and lesson are still available below.</div>';
   } else {
     html += '<div style="display:grid;gap:.75rem;margin-bottom:1rem">';
     streetRows.forEach(function(row) {
-      html += '<div style="background:var(--bg3);border-radius:12px;padding:.9rem 1rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:rgba(255,255,255,.35);text-transform:uppercase;margin-bottom:.4rem">' + row.label + '</div><div style="font-size:13px;color:rgba(255,255,255,.72);line-height:1.7">' + toMultilineHtml(row.value) + '</div></div>';
+      html += '<div style="background:var(--bg3);border-radius:12px;padding:.9rem 1rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--wa-35);text-transform:uppercase;margin-bottom:.4rem">' + row.label + '</div><div style="font-size:13px;color:var(--wa-72);line-height:1.7">' + toMultilineHtml(row.value) + '</div></div>';
     });
     html += '</div>';
   }
 
   if (hand.desc) {
-    html += '<div style="background:var(--bg3);border-radius:12px;padding:.9rem 1rem;margin-bottom:1rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:rgba(255,255,255,.35);text-transform:uppercase;margin-bottom:.4rem">Summary</div><div style="font-size:13px;color:rgba(255,255,255,.72);line-height:1.7">' + toMultilineHtml(hand.desc) + '</div></div>';
+    html += '<div style="background:var(--bg3);border-radius:12px;padding:.9rem 1rem;margin-bottom:1rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--wa-35);text-transform:uppercase;margin-bottom:.4rem">Summary</div><div style="font-size:13px;color:var(--wa-72);line-height:1.7">' + toMultilineHtml(hand.desc) + '</div></div>';
   }
   if (hand.lesson) {
-    html += '<div style="background:rgba(212,175,55,.08);border:1px solid rgba(212,175,55,.18);border-radius:12px;padding:.9rem 1rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--gold);text-transform:uppercase;margin-bottom:.35rem">Lesson / Note</div><div style="font-size:13px;color:#fff;line-height:1.7">' + toMultilineHtml(hand.lesson) + '</div></div>';
+    html += '<div style="background:rgba(212,175,55,.08);border:1px solid rgba(212,175,55,.18);border-radius:12px;padding:.9rem 1rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--gold);text-transform:uppercase;margin-bottom:.35rem">Lesson / Note</div><div style="font-size:13px;color:var(--ink);line-height:1.7">' + toMultilineHtml(hand.lesson) + '</div></div>';
   }
   if (!hand.desc && !hand.lesson) {
-    html += '<div style="background:rgba(255,255,255,.03);border:1px solid var(--rim);border-radius:12px;padding:.9rem 1rem;font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.45)">No extra note was saved for this hand.</div>';
+    html += '<div style="background:rgba(255,255,255,.03);border:1px solid var(--rim);border-radius:12px;padding:.9rem 1rem;font-family:var(--mono);font-size:11px;color:var(--wa-45)">No extra note was saved for this hand.</div>';
   }
   return html;
 }
@@ -288,7 +288,7 @@ function renderHands() {
   var countEl = document.getElementById('hand-count');
   if (countEl) countEl.textContent = filtered.length + ' hand' + (filtered.length !== 1 ? 's' : '');
   if (!filtered.length) {
-    el.innerHTML = '<div style="padding:3rem;text-align:center;color:rgba(255,255,255,.2);font-family:var(--mono);font-size:13px">' + (filterVal ? 'No hands linked to this session yet.' : 'No hands logged yet. Capture a hand manually or turn a voice memo into a structured review.') + '</div>';
+    el.innerHTML = '<div style="padding:3rem;text-align:center;color:var(--wa-20);font-family:var(--mono);font-size:13px">' + (filterVal ? 'No hands linked to this session yet.' : 'No hands logged yet. Capture a hand manually or turn a voice memo into a structured review.') + '</div>';
     return;
   }
   el.innerHTML = filtered.map(function(h) {

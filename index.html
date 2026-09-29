@@ -13,8 +13,8 @@
 <title>PokerHQ — Tournament Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script type="module" src="./js/app.js?v=20260929g"></script>
-<link rel="stylesheet" href="./styles/app.css?v=20260929g">
+<script type="module" src="./js/app.js?v=20260929h"></script>
+<link rel="stylesheet" href="./styles/app.css?v=20260929h">
 </head>
 <body>
 <!-- LOGIN GATE — shown until Firebase auth resolves a signed-in user -->
@@ -173,7 +173,7 @@
     </div>
     <div style="display:flex;align-items:center;gap:.6rem;flex-shrink:0">
       <button class="btn-demo-load" onclick="loadDemoMode()">LOAD DEMO DATA ↗</button>
-      <button onclick="dismissDemoBanner()" title="Dismiss" style="background:transparent;border:none;color:rgba(255,255,255,.3);font-size:18px;cursor:pointer;line-height:1;padding:0 2px;flex-shrink:0">✕</button>
+      <button onclick="dismissDemoBanner()" title="Dismiss" style="background:transparent;border:none;color:var(--wa-30);font-size:18px;cursor:pointer;line-height:1;padding:0 2px;flex-shrink:0">✕</button>
     </div>
   </div>
 
@@ -207,8 +207,8 @@
         <div class="bankroll-amount" id="dash-bankroll">₱0</div>
       </div>
       <div id="timer-widget" style="background:rgba(0,0,0,.25);border:1px solid var(--rim2);border-radius:12px;padding:.85rem 1.25rem;text-align:center;min-width:160px">
-        <div style="font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:rgba(255,255,255,.35);text-transform:uppercase;margin-bottom:.3rem">Session Timer</div>
-        <div id="timer-display" style="font-family:var(--mono);font-size:26px;font-weight:500;color:#fff;letter-spacing:.08em">00:00:00</div>
+        <div style="font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--wa-35);text-transform:uppercase;margin-bottom:.3rem">Session Timer</div>
+        <div id="timer-display" style="font-family:var(--mono);font-size:26px;font-weight:500;color:var(--ink);letter-spacing:.08em">00:00:00</div>
         <div style="display:flex;gap:.4rem;margin-top:.6rem;justify-content:center">
           <button id="timer-start-btn" onclick="startTimer()" style="font-family:var(--mono);font-size:10px;padding:.3rem .8rem;background:var(--green);color:#fff;border:none;border-radius:6px;cursor:pointer;transition:background .15s">START</button>
           <button id="timer-stop-btn" onclick="stopTimer()" style="font-family:var(--mono);font-size:10px;padding:.3rem .8rem;background:var(--red-dim);color:var(--red);border:1px solid rgba(232,92,92,.3);border-radius:6px;cursor:pointer;display:none">STOP</button>
@@ -372,7 +372,7 @@
   <!-- Bankroll Setup -->
   <div class="form-card">
     <div class="sec-hdr" style="margin-bottom:1rem">
-      <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:rgba(255,255,255,.4);text-transform:uppercase">Bankroll Setup</div>
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--wa-40);text-transform:uppercase">Bankroll Setup</div>
     </div>
     <div class="form-grid">
       <div class="form-group">
@@ -394,7 +394,7 @@
   <!-- Log Session Form -->
   <div class="form-card">
 <div id="session-edit-banner" style="display:none;margin-bottom:1rem;padding:.75rem .9rem;background:var(--gold-dim);border:1px solid rgba(212,175,55,.3);border-radius:10px"></div>
-        <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:1rem">Log New Session</div>
+        <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--wa-40);text-transform:uppercase;margin-bottom:1rem">Log New Session</div>
     <div class="form-grid">
       <div class="form-group">
         <label class="form-label">Date</label>
@@ -562,7 +562,7 @@
 
   <div class="form-card">
     <div class="sec-hdr" style="margin-bottom:1rem">
-      <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:rgba(255,255,255,.4);text-transform:uppercase">Staking & Package Tracking</div>
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--wa-40);text-transform:uppercase">Staking & Package Tracking</div>
       <button class="sec-action" onclick="exportStakingCSV()">⬇ STAKING REPORT</button>
     </div>
     <div id="staking-summary-wrap">
@@ -572,7 +572,7 @@
 
   <!-- Full Session Table -->
   <div class="sec-hdr" style="margin-bottom:.85rem">
-    <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:rgba(255,255,255,.4);text-transform:uppercase">Session History</div>
+    <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--wa-40);text-transform:uppercase">Session History</div>
     <button class="sec-action" id="clear-sessions-btn" style="border-color:var(--red);color:var(--red)" onclick="clearAllSessions()">↺ CLEAR ALL SESSIONS</button>
   </div>
   <div class="session-filter-bar">
@@ -706,13 +706,13 @@
       <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--gold);text-transform:uppercase">Email Reminders</div>
     </div>
     <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
-      <label style="display:flex;align-items:center;gap:.5rem;font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.7);cursor:pointer">
+      <label style="display:flex;align-items:center;gap:.5rem;font-family:var(--mono);font-size:12px;color:var(--wa-70);cursor:pointer">
         <input type="checkbox" id="reminder-enabled" onchange="saveReminderSettings()"> Email me before target events
       </label>
       <div style="display:flex;align-items:center;gap:.4rem">
-        <span style="font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.45)">Lead time</span>
+        <span style="font-family:var(--mono);font-size:11px;color:var(--wa-45)">Lead time</span>
         <input class="form-input" type="number" id="reminder-lead" min="0" max="14" value="1" style="width:64px;padding:.35rem .5rem" onchange="saveReminderSettings()">
-        <span style="font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.45)">days</span>
+        <span style="font-family:var(--mono);font-size:11px;color:var(--wa-45)">days</span>
       </div>
     </div>
     <div class="tip" style="margin-top:.8rem">Sends to <strong id="reminder-email">your account email</strong> via PokerHQ's reminder service — TARGET and STRETCH events only, once each. Requires the email backend to be set up (one-time). The ⤓ EXPORT .ICS button also gives you calendar reminders without any backend.</div>
@@ -732,16 +732,16 @@
     </div>
     <div id="push-result" style="display:none;font-family:var(--mono);font-size:11px;margin-top:.6rem"></div>
     <div style="display:flex;flex-direction:column;gap:.55rem;margin-top:1rem">
-      <label style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.7);cursor:pointer">
+      <label style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--wa-70);cursor:pointer">
         <input type="checkbox" id="push-start" onchange="saveReminderSettings()"> Alert me before events I'm planning to play (★)
         <select class="form-input" id="push-lead" onchange="saveReminderSettings()" style="width:auto;padding:.3rem .5rem">
           <option value="30">30 min</option>
           <option value="60">60 min</option>
           <option value="120">2 hours</option>
         </select>
-        <span style="color:rgba(255,255,255,.45)">before the start</span>
+        <span style="color:var(--wa-45)">before the start</span>
       </label>
-      <label style="display:flex;align-items:center;gap:.5rem;font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.7);cursor:pointer">
+      <label style="display:flex;align-items:center;gap:.5rem;font-family:var(--mono);font-size:12px;color:var(--wa-70);cursor:pointer">
         <input type="checkbox" id="push-morning" onchange="saveReminderSettings()"> Morning summary of today's events (around 8am Manila time)
       </label>
     </div>
@@ -872,7 +872,7 @@
 
   <!-- Manual Strategy Form -->
   <div class="form-card">
-    <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:1rem">Add Study Note</div>
+    <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--wa-40);text-transform:uppercase;margin-bottom:1rem">Add Study Note</div>
     <div class="form-grid">
       <div class="form-group">
         <label class="form-label">Week / Date</label>
@@ -911,7 +911,7 @@
       <button class="sec-action primary" onclick="openNewHandModal()">+ LOG HAND</button>
     </div>
   </div>
-  <div style="background:var(--blue-dim);border:1px solid rgba(52,152,219,.2);border-radius:10px;padding:.75rem 1rem;margin-bottom:1.25rem;font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.5);display:flex;align-items:center;gap:.6rem">
+  <div style="background:var(--blue-dim);border:1px solid rgba(52,152,219,.2);border-radius:10px;padding:.75rem 1rem;margin-bottom:1.25rem;font-family:var(--mono);font-size:11px;color:var(--wa-50);display:flex;align-items:center;gap:.6rem">
     <span style="font-size:16px">💡</span>
     <span>Link hands to sessions using the session dropdown — view them together on the <strong style="color:var(--blue)">Session detail</strong> page.</span>
   </div>
@@ -922,7 +922,7 @@
     <select class="form-input" id="hand-session-filter" onchange="renderHands()" style="max-width:260px;padding:.4rem .8rem;font-size:12px">
       <option value="">All sessions</option>
     </select>
-    <span id="hand-count" style="font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.3)"></span>
+    <span id="hand-count" style="font-family:var(--mono);font-size:11px;color:var(--wa-30)"></span>
   </div>
 
   <div id="hand-list"></div>
@@ -933,7 +933,7 @@
   <div class="sat-hero">
     <div class="sat-goal-label">Current Satellite Target</div>
     <div class="sat-goal-name" id="sat-target-name">No target set</div>
-    <div style="font-family:var(--mono);font-size:12px;color:rgba(155,111,232,.6)" id="sat-target-buyin"></div>
+    <div style="font-family:var(--mono);font-size:12px;color:var(--vio-60)" id="sat-target-buyin"></div>
     <div class="sat-progress-wrap"><div class="sat-progress-bar" id="sat-progress-bar" style="width:0%"></div></div>
     <div class="sat-stats">
       <div class="sat-stat"><div class="sat-stat-label">Sats Played</div><div class="sat-stat-val" id="sat-played">0</div></div>
@@ -950,7 +950,7 @@
 
   <!-- Set target form -->
   <div class="form-card" style="margin-bottom:1.5rem">
-    <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:1rem">Set Target Tournament</div>
+    <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--wa-40);text-transform:uppercase;margin-bottom:1rem">Set Target Tournament</div>
     <div class="form-grid">
       <div class="form-group">
         <label class="form-label">Target Event</label>
@@ -1086,28 +1086,28 @@
       <rect x="160" y="20" width="160" height="72" rx="10" fill="#c9a84c"/>
       <text x="240" y="46" text-anchor="middle" fill="#14110a" font-size="11" font-weight="800">PLAN</text>
       <text x="240" y="63" text-anchor="middle" fill="rgba(20,17,10,.8)" font-size="10">Calendar · satellites</text>
-      <text x="240" y="79" text-anchor="middle" fill="rgba(20,17,10,.6)" font-size="9.5">grade &amp; pin the slate</text>
+      <text x="240" y="79" text-anchor="middle" fill="rgba(20,17,10,.8)" font-size="9.5">grade &amp; pin the slate</text>
       <path d="M320 56 L360 56 L360 84" stroke="#d8c388" stroke-width="2" fill="none" marker-end="url(#arrA)"/>
       <rect x="300" y="92" width="160" height="72" rx="10" fill="#c9a84c"/>
       <text x="380" y="118" text-anchor="middle" fill="#14110a" font-size="11" font-weight="800">PLAY</text>
       <text x="380" y="135" text-anchor="middle" fill="rgba(20,17,10,.8)" font-size="10">Timer · hands · result</text>
-      <text x="380" y="151" text-anchor="middle" fill="rgba(20,17,10,.6)" font-size="9.5">run the session</text>
+      <text x="380" y="151" text-anchor="middle" fill="rgba(20,17,10,.8)" font-size="9.5">run the session</text>
       <path d="M460 128 L500 128 L500 56 L520 56" stroke="#d8c388" stroke-width="2" fill="none" marker-end="url(#arrA)"/>
       <rect x="440" y="20" width="160" height="72" rx="10" fill="#c9a84c"/>
       <text x="520" y="46" text-anchor="middle" fill="#14110a" font-size="11" font-weight="800">REVIEW</text>
       <text x="520" y="63" text-anchor="middle" fill="rgba(20,17,10,.8)" font-size="10">History · heatmaps</text>
-      <text x="520" y="79" text-anchor="middle" fill="rgba(20,17,10,.6)" font-size="9.5">debrief the run</text>
+      <text x="520" y="79" text-anchor="middle" fill="rgba(20,17,10,.8)" font-size="9.5">debrief the run</text>
       <path d="M600 56 L640 56 L640 128 L660 128" stroke="#d8c388" stroke-width="2" fill="none" marker-end="url(#arrA)"/>
       <rect x="600" y="92" width="150" height="72" rx="10" fill="#c9a84c"/>
       <text x="675" y="118" text-anchor="middle" fill="#14110a" font-size="11" font-weight="800">IMPROVE</text>
       <text x="675" y="135" text-anchor="middle" fill="rgba(20,17,10,.8)" font-size="10">Strategy · opponents</text>
-      <text x="675" y="151" text-anchor="middle" fill="rgba(20,17,10,.6)" font-size="9.5">lock the lesson</text>
+      <text x="675" y="151" text-anchor="middle" fill="rgba(20,17,10,.8)" font-size="9.5">lock the lesson</text>
       <path d="M675 164 L675 200 L240 200 L240 92" stroke="#d8c388" stroke-width="2" stroke-dasharray="4 4" fill="none" marker-end="url(#arrA)"/>
-      <text x="455" y="216" text-anchor="middle" fill="#9a917c" font-size="10">…and the lesson feeds the next plan</text>
+      <text x="455" y="216" text-anchor="middle" fill="#6f6650" font-size="10">…and the lesson feeds the next plan</text>
       <rect x="10" y="228" width="12" height="12" rx="3" fill="#14110a"/>
-      <text x="30" y="238" fill="#9a917c" font-size="10">One-time setup</text>
+      <text x="30" y="238" fill="#6f6650" font-size="10">One-time setup</text>
       <rect x="150" y="228" width="12" height="12" rx="3" fill="#c9a84c"/>
-      <text x="170" y="238" fill="#9a917c" font-size="10">Repeats every event</text>
+      <text x="170" y="238" fill="#6f6650" font-size="10">Repeats every event</text>
     </svg>
   </div>
 
@@ -1147,13 +1147,13 @@
     <div class="diagram-label">How the rule grades a buy-in — worked example at ₱45,000</div>
     <svg viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
       <rect x="10" y="16" width="230" height="60" rx="9" fill="#fff" stroke="#e6e1d4"/>
-      <text x="125" y="40" text-anchor="middle" fill="#9a917c" font-size="9.5" font-weight="700">RECOMMENDED</text>
+      <text x="125" y="40" text-anchor="middle" fill="#6f6650" font-size="9.5" font-weight="700">RECOMMENDED</text>
       <text x="125" y="60" text-anchor="middle" fill="#14110a" font-size="13" font-weight="800">₱45,000 ÷ 15 = ₱3,000</text>
       <rect x="265" y="16" width="230" height="60" rx="9" fill="#fff" stroke="#e6e1d4"/>
-      <text x="380" y="40" text-anchor="middle" fill="#9a917c" font-size="9.5" font-weight="700">STRETCH</text>
+      <text x="380" y="40" text-anchor="middle" fill="#6f6650" font-size="9.5" font-weight="700">STRETCH</text>
       <text x="380" y="60" text-anchor="middle" fill="#14110a" font-size="13" font-weight="800">₱45,000 ÷ 9 = ₱5,000</text>
       <rect x="520" y="16" width="230" height="60" rx="9" fill="#fff" stroke="#e6e1d4"/>
-      <text x="635" y="40" text-anchor="middle" fill="#9a917c" font-size="9.5" font-weight="700">SHOTS AT REC STAKE</text>
+      <text x="635" y="40" text-anchor="middle" fill="#6f6650" font-size="9.5" font-weight="700">SHOTS AT REC STAKE</text>
       <text x="635" y="60" text-anchor="middle" fill="#14110a" font-size="13" font-weight="800">15×</text>
       <text x="10" y="108" fill="#4a4534" font-size="11" font-weight="700">Any buy-in is then graded:</text>
       <rect x="10" y="120" width="240" height="48" rx="8" fill="#dcf3e4"/>
@@ -1240,18 +1240,18 @@
     <svg viewBox="0 0 760 210" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
       <rect width="760" height="210" rx="10" fill="#14110a"/>
       <text x="24" y="34" fill="#c9a84c" font-size="12" font-weight="800">ACTIVE · Solaire Sunday Main</text>
-      <text x="24" y="52" fill="rgba(255,255,255,.5)" font-size="9.5">Solaire Resort · ₱5,500 seat (won via satellite)</text>
+      <text x="24" y="52" fill="rgba(255,255,255,.7)" font-size="9.5">Solaire Resort · ₱5,500 seat (won via satellite)</text>
       <rect x="24" y="68" width="160" height="58" rx="8" fill="#1f1a10"/>
-      <text x="104" y="90" text-anchor="middle" fill="rgba(255,255,255,.45)" font-size="9">TIMER</text>
+      <text x="104" y="90" text-anchor="middle" fill="rgba(255,255,255,.65)" font-size="9">TIMER</text>
       <text x="104" y="112" text-anchor="middle" fill="#fff" font-size="16" font-weight="700" font-family="'Fira Mono',monospace">04:18:22</text>
       <rect x="196" y="68" width="120" height="58" rx="8" fill="#1f1a10"/>
-      <text x="256" y="90" text-anchor="middle" fill="rgba(255,255,255,.45)" font-size="9">BULLETS</text>
+      <text x="256" y="90" text-anchor="middle" fill="rgba(255,255,255,.65)" font-size="9">BULLETS</text>
       <text x="256" y="112" text-anchor="middle" fill="#fff" font-size="16" font-weight="700">1</text>
       <rect x="328" y="68" width="120" height="58" rx="8" fill="#1f1a10"/>
-      <text x="388" y="90" text-anchor="middle" fill="rgba(255,255,255,.45)" font-size="9">FOCUS</text>
+      <text x="388" y="90" text-anchor="middle" fill="rgba(255,255,255,.65)" font-size="9">FOCUS</text>
       <text x="388" y="112" text-anchor="middle" fill="#2faa5e" font-size="16" font-weight="700">8/10</text>
       <rect x="460" y="68" width="120" height="58" rx="8" fill="#1f1a10"/>
-      <text x="520" y="90" text-anchor="middle" fill="rgba(255,255,255,.45)" font-size="9">ENERGY</text>
+      <text x="520" y="90" text-anchor="middle" fill="rgba(255,255,255,.65)" font-size="9">ENERGY</text>
       <text x="520" y="112" text-anchor="middle" fill="#2faa5e" font-size="16" font-weight="700">7/10</text>
       <rect x="24" y="140" width="150" height="30" rx="6" fill="#c9a84c"/>
       <text x="99" y="160" text-anchor="middle" fill="#14110a" font-size="10" font-weight="700">CAPTURE HAND</text>
@@ -1261,7 +1261,7 @@
       <text x="448" y="160" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="10">MENTAL CHECK-IN</text>
       <rect x="540" y="140" width="160" height="30" rx="6" fill="#1f1a10" stroke="#3a3320"/>
       <text x="620" y="160" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="10">LOG TIMER → SESSION</text>
-      <text x="24" y="194" fill="rgba(255,255,255,.4)" font-size="9.5">Quick check-in: ROUGH · STEADY · SHARP   —   one tap sets focus / energy / sleep / food</text>
+      <text x="24" y="194" fill="rgba(255,255,255,.65)" font-size="9.5">Quick check-in: ROUGH · STEADY · SHARP   —   one tap sets focus / energy / sleep / food</text>
     </svg>
   </div>
 
@@ -1562,9 +1562,9 @@
     <div class="heatmap-title">Monthly P&L — Last 12 Months</div>
     <div class="month-grid" id="hmap-monthly"></div>
     <div style="display:flex;gap:1rem;flex-wrap:wrap">
-      <div style="display:flex;align-items:center;gap:.4rem;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.35)"><div style="width:12px;height:12px;background:rgba(45,184,122,.5);border-radius:2px"></div>Profitable</div>
-      <div style="display:flex;align-items:center;gap:.4rem;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.35)"><div style="width:12px;height:12px;background:rgba(232,92,92,.5);border-radius:2px"></div>Loss</div>
-      <div style="display:flex;align-items:center;gap:.4rem;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.35)"><div style="width:12px;height:12px;background:rgba(255,255,255,.08);border-radius:2px"></div>No data</div>
+      <div style="display:flex;align-items:center;gap:.4rem;font-family:var(--mono);font-size:10px;color:var(--wa-35)"><div style="width:12px;height:12px;background:rgba(45,184,122,.5);border-radius:2px"></div>Profitable</div>
+      <div style="display:flex;align-items:center;gap:.4rem;font-family:var(--mono);font-size:10px;color:var(--wa-35)"><div style="width:12px;height:12px;background:rgba(232,92,92,.5);border-radius:2px"></div>Loss</div>
+      <div style="display:flex;align-items:center;gap:.4rem;font-family:var(--mono);font-size:10px;color:var(--wa-35)"><div style="width:12px;height:12px;background:rgba(255,255,255,.08);border-radius:2px"></div>No data</div>
     </div>
   </div>
 </div>
@@ -1572,7 +1572,7 @@
 <!-- ════════════════════ CALCULATOR ════════════════════ -->
 <div class="page" id="page-calculator">
 
-  <div style="font-family:var(--serif);font-size:22px;letter-spacing:.04em;margin-bottom:1rem;color:#fff">🧮 Tournament Calculator</div>
+  <div style="font-family:var(--serif);font-size:22px;letter-spacing:.04em;margin-bottom:1rem;color:var(--ink)">🧮 Tournament Calculator</div>
 
   <!-- Mode Toggle -->
   <div class="calc-toggle">
@@ -1672,7 +1672,7 @@
       </div>
 
       <!-- Empty state -->
-      <div id="calc-advisor-empty" style="text-align:center;padding:2.5rem 0;font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.22)">Enter values above to see calculations</div>
+      <div id="calc-advisor-empty" style="text-align:center;padding:2.5rem 0;font-family:var(--mono);font-size:11px;color:var(--wa-22)">Enter values above to see calculations</div>
 
       <!-- Results (hidden until inputs present) -->
       <div id="calc-advisor-results" style="display:none">
@@ -1731,7 +1731,7 @@
         </div>
       </div>
       <div id="icm-error" class="tip" style="display:none;color:var(--red)"></div>
-      <div id="icm-empty" style="text-align:center;padding:2.5rem 0;font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.22)">Enter the stacks and prizes above to see what each stack is really worth</div>
+      <div id="icm-empty" style="text-align:center;padding:2.5rem 0;font-family:var(--mono);font-size:11px;color:var(--wa-22)">Enter the stacks and prizes above to see what each stack is really worth</div>
       <div id="icm-results" style="display:none">
         <div class="table-wrap" style="margin-top:.85rem">
           <table class="tbl icm-table">
@@ -1777,7 +1777,7 @@
         <div id="calc-risk-autofill-note" style="display:none;font-family:var(--mono);font-size:10px;line-height:1.5;margin-top:.5rem"></div>
       </div>
 
-      <div id="calc-risk-empty" style="text-align:center;padding:2.5rem 0;font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.22)">Enter bankroll, average buy-in, ROI, and variance to see bankroll pressure.</div>
+      <div id="calc-risk-empty" style="text-align:center;padding:2.5rem 0;font-family:var(--mono);font-size:11px;color:var(--wa-22)">Enter bankroll, average buy-in, ROI, and variance to see bankroll pressure.</div>
 
       <div id="calc-risk-results" style="display:none">
         <div class="calc-advisor-grid">
@@ -1911,7 +1911,7 @@
       </div>
       <input type="hidden" id="h-pending-session-key" value="">
       <div style="grid-column:1/-1;background:rgba(255,255,255,.03);border:1px solid var(--rim);border-radius:10px;padding:1rem">
-        <div style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:.85rem">Replay Details (Optional)</div>
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--wa-40);text-transform:uppercase;margin-bottom:.85rem">Replay Details (Optional)</div>
         <div class="form-grid" style="margin-bottom:0">
           <div class="form-group">
             <label class="form-label">Hero Position</label>
@@ -1965,29 +1965,29 @@
   </div>
 </div>
 
-<script src="./js/data/util.js?v=20260929g"></script>
-<script src="./js/data/merge.js?v=20260929g"></script>
-<script src="./js/data/config-runtime.js?v=20260929g"></script>
-<script src="./js/data/ai-proxy.js?v=20260929g"></script>
-<script src="./js/features/active-session.js?v=20260929g"></script>
-<script src="./js/features/demo-mode.js?v=20260929g"></script>
-<script src="./js/data/pushfold.js?v=20260929g"></script>
-<script src="./js/data/stats.js?v=20260929g"></script>
-<script src="./js/data/icm.js?v=20260929g"></script>
-<script src="./js/features/calculator.js?v=20260929g"></script>
-<script src="./js/features/staking.js?v=20260929g"></script>
-<script src="./js/features/package-report.js?v=20260929g"></script>
-<script src="./js/features/review.js?v=20260929g"></script>
-<script src="./js/features/calendar.js?v=20260929g"></script>
-<script src="./js/features/study-loop.js?v=20260929g"></script>
-<script src="./js/features/strategy.js?v=20260929g"></script>
-<script src="./js/features/hands.js?v=20260929g"></script>
-<script src="./js/features/treasury.js?v=20260929g"></script>
-<script src="./js/features/bankroll-chart.js?v=20260929g"></script>
-<script src="./js/features/library.js?v=20260929g"></script>
-<script src="./js/features/push.js?v=20260929g"></script>
-<script src="./js/features/onboarding.js?v=20260929g"></script>
-<script src="./js/features/today-glance.js?v=20260929g"></script>
+<script src="./js/data/util.js?v=20260929h"></script>
+<script src="./js/data/merge.js?v=20260929h"></script>
+<script src="./js/data/config-runtime.js?v=20260929h"></script>
+<script src="./js/data/ai-proxy.js?v=20260929h"></script>
+<script src="./js/features/active-session.js?v=20260929h"></script>
+<script src="./js/features/demo-mode.js?v=20260929h"></script>
+<script src="./js/data/pushfold.js?v=20260929h"></script>
+<script src="./js/data/stats.js?v=20260929h"></script>
+<script src="./js/data/icm.js?v=20260929h"></script>
+<script src="./js/features/calculator.js?v=20260929h"></script>
+<script src="./js/features/staking.js?v=20260929h"></script>
+<script src="./js/features/package-report.js?v=20260929h"></script>
+<script src="./js/features/review.js?v=20260929h"></script>
+<script src="./js/features/calendar.js?v=20260929h"></script>
+<script src="./js/features/study-loop.js?v=20260929h"></script>
+<script src="./js/features/strategy.js?v=20260929h"></script>
+<script src="./js/features/hands.js?v=20260929h"></script>
+<script src="./js/features/treasury.js?v=20260929h"></script>
+<script src="./js/features/bankroll-chart.js?v=20260929h"></script>
+<script src="./js/features/library.js?v=20260929h"></script>
+<script src="./js/features/push.js?v=20260929h"></script>
+<script src="./js/features/onboarding.js?v=20260929h"></script>
+<script src="./js/features/today-glance.js?v=20260929h"></script>
 <script>
 // ── PWA INSTALL — captures the browser install prompt like Enclave ──
 var _deferredInstallPrompt = null;
@@ -2052,7 +2052,7 @@ window.addEventListener('offline', function(){ _isOnline=false; updateOnlineStat
 function updateOnlineStatus() {
   var el = document.getElementById('sync-status');
   if (!el) return;
-  if (!_isOnline) { el.textContent='○ Offline — changes saved locally'; el.style.color='#F0A832'; }
+  if (!_isOnline) { el.textContent='○ Offline — changes saved locally'; el.style.color='var(--amber)'; }
   renderReliability();
 }
 
@@ -2687,7 +2687,7 @@ function refreshDashboard() {
   var chart = document.getElementById('pnl-chart');
   var last10 = sessions.slice(0,10).reverse();
   if (!last10.length) {
-    if (chart) chart.innerHTML='<div style="color:rgba(255,255,255,.2);font-family:var(--mono);font-size:11px;width:100%;text-align:center;padding:2rem 0">No sessions to chart yet</div>';
+    if (chart) chart.innerHTML='<div style="color:var(--wa-20);font-family:var(--mono);font-size:11px;width:100%;text-align:center;padding:2rem 0">No sessions to chart yet</div>';
     refreshDemoBanner();
     renderActiveSessionSurface();
     renderReliability();
@@ -3006,7 +3006,7 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
     <div class="form-group" style="margin-bottom:1rem">
       <label class="form-label">Anthropic API Key</label>
       <input class="form-input" type="password" id="voice-api-key" autocomplete="off" placeholder="sk-ant-...">
-      <div style="font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.35);margin-top:.4rem;line-height:1.6" id="voice-key-tip">Stored only in this device's local storage — never synced. Create a key at console.anthropic.com.</div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--wa-35);margin-top:.4rem;line-height:1.6" id="voice-key-tip">Stored only in this device's local storage — never synced. Create a key at console.anthropic.com.</div>
     </div>
     <div id="voice-result" style="display:none;background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.2);border-radius:10px;padding:1rem;margin-bottom:1rem">
       <div style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--gold);margin-bottom:.75rem;text-transform:uppercase">Structured Hand — Review & Edit</div>
@@ -3017,8 +3017,8 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
         <div class="form-group" style="grid-column:1/-1"><label class="form-label">Lesson</label><input class="form-input" type="text" id="vr-lesson"></div>
       </div>
     </div>
-    <div id="voice-loading" style="display:none;text-align:center;padding:1rem;font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.4)">⟳ Structuring hand with Claude...</div>
-    <div id="voice-error" style="display:none;font-family:var(--mono);font-size:11px;color:#E85C5C;margin-bottom:.75rem"></div>
+    <div id="voice-loading" style="display:none;text-align:center;padding:1rem;font-family:var(--mono);font-size:12px;color:var(--wa-40)">⟳ Structuring hand with Claude...</div>
+    <div id="voice-error" style="display:none;font-family:var(--mono);font-size:11px;color:var(--rose);margin-bottom:.75rem"></div>
     <div class="modal-actions">
       <button class="sec-action" onclick="closeModal('modal-voice');clearVoiceModal()">CANCEL</button>
       <button class="sec-action" id="voice-structure-btn" onclick="structureHand()">✨ STRUCTURE WITH AI</button>
@@ -3032,7 +3032,7 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
   <div class="modal" style="max-width:620px">
     <div class="modal-title">Pre-Session Readiness</div>
     <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1rem">
-      <div style="font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.42);line-height:1.6">Fast check before you start. Use quick taps, then either start or skip.</div>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--wa-42);line-height:1.6">Fast check before you start. Use quick taps, then either start or skip.</div>
       <div class="readiness-pill caution" id="readiness-pill">Caution</div>
     </div>
     <div class="readiness-result-card">

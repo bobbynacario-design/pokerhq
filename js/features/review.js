@@ -111,15 +111,15 @@ function buildSessionDebriefHtml(report) {
   html += '<div class="review-card-title">Session Debrief</div>';
   html += '<div class="review-card-copy">Lightweight local pattern read built from result, mental state, linked hands, and venue history.</div>';
   html += '<div style="display:grid;gap:.65rem;margin-top:.9rem">';
-  html += '<div style="background:var(--bg3);border-radius:10px;padding:.85rem .95rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:.35rem">What went well</div><div style="font-size:13px;color:rgba(255,255,255,.72);line-height:1.65">' + esc(report.wentWell) + '</div></div>';
-  html += '<div style="background:var(--bg3);border-radius:10px;padding:.85rem .95rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:.35rem">What likely hurt performance</div><div style="font-size:13px;color:rgba(255,255,255,.72);line-height:1.65">' + esc(report.hurt) + '</div></div>';
-  html += '<div style="background:var(--bg3);border-radius:10px;padding:.85rem .95rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:.35rem">What to review next</div><div style="font-size:13px;color:rgba(255,255,255,.72);line-height:1.65">' + esc(report.reviewNext) + '</div></div>';
-  html += '<div style="background:rgba(52,152,219,.08);border:1px solid rgba(52,152,219,.2);border-radius:10px;padding:.85rem .95rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:rgba(52,152,219,.9);margin-bottom:.35rem">Next-session focus</div><div style="font-size:13px;color:#fff;line-height:1.65">' + esc(report.focusItem) + '</div></div>';
+  html += '<div style="background:var(--bg3);border-radius:10px;padding:.85rem .95rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--wa-35);margin-bottom:.35rem">What went well</div><div style="font-size:13px;color:var(--wa-72);line-height:1.65">' + esc(report.wentWell) + '</div></div>';
+  html += '<div style="background:var(--bg3);border-radius:10px;padding:.85rem .95rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--wa-35);margin-bottom:.35rem">What likely hurt performance</div><div style="font-size:13px;color:var(--wa-72);line-height:1.65">' + esc(report.hurt) + '</div></div>';
+  html += '<div style="background:var(--bg3);border-radius:10px;padding:.85rem .95rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--wa-35);margin-bottom:.35rem">What to review next</div><div style="font-size:13px;color:var(--wa-72);line-height:1.65">' + esc(report.reviewNext) + '</div></div>';
+  html += '<div style="background:rgba(52,152,219,.08);border:1px solid rgba(52,152,219,.2);border-radius:10px;padding:.85rem .95rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:rgba(52,152,219,.9);margin-bottom:.35rem">Next-session focus</div><div style="font-size:13px;color:var(--ink);line-height:1.65">' + esc(report.focusItem) + '</div></div>';
   html += '</div>';
   if (report.context.handCount || report.context.venueHistoryCount) {
     html += '<div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.8rem">';
-    if (report.context.handCount) html += '<div style="font-family:var(--mono);font-size:10px;padding:.35rem .65rem;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid var(--rim2);color:rgba(255,255,255,.5)">' + report.context.handCount + ' linked hand' + (report.context.handCount !== 1 ? 's' : '') + '</div>';
-    if (report.context.venueHistoryCount) html += '<div style="font-family:var(--mono);font-size:10px;padding:.35rem .65rem;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid var(--rim2);color:rgba(255,255,255,.5)">' + report.context.venueHistoryCount + ' prior session' + (report.context.venueHistoryCount !== 1 ? 's' : '') + ' at venue</div>';
+    if (report.context.handCount) html += '<div style="font-family:var(--mono);font-size:10px;padding:.35rem .65rem;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid var(--rim2);color:var(--wa-50)">' + report.context.handCount + ' linked hand' + (report.context.handCount !== 1 ? 's' : '') + '</div>';
+    if (report.context.venueHistoryCount) html += '<div style="font-family:var(--mono);font-size:10px;padding:.35rem .65rem;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid var(--rim2);color:var(--wa-50)">' + report.context.venueHistoryCount + ' prior session' + (report.context.venueHistoryCount !== 1 ? 's' : '') + ' at venue</div>';
     html += '</div>';
   }
   if (aiConfig) {
@@ -189,10 +189,10 @@ function buildAiDebriefHtml(report) {
   html += '<div class="review-card-title">AI-Enhanced Debrief</div>';
   html += '<div class="review-card-copy">Optional second layer on top of the local debrief.</div>';
   html += '<div style="display:grid;gap:.65rem;margin-top:.9rem">';
-  html += '<div style="background:var(--bg3);border-radius:10px;padding:.85rem .95rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:.35rem">What went well</div><div style="font-size:13px;color:rgba(255,255,255,.72);line-height:1.65">' + esc(report.wentWell) + '</div></div>';
-  html += '<div style="background:var(--bg3);border-radius:10px;padding:.85rem .95rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:.35rem">What likely hurt performance</div><div style="font-size:13px;color:rgba(255,255,255,.72);line-height:1.65">' + esc(report.hurt) + '</div></div>';
-  html += '<div style="background:var(--bg3);border-radius:10px;padding:.85rem .95rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:.35rem">What to review next</div><div style="font-size:13px;color:rgba(255,255,255,.72);line-height:1.65">' + esc(report.reviewNext) + '</div></div>';
-  html += '<div style="background:rgba(212,175,55,.08);border:1px solid rgba(212,175,55,.18);border-radius:10px;padding:.85rem .95rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--gold);margin-bottom:.35rem">Next-session focus</div><div style="font-size:13px;color:#fff;line-height:1.65">' + esc(report.focusItem) + '</div></div>';
+  html += '<div style="background:var(--bg3);border-radius:10px;padding:.85rem .95rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--wa-35);margin-bottom:.35rem">What went well</div><div style="font-size:13px;color:var(--wa-72);line-height:1.65">' + esc(report.wentWell) + '</div></div>';
+  html += '<div style="background:var(--bg3);border-radius:10px;padding:.85rem .95rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--wa-35);margin-bottom:.35rem">What likely hurt performance</div><div style="font-size:13px;color:var(--wa-72);line-height:1.65">' + esc(report.hurt) + '</div></div>';
+  html += '<div style="background:var(--bg3);border-radius:10px;padding:.85rem .95rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--wa-35);margin-bottom:.35rem">What to review next</div><div style="font-size:13px;color:var(--wa-72);line-height:1.65">' + esc(report.reviewNext) + '</div></div>';
+  html += '<div style="background:rgba(212,175,55,.08);border:1px solid rgba(212,175,55,.18);border-radius:10px;padding:.85rem .95rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--gold);margin-bottom:.35rem">Next-session focus</div><div style="font-size:13px;color:var(--ink);line-height:1.65">' + esc(report.focusItem) + '</div></div>';
   html += '</div></div>';
   return html;
 }
@@ -247,39 +247,39 @@ function viewSessionDetail(sid, fromLog) {
   if (!s) return;
   var linkedHands = hands.filter(function(h){ return h.sessionId===sid; });
   var staking = window.getSessionStakingData ? getSessionStakingData(s) : null;
-  var pnlCls = s.pnl>0 ? 'color:#2DB87A' : s.pnl<0 ? 'color:#E85C5C' : 'color:rgba(255,255,255,.4)';
+  var pnlCls = s.pnl>0 ? 'color:var(--mint)' : s.pnl<0 ? 'color:var(--rose)' : 'color:var(--wa-40)';
   var html = fromLog ? '<div class="review-card" style="margin-bottom:1rem;border-color:rgba(212,175,55,.22)"><div class="review-card-title">Session debrief ready</div><div class="review-card-copy">You just logged this session. Add a hand, run a debrief, or open the heatmap before the details fade.</div><div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap"><button class="sec-action" onclick="renderSessionDebrief('+sid+')">AI SESSION DEBRIEF</button><button class="sec-action" onclick="closeModal(\'modal-session-detail\');openHandModalForSession('+sid+')">+ ADD HAND</button><button class="sec-action" onclick="closeModal(\'modal-session-detail\');switchGroup(\'review\',\'heatmap\')">OPEN HEATMAP</button></div></div>' : '';
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1.25rem">';
-  html += '<div style="background:var(--bg3);border-radius:8px;padding:.75rem"><div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.3);margin-bottom:.25rem">BUY-IN</div><div style="font-family:var(--mono);font-size:16px">₱'+s.total.toLocaleString()+'</div></div>';
-  html += '<div style="background:var(--bg3);border-radius:8px;padding:.75rem"><div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.3);margin-bottom:.25rem">P&L</div><div style="font-family:var(--mono);font-size:16px;'+pnlCls+'">'+fmtCur(s.pnl)+'</div></div>';
-  html += '<div style="background:var(--bg3);border-radius:8px;padding:.75rem"><div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.3);margin-bottom:.25rem">POSITION</div><div style="font-family:var(--mono);font-size:16px">'+(s.position||'—')+(s.field?' / '+s.field:'')+'</div></div>';
-  html += '<div style="background:var(--bg3);border-radius:8px;padding:.75rem"><div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.3);margin-bottom:.25rem">HOURS</div><div style="font-family:var(--mono);font-size:16px">'+(s.hours||'—')+'h</div></div>';
+  html += '<div style="background:var(--bg3);border-radius:8px;padding:.75rem"><div style="font-family:var(--mono);font-size:9px;color:var(--wa-30);margin-bottom:.25rem">BUY-IN</div><div style="font-family:var(--mono);font-size:16px">₱'+s.total.toLocaleString()+'</div></div>';
+  html += '<div style="background:var(--bg3);border-radius:8px;padding:.75rem"><div style="font-family:var(--mono);font-size:9px;color:var(--wa-30);margin-bottom:.25rem">P&L</div><div style="font-family:var(--mono);font-size:16px;'+pnlCls+'">'+fmtCur(s.pnl)+'</div></div>';
+  html += '<div style="background:var(--bg3);border-radius:8px;padding:.75rem"><div style="font-family:var(--mono);font-size:9px;color:var(--wa-30);margin-bottom:.25rem">POSITION</div><div style="font-family:var(--mono);font-size:16px">'+(s.position||'—')+(s.field?' / '+s.field:'')+'</div></div>';
+  html += '<div style="background:var(--bg3);border-radius:8px;padding:.75rem"><div style="font-family:var(--mono);font-size:9px;color:var(--wa-30);margin-bottom:.25rem">HOURS</div><div style="font-family:var(--mono);font-size:16px">'+(s.hours||'—')+'h</div></div>';
   html += '</div>';
-  if (s.notes) html += '<div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:1.25rem;padding:.75rem;background:var(--bg3);border-radius:8px">📝 '+esc(s.notes)+'</div>';
+  if (s.notes) html += '<div style="font-size:13px;color:var(--wa-50);margin-bottom:1.25rem;padding:.75rem;background:var(--bg3);border-radius:8px">📝 '+esc(s.notes)+'</div>';
   if (staking) {
     html += '<div style="background:var(--bg3);border-radius:10px;padding:.9rem 1rem;margin-bottom:1.1rem">';
-    html += '<div style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:rgba(255,255,255,.35);text-transform:uppercase;margin-bottom:.7rem">Staking</div>';
+    html += '<div style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--wa-35);text-transform:uppercase;margin-bottom:.7rem">Staking</div>';
     html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.65rem">';
-    html += '<div><div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.3);margin-bottom:.2rem">PLAYER / BACKER</div><div style="font-family:var(--mono);font-size:14px">'+staking.playerSharePct.toFixed(0)+'% / '+staking.backerSharePct.toFixed(0)+'%</div></div>';
-    html += '<div><div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.3);margin-bottom:.2rem">MARKUP</div><div style="font-family:var(--mono);font-size:14px">'+staking.markup.toFixed(2)+'x</div></div>';
-    html += '<div><div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.3);margin-bottom:.2rem">PACKAGE VALUE</div><div style="font-family:var(--mono);font-size:14px">₱'+Math.round(staking.packageValue).toLocaleString()+'</div></div>';
-    html += '<div><div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.3);margin-bottom:.2rem">PLAYER NET</div><div style="font-family:var(--mono);font-size:14px;'+(staking.playerNet>=0?'color:#2DB87A':'color:#E85C5C')+'">'+fmtCur(staking.playerNet)+'</div></div>';
+    html += '<div><div style="font-family:var(--mono);font-size:9px;color:var(--wa-30);margin-bottom:.2rem">PLAYER / BACKER</div><div style="font-family:var(--mono);font-size:14px">'+staking.playerSharePct.toFixed(0)+'% / '+staking.backerSharePct.toFixed(0)+'%</div></div>';
+    html += '<div><div style="font-family:var(--mono);font-size:9px;color:var(--wa-30);margin-bottom:.2rem">MARKUP</div><div style="font-family:var(--mono);font-size:14px">'+staking.markup.toFixed(2)+'x</div></div>';
+    html += '<div><div style="font-family:var(--mono);font-size:9px;color:var(--wa-30);margin-bottom:.2rem">PACKAGE VALUE</div><div style="font-family:var(--mono);font-size:14px">₱'+Math.round(staking.packageValue).toLocaleString()+'</div></div>';
+    html += '<div><div style="font-family:var(--mono);font-size:9px;color:var(--wa-30);margin-bottom:.2rem">PLAYER NET</div><div style="font-family:var(--mono);font-size:14px;'+(staking.playerNet>=0?'color:#2DB87A':'color:#E85C5C')+'">'+fmtCur(staking.playerNet)+'</div></div>';
     html += '</div>';
     if (staking.packageName) html += '<div style="font-family:var(--mono);font-size:10px;color:var(--gold);margin-top:.65rem">PACKAGE: '+esc(staking.packageName)+'</div>';
     html += '</div>';
   }
   html += '<div id="sd-debrief-wrap" style="margin-bottom:1rem"></div>';
 
-  html += '<div style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:rgba(255,255,255,.35);text-transform:uppercase;margin-bottom:.75rem">Logged Hands ('+linkedHands.length+')</div>';
+  html += '<div style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--wa-35);text-transform:uppercase;margin-bottom:.75rem">Logged Hands ('+linkedHands.length+')</div>';
   if (!linkedHands.length) {
-    html += '<div style="font-size:12px;color:rgba(255,255,255,.25);font-style:italic;margin-bottom:.75rem">No hands logged for this session yet.</div>';
+    html += '<div style="font-size:12px;color:var(--wa-25);font-style:italic;margin-bottom:.75rem">No hands logged for this session yet.</div>';
   } else {
     linkedHands.forEach(function(h) {
-      var rc = {won:'#2DB87A',lost:'#E85C5C',fold:'rgba(255,255,255,.3)'}[h.result] || 'rgba(255,255,255,.3)';
+      var rc = {won:'var(--mint)',lost:'var(--rose)',fold:'var(--wa-30)'}[h.result] || 'var(--wa-30)';
       var rl = {won:'WON',lost:'LOST',fold:'FOLD'}[h.result] || 'FOLD';
       html += '<div style="background:var(--bg3);border-radius:8px;padding:.75rem;margin-bottom:.5rem">';
-      html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.35rem"><span style="font-size:13px;font-weight:500;color:#fff">'+esc(h.title)+'</span><div style="display:flex;align-items:center;gap:.45rem;flex-wrap:wrap"><button class="sec-action" style="padding:.25rem .6rem;font-size:10px" onclick="closeModal(\'modal-session-detail\');openHandReplay('+h.id+')">REPLAY</button><span style="font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:20px;background:rgba(0,0,0,.3);color:'+rc+'">'+rl+'</span></div></div>';
-      if (h.desc) html += '<div style="font-size:12px;color:rgba(255,255,255,.45);line-height:1.6;margin-bottom:.35rem">'+esc(h.desc)+'</div>';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.35rem"><span style="font-size:13px;font-weight:500;color:var(--ink)">'+esc(h.title)+'</span><div style="display:flex;align-items:center;gap:.45rem;flex-wrap:wrap"><button class="sec-action" style="padding:.25rem .6rem;font-size:10px" onclick="closeModal(\'modal-session-detail\');openHandReplay('+h.id+')">REPLAY</button><span style="font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:20px;background:var(--chip-bg);color:'+rc+'">'+rl+'</span></div></div>';
+      if (h.desc) html += '<div style="font-size:12px;color:var(--wa-45);line-height:1.6;margin-bottom:.35rem">'+esc(h.desc)+'</div>';
       if (h.lesson) html += '<div style="font-size:11px;color:var(--gold);font-family:var(--mono)">💡 '+esc(h.lesson)+'</div>';
       html += '</div>';
     });
@@ -420,7 +420,7 @@ function renderHeatmapBars(elId, data, maxVal) {
   el.innerHTML = sorted.map(function(d) {
     var pct = Math.round((Math.abs(d.val)/max)*100);
     var cls = d.neutral ? 'heat-neutral' : d.val>=0 ? 'heat-pos' : 'heat-neg';
-    var textCol = d.neutral ? 'rgba(201,168,76,.9)' : d.val>=0 ? 'rgba(45,184,122,.9)' : 'rgba(232,92,92,.9)';
+    var textCol = d.neutral ? 'var(--heat-neutral)' : d.val>=0 ? 'var(--heat-pos)' : 'var(--heat-neg)';
     return '<div class="heatmap-row"><div class="heatmap-label" title="'+esc(d.label)+'">'+esc(d.label)+'</div><div class="heatmap-bar-wrap"><div class="heatmap-bar-fill '+cls+'" style="width:'+Math.max(pct,4)+'%"><span class="heatmap-bar-val" style="color:'+textCol+'">'+d.display+'</span></div></div></div>';
   }).join('');
 }

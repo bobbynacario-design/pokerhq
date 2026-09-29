@@ -47,6 +47,7 @@ Both run in CI on every push and pull request (`.github/workflows/test.yml`).
 - `tests/ai-config.test.js` — fails if a client AI model or `max_tokens` would be rejected by the Cloud Function proxy
 - `tests/openai-proxy.test.js` — the OpenAI proxy's allowlists (`functions/openai-proxy.js`), checked against the app's real requests
 - `tests/ai-proxy-client.test.js` — client fallback: local key → direct, otherwise the proxy (`js/data/ai-proxy.js`)
+- `tests/theme.test.js` — light-theme readability guard: fails on hard-coded white text or a text colour with no light-mode value
 - `tests/events.test.js`, `tests/push.test.js`, `tests/sw-push.test.js` — event dates/times, notification selection and messages, and the service worker's push handlers
 
 `scripts/gen-hand-ranking.js` regenerates the 169-hand ordering embedded in `js/data/pushfold.js`
@@ -64,6 +65,14 @@ ignored (`js/data/stats.js`, `placeOf` — add a line to `KNOWN_PLACES` to give 
 a standard name). Events with no venue collect under "(no venue)", and the choice is remembered on
 that device. It combines
 with **Planned only**; the "Playing These" card and the .ics export always include everything.
+
+## Light and dark themes
+
+Text colours are theme tokens, not literals: `var(--wa-NN)` is white at NN% on the dark theme and
+dark ink on the light theme (each step chosen to keep at least 4.5:1 on white and on the beige page),
+`var(--ink)` is the main text colour, and `--amber / --rose / --mint / --heat-*` are the accent
+text colours. Write new text colours with those instead of `rgba(255,255,255,…)` or `#fff`;
+`tests/theme.test.js` fails otherwise.
 
 ## Sync and backups
 
