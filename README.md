@@ -47,6 +47,7 @@ Both run in CI on every push and pull request (`.github/workflows/test.yml`).
 - `tests/ai-config.test.js` — fails if a client AI model or `max_tokens` would be rejected by the Cloud Function proxy
 - `tests/openai-proxy.test.js` — the OpenAI proxy's allowlists (`functions/openai-proxy.js`), checked against the app's real requests
 - `tests/ai-proxy-client.test.js` — client fallback: local key → direct, otherwise the proxy (`js/data/ai-proxy.js`)
+- `tests/drills.test.js` — the Daily Drill library and picker: unique ids, context steering, no repeats, streaks, saved state (`js/data/drills.js`)
 - `tests/theme.test.js` — light-theme readability guard: fails on hard-coded white text or a text colour with no light-mode value
 - `tests/events.test.js`, `tests/push.test.js`, `tests/sw-push.test.js` — event dates/times, notification selection and messages, and the service worker's push handlers
 
@@ -65,6 +66,19 @@ ignored (`js/data/stats.js`, `placeOf` — add a line to `KNOWN_PLACES` to give 
 a standard name). Events with no venue collect under "(no venue)", and the choice is remembered on
 that device. It combines
 with **Planned only**; the "Playing These" card and the .ics export always include everything.
+
+## Daily Drill
+
+The left column of the HOME "Go" card holds one small poker drill a day, in the spirit of a
+daily quest: a 2-minute version and a 10-minute version, **I did it**, **Try another**, a
+"did this help?" nudge, a Monday–Sunday dots row, a "What do you need today?" picker, **Save**, and
+**Tuck away** (keys: N another, D done, T tuck away). 56 drills across pre-game, preflop, postflop,
+ICM, mental game, bankroll, review and live-table play (`js/data/drills.js`); many have a button
+that opens the matching tool (Advisor, ICM Calculator, Hands, Opponents, Calendar …). Today's pick
+is steered by the app: a ★ pinned event today or tomorrow favours pre-game drills, a losing last
+session favours mental-game and review, a thin bankroll (under 10 average buy-ins) favours
+bankroll drills, and no logged hands favours logging one. Progress is kept on that device
+(localStorage `pokerhq_drill_v1`), not synced.
 
 ## Light and dark themes
 

@@ -269,9 +269,12 @@
 
     wrap.innerHTML =
       '<div class="tg-card">' +
-        '<div class="tg-verdict ' + cls + (eventBased ? ' tg-tappable' : '') + '"' + (eventBased ? jumpHandler : '') + '>' +
-          '<div class="tg-verdict-label">' + label + '</div>' +
-          '<div class="tg-verdict-sub">' + (subHtml !== null ? subHtml : escape(sub)) + '</div>' +
+        '<div class="tg-verdict ' + cls + '">' +
+          '<div class="tg-verdict-head' + (eventBased ? ' tg-tappable' : '') + '"' + (eventBased ? jumpHandler : '') + '>' +
+            '<div class="tg-verdict-label">' + label + '</div>' +
+            '<div class="tg-verdict-sub">' + (subHtml !== null ? subHtml : escape(sub)) + '</div>' +
+          '</div>' +
+          '<div id="tg-drill" class="tg-drill"></div>' +
         '</div>' +
         '<div class="tg-body">' +
           '<div class="tg-stats">' +
@@ -291,6 +294,8 @@
           '</div>' +
         '</div>' +
       '</div>';
+    // The Daily Drill fills the left column under the verdict (daily-drill.js).
+    if (typeof window.renderDailyDrill === 'function') window.renderDailyDrill();
   };
 
   // While a session timer is running, keep the elapsed read live. Only the clock
@@ -308,6 +313,9 @@
   // doesn't sit frozen at whatever it read on the last render.
   setInterval(function () {
     if (!window._timerInterval && document.getElementById('today-glance-wrap') && typeof window.renderTodayGlance === 'function') {
+      // Don't pull the card out from under a tap or an open dropdown in the drill.
+      var a = document.activeElement;
+      if (a && a.closest && a.closest('#tg-drill')) return;
       window.renderTodayGlance();
     }
   }, 60000);
