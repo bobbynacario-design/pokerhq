@@ -13,7 +13,6 @@ const { boot, freezeMotion, OWNER } = require("./lib.js");
   const settle = (ms = 120) => page.waitForTimeout(ms);
   const rows = () => page.$$eval("#inbox-list .inbox-row", (r) => r.map((x) => ({ key: x.getAttribute("data-key"), title: x.querySelector(".inbox-title").textContent.replace(/\s+/g, " ").trim(), detail: x.querySelector(".inbox-detail").textContent.trim() })));
   const badge = () => page.$$eval(".inbox-badge", (bs) => bs.filter((b) => b.offsetParent !== null).map((b) => b.textContent));
-  const day = (n) => { const d = new Date(Date.now() - n * 86400000); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
   const openInbox = async () => { await page.evaluate(() => switchGroup("review", "inbox")); await settle(); };
 
   // 0. empty: no card on Home, a friendly page, no badge
@@ -26,8 +25,13 @@ const { boot, freezeMotion, OWNER } = require("./lib.js");
   ok("empty: no card on Home, the page says 'Inbox clear', no badge");
 
   // 1. seed one of each source
-  await page.evaluate((d) => {
+  await page.evaluate(() => {
     const now = Date.now(), DAY = 86400000;
+    // Use the browser's Manila calendar dates, including when CI's Node process runs in UTC.
+    const d = Array.from({ length: 101 }, (_, n) => {
+      const date = new Date(now - n * DAY);
+      return date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0") + "-" + String(date.getDate()).padStart(2, "0");
+    });
     window.sessions = [
       { id: now - 2 * DAY, name: "Sunday Main", date: d[2], venue: "Okada Manila", total: 3000, prize: 0, pnl: -3000, result: "bust" },
       { id: now - 40 * DAY, name: "Old session", date: d[40], venue: "Okada Manila", total: 3000, prize: 0, pnl: -3000, result: "bust" },
@@ -43,7 +47,7 @@ const { boot, freezeMotion, OWNER } = require("./lib.js");
     ];
     localStorage.setItem("pokerhq_drill_v1", JSON.stringify({ saved: ["pre-pushfold"] }));
     syncGlobalAliases(); refreshInboxNow();
-  }, [0, 1, day(2)].concat(new Array(38).fill(0)).map((_, i) => day(i)));
+  });
   await settle();
   const all = await rows().catch(() => []);
   await openInbox();
