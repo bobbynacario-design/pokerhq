@@ -70,7 +70,8 @@ Suites: `smoke` (boot, calculator, sessions, bankroll check, restore + undo), `s
 Google button is on the first screen at ten window sizes), `active-session` (start, timer, check-in,
 bullets, capture a hand and a villain, log the result), `save-reload` (nothing vanishes on reload or on
 a new device), `backup-restore` (newer / foreign / damaged files), `light-contrast` (every page passes
-4.5:1 text contrast in light mode, desktop and phone), plus one per feature (`bounty`, `daily-drill`,
+4.5:1 text contrast in light mode, desktop and phone), `calendar-bars` (readable full-name event bars, seven equal
+columns at desktop / laptop / phone widths), plus one per feature (`bounty`, `daily-drill`,
 `format`, `icm`, `modals`, `month`, `openai`, `push`, `size-guard`, `stats`, `venue`). Screenshots go to
 `E2E_OUT` (default: a temp folder); CI keeps them when a run fails. Add a suite by dropping a
 `something.e2e.js` in `e2e/` that uses `boot()` from `e2e/lib.js`.
