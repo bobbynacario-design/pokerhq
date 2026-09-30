@@ -15,11 +15,14 @@ const { boot } = require("./lib.js");
     syncGlobalAliases(); switchGroup("plan", "calendar");
   });
   await page.fill("#slate-budget", "9000");
+  await page.selectOption('#slate-location','*');
+  await page.locator('#slate-limits > summary').click();
   await page.fill("#slate-max-buyin", "6000");
   await page.fill("#slate-from", "2026-10-01");
   await page.click("#slate-optimizer-card button:has-text('BUILD SLATE')");
   const slate = await page.textContent("#slate-results");
   assert.match(slate, /Pinned Main/); assert.match(slate, /Sunday Side/); assert.match(slate, /9,000/);
+  await page.click('#slate-browse-tab');
   assert.equal(await page.getByLabel('Select Conflict',{exact:true}).isChecked(),false);
   ok("Slate Optimizer selects a budget-safe, conflict-free two-day schedule");
 

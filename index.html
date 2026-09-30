@@ -13,8 +13,8 @@
 <title>PokerHQ — Tournament Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script type="module" src="./js/app.js?v=20260930k"></script>
-<link rel="stylesheet" href="./styles/app.css?v=20260930k">
+<script type="module" src="./js/app.js?v=20260930l"></script>
+<link rel="stylesheet" href="./styles/app.css?v=20260930l">
 </head>
 <body>
 <!-- LOGIN GATE — shown until Firebase auth resolves a signed-in user -->
@@ -786,15 +786,15 @@
 
   <div class="form-card" id="slate-optimizer-card" style="margin-bottom:1.25rem">
     <div class="sec-hdr" style="margin-bottom:.8rem"><div class="sec-title"><span>🧭</span>Slate Optimizer</div><button class="sec-action primary" onclick="renderSlateOptimizer()">BUILD SLATE</button></div>
-    <div class="form-grid">
-      <div class="form-group"><label class="form-label">Total buy-in budget (₱)</label><input class="form-input" id="slate-budget" oninput="invalidateSlateDraft()" type="number" data-money placeholder="e.g. 30000"></div>
-      <div class="form-group"><label class="form-label">Maximum single buy-in (₱)</label><input class="form-input" id="slate-max-buyin" oninput="invalidateSlateDraft()" type="number" data-money placeholder="e.g. 10000"></div>
-      <div class="form-group"><label class="form-label">From</label><input class="form-input" id="slate-from" oninput="invalidateSlateDraft()" type="date"></div>
-      <div class="form-group"><label class="form-label">To</label><input class="form-input" id="slate-to" oninput="invalidateSlateDraft()" type="date"></div>
-      <div class="form-group"><label class="form-label" for="slate-reserve">Re-entry reserve (₱)</label><input class="form-input" id="slate-reserve" oninput="invalidateSlateDraft()" type="number" data-money min="0" placeholder="0"></div>
+    <p class="slate-intro">Choose where and when to play, set your budget, then build a shortlist.</p>
+    <div class="slate-filters">
+      <div class="form-group"><label class="form-label" for="slate-location">Location</label><select class="form-input" id="slate-location" onchange="this.dataset.userChoice='true';invalidateSlateDraft()"><option value="">Choose a location</option></select></div>
+      <div class="form-group"><label class="form-label" for="slate-budget">Total buy-in budget (₱)</label><input class="form-input" id="slate-budget" oninput="invalidateSlateDraft()" type="number" data-money min="1" placeholder="e.g. 30000"><button class="slate-inline-action" onclick="useBankrollForSlate()">USE CURRENT BANKROLL</button></div>
+      <div class="form-group"><label class="form-label" for="slate-from">From</label><input class="form-input" id="slate-from" oninput="invalidateSlateDraft()" type="date"></div>
+      <div class="form-group"><label class="form-label" for="slate-to">To</label><input class="form-input" id="slate-to" oninput="invalidateSlateDraft()" type="date"></div>
     </div>
-    <div style="display:flex;gap:.5rem;margin:.7rem 0"><button class="sec-action" onclick="useBankrollForSlate()">USE CURRENT BANKROLL</button></div>
-    <div id="slate-results"></div>
+    <div class="slate-options-row"><div class="slate-date-presets"><button class="sec-action" onclick="setSlateDateWindow(7)">NEXT 7 DAYS</button><button class="sec-action" onclick="setSlateDateWindow(30)">NEXT 30 DAYS</button></div><details id="slate-limits"><summary>Buy-in cap &amp; re-entry reserve</summary><div class="form-grid"><div class="form-group"><label class="form-label" for="slate-max-buyin">Maximum single buy-in (₱)</label><input class="form-input" id="slate-max-buyin" oninput="invalidateSlateDraft()" type="number" data-money min="1" placeholder="Optional"></div><div class="form-group"><label class="form-label" for="slate-reserve">Re-entry reserve (₱)</label><input class="form-input" id="slate-reserve" oninput="invalidateSlateDraft()" type="number" data-money min="0" placeholder="0"></div></div></details></div>
+    <div id="slate-results"><p class="slate-empty">Your shortlist will appear here after you build it.</p></div>
   </div>
 
   <!-- "Playing These" shortlist — rendered by renderPlannedEvents(); hidden until you pin events -->
@@ -2103,44 +2103,44 @@
   </div>
 </div>
 
-<script src="./js/data/util.js?v=20260930k"></script>
-<script src="./js/data/backup-format.js?v=20260930k"></script>
-<script src="./js/data/privacy.js?v=20260930k"></script>
-<script src="./js/data/markers.js?v=20260930k"></script>
-<script src="./js/data/inbox.js?v=20260930k"></script>
-<script src="./js/data/journey.js?v=20260930k"></script>
-<script src="./js/data/slate.js?v=20260930k"></script>
-<script src="./js/data/trueroi.js?v=20260930k"></script>
-<script src="./js/data/poster.js?v=20260930k"></script>
-<script src="./js/data/merge.js?v=20260930k"></script>
-<script src="./js/data/config-runtime.js?v=20260930k"></script>
-<script src="./js/data/ai-proxy.js?v=20260930k"></script>
-<script src="./js/features/active-session.js?v=20260930k"></script>
-<script src="./js/features/demo-mode.js?v=20260930k"></script>
-<script src="./js/data/pushfold.js?v=20260930k"></script>
-<script src="./js/data/stats.js?v=20260930k"></script>
-<script src="./js/data/drills.js?v=20260930k"></script>
-<script src="./js/data/icm.js?v=20260930k"></script>
-<script src="./js/features/calculator.js?v=20260930k"></script>
-<script src="./js/features/staking.js?v=20260930k"></script>
-<script src="./js/features/package-report.js?v=20260930k"></script>
-<script src="./js/features/review.js?v=20260930k"></script>
-<script src="./js/features/calendar.js?v=20260930k"></script>
-<script src="./js/features/slate-optimizer.js?v=20260930k"></script>
-<script src="./js/features/study-loop.js?v=20260930k"></script>
-<script src="./js/features/strategy.js?v=20260930k"></script>
-<script src="./js/features/hands.js?v=20260930k"></script>
-<script src="./js/features/live-markers.js?v=20260930k"></script>
-<script src="./js/features/review-inbox.js?v=20260930k"></script>
-<script src="./js/features/trips.js?v=20260930k"></script>
-<script src="./js/features/poster-import.js?v=20260930k"></script>
-<script src="./js/features/treasury.js?v=20260930k"></script>
-<script src="./js/features/bankroll-chart.js?v=20260930k"></script>
-<script src="./js/features/library.js?v=20260930k"></script>
-<script src="./js/features/push.js?v=20260930k"></script>
-<script src="./js/features/onboarding.js?v=20260930k"></script>
-<script src="./js/features/daily-drill.js?v=20260930k"></script>
-<script src="./js/features/today-glance.js?v=20260930k"></script>
+<script src="./js/data/util.js?v=20260930l"></script>
+<script src="./js/data/backup-format.js?v=20260930l"></script>
+<script src="./js/data/privacy.js?v=20260930l"></script>
+<script src="./js/data/markers.js?v=20260930l"></script>
+<script src="./js/data/inbox.js?v=20260930l"></script>
+<script src="./js/data/journey.js?v=20260930l"></script>
+<script src="./js/data/slate.js?v=20260930l"></script>
+<script src="./js/data/trueroi.js?v=20260930l"></script>
+<script src="./js/data/poster.js?v=20260930l"></script>
+<script src="./js/data/merge.js?v=20260930l"></script>
+<script src="./js/data/config-runtime.js?v=20260930l"></script>
+<script src="./js/data/ai-proxy.js?v=20260930l"></script>
+<script src="./js/features/active-session.js?v=20260930l"></script>
+<script src="./js/features/demo-mode.js?v=20260930l"></script>
+<script src="./js/data/pushfold.js?v=20260930l"></script>
+<script src="./js/data/stats.js?v=20260930l"></script>
+<script src="./js/data/drills.js?v=20260930l"></script>
+<script src="./js/data/icm.js?v=20260930l"></script>
+<script src="./js/features/calculator.js?v=20260930l"></script>
+<script src="./js/features/staking.js?v=20260930l"></script>
+<script src="./js/features/package-report.js?v=20260930l"></script>
+<script src="./js/features/review.js?v=20260930l"></script>
+<script src="./js/features/calendar.js?v=20260930l"></script>
+<script src="./js/features/slate-optimizer.js?v=20260930l"></script>
+<script src="./js/features/study-loop.js?v=20260930l"></script>
+<script src="./js/features/strategy.js?v=20260930l"></script>
+<script src="./js/features/hands.js?v=20260930l"></script>
+<script src="./js/features/live-markers.js?v=20260930l"></script>
+<script src="./js/features/review-inbox.js?v=20260930l"></script>
+<script src="./js/features/trips.js?v=20260930l"></script>
+<script src="./js/features/poster-import.js?v=20260930l"></script>
+<script src="./js/features/treasury.js?v=20260930l"></script>
+<script src="./js/features/bankroll-chart.js?v=20260930l"></script>
+<script src="./js/features/library.js?v=20260930l"></script>
+<script src="./js/features/push.js?v=20260930l"></script>
+<script src="./js/features/onboarding.js?v=20260930l"></script>
+<script src="./js/features/daily-drill.js?v=20260930l"></script>
+<script src="./js/features/today-glance.js?v=20260930l"></script>
 <script>
 // ── PWA INSTALL — captures the browser install prompt like Enclave ──
 var _deferredInstallPrompt = null;

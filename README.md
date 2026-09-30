@@ -34,6 +34,13 @@ stay in memory; leaving the demo restores cached real data, drill progress and a
   and reserves money for re-entries before choosing buy-ins. Edit the suggested checkboxes,
   then **Apply / Pin selected events** to star them on the calendar. Budget overruns and
   overlapping dates block Apply. Existing plans remain; new stars have an undo action.
+  Choose a location (or explicitly compare all locations) and dates before building. The date
+  window starts at the next 30 days, with a next-7-days shortcut. **Use current bankroll** fills
+  only the budget. The first view is a shortlist, grouped by location and ordered by date;
+  **Browse events** offers searchable alternatives in pages of six. Unchecking leaves a row
+  in place, **Clear selection** unchecks all choices, and **Reset suggestions** restores the
+  original picks. Selections survive browsing, searching, and changing pages. Buy-in cap and
+  reserve settings are inside the optional limits panel.
 - Log Session records **Reached the final table?** explicitly (Yes / No / Not recorded),
   including finishes outside the top three. Older saved final-table labels remain intact.
   A final table without a prize counts toward final tables but never toward ITM. The field

@@ -750,6 +750,7 @@ function visibleTourneys() {
 // Fills the location selector from ALL events (so the choices don't shrink when
 // "Planned only" is on) and shows how many events the current choice leaves.
 function renderCalendarVenueFilter() {
+  if (typeof renderSlateLocationFilter === 'function') renderSlateLocationFilter();
   var sel = document.getElementById('cal-venue-filter');
   if (!sel || !window.PokerHQStats) return;
   var all = (tourneys || []).filter(function (t) { return t && typeof t === 'object'; });
