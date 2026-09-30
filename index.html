@@ -13,8 +13,8 @@
 <title>PokerHQ — Tournament Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script type="module" src="./js/app.js?v=20260930a"></script>
-<link rel="stylesheet" href="./styles/app.css?v=20260930a">
+<script type="module" src="./js/app.js?v=20260930b"></script>
+<link rel="stylesheet" href="./styles/app.css?v=20260930b">
 </head>
 <body>
 <!-- LOGIN GATE — shown until Firebase auth resolves a signed-in user -->
@@ -118,6 +118,7 @@
           <line x1="21" y1="12" x2="9" y2="12"/>
         </svg>
       </button>
+      <button class="theme-toggle" id="privacy-toggle" onclick="PokerHQPrivacy.toggle()" title="Privacy Mode is off. Click to hide amounts on screen." aria-label="Privacy Mode: hide amounts" aria-pressed="false"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
       <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">🌙</button>
       <div class="clock-nav" id="clock">--:--</div>
       <div class="clock-nav" id="sync-status" style="letter-spacing:.04em">○ Loading...</div>
@@ -200,6 +201,17 @@
 
   <div id="dashboard-active-session-wrap"></div>
   <div id="dashboard-reliability-wrap"></div>
+
+  <div class="form-card privacy-card" id="privacy-card">
+    <div class="privacy-card-top">
+      <div>
+        <div class="privacy-card-title">Privacy Mode</div>
+        <div class="privacy-card-sub">Hides your bankroll, wallet, buy-ins, prizes, P&amp;L and staking amounts on this device. Use it when someone can see your screen. <span id="privacy-status"></span></div>
+      </div>
+      <label class="privacy-switch"><input type="checkbox" id="privacy-switch" onchange="PokerHQPrivacy.setManual(this.checked)" aria-label="Hide amounts"><span>HIDE AMOUNTS</span></label>
+    </div>
+    <label class="privacy-auto"><input type="checkbox" id="privacy-auto" onchange="PokerHQPrivacy.setAuto(this.checked)"> Also hide amounts automatically while a session is running</label>
+  </div>
 
   <div class="demo-banner" id="demo-banner">
     <div class="demo-banner-left">
@@ -415,7 +427,7 @@
     <div class="form-grid">
       <div class="form-group">
         <label class="form-label">Current Bankroll (₱)</label>
-        <input class="form-input" type="text" id="br-input" readonly aria-readonly="true">
+        <input class="form-input" type="text" id="br-input" data-money readonly aria-readonly="true">
       </div>
       <div class="form-group">
         <label class="form-label">BRM Rule</label>
@@ -464,11 +476,11 @@
       </div>
       <div class="form-group">
         <label class="form-label">Buy-in (₱)</label>
-        <input class="form-input" type="number" id="s-buyin" placeholder="e.g. 5500">
+        <input class="form-input" type="number" id="s-buyin" data-money placeholder="e.g. 5500">
       </div>
       <div class="form-group">
         <label class="form-label">Rebuys / Add-ons (₱)</label>
-        <input class="form-input" type="number" id="s-rebuy" placeholder="0">
+        <input class="form-input" type="number" id="s-rebuy" data-money placeholder="0">
       </div>
       <div class="form-group">
         <label class="form-label">Field Size (players)</label>
@@ -480,11 +492,11 @@
       </div>
       <div class="form-group">
         <label class="form-label">Prize Won (₱)</label>
-        <input class="form-input" type="number" id="s-prize" placeholder="0">
+        <input class="form-input" type="number" id="s-prize" data-money placeholder="0">
       </div>
       <div class="form-group">
         <label class="form-label">Bounties Won (₱) — PKO / bounty events</label>
-        <input class="form-input" type="number" id="s-bounty" placeholder="0">
+        <input class="form-input" type="number" id="s-bounty" data-money placeholder="0">
       </div>
       <div class="form-group">
         <label class="form-label">Hours Played</label>
@@ -502,21 +514,21 @@
       </div>
       <div class="form-group">
         <label class="form-label">Player Share (%)</label>
-        <input class="form-input" type="number" id="s-player-share" min="0" max="100" step="1" placeholder="e.g. 60" oninput="renderStakingInputSummary()">
+        <input class="form-input" type="number" id="s-player-share" data-money min="0" max="100" step="1" placeholder="e.g. 60" oninput="renderStakingInputSummary()">
       </div>
       <div class="form-group">
         <label class="form-label">Markup</label>
-        <input class="form-input" type="number" id="s-markup" min="0.5" step="0.01" placeholder="e.g. 1.10" oninput="renderStakingInputSummary()">
+        <input class="form-input" type="number" id="s-markup" data-money min="0.5" step="0.01" placeholder="e.g. 1.10" oninput="renderStakingInputSummary()">
       </div>
     </div>
     <div class="form-grid staking-allocation-grid" style="margin-bottom:.75rem">
       <div class="form-group">
         <label class="form-label">Backer Count (Equal Split)</label>
-        <input class="form-input" type="number" id="s-backer-count" min="0" step="1" placeholder="e.g. 2" oninput="renderStakingInputSummary()">
+        <input class="form-input" type="number" id="s-backer-count" data-money min="0" step="1" placeholder="e.g. 2" oninput="renderStakingInputSummary()">
       </div>
       <div class="form-group" style="grid-column:span 2">
         <label class="form-label">Named Backers (Optional)</label>
-        <textarea class="form-input" id="s-backers" rows="3" placeholder="One per line, e.g.&#10;Alice 20&#10;Bob 20" oninput="renderStakingInputSummary()"></textarea>
+        <textarea class="form-input" id="s-backers" data-money rows="3" placeholder="One per line, e.g.&#10;Alice 20&#10;Bob 20" oninput="renderStakingInputSummary()"></textarea>
       </div>
     </div>
     <div class="tip" id="staking-tip" style="margin-bottom:1rem">Optional: track sold action and package economics without changing your core session log.</div>
@@ -699,7 +711,7 @@
       </div>
       <div class="form-group">
         <label class="form-label">Amount (₱)</label>
-        <input class="form-input" type="number" id="wallet-amount" placeholder="e.g. 5000" step="0.01">
+        <input class="form-input" type="number" id="wallet-amount" data-money placeholder="e.g. 5000" step="0.01">
       </div>
     </div>
     <div class="form-group" style="margin-top:.15rem">
@@ -781,6 +793,9 @@
       </label>
       <label style="display:flex;align-items:center;gap:.5rem;font-family:var(--mono);font-size:12px;color:var(--wa-70);cursor:pointer">
         <input type="checkbox" id="push-morning" onchange="saveReminderSettings()"> Morning summary of today's events (around 8am Manila time)
+      </label>
+      <label style="display:flex;align-items:center;gap:.5rem;font-family:var(--mono);font-size:12px;color:var(--wa-70);cursor:pointer">
+        <input type="checkbox" id="push-hide-amounts" onchange="saveReminderSettings()"> Leave buy-in amounts out of these alerts (they show on a lock screen)
       </label>
     </div>
     <div class="tip" id="push-help" style="margin-top:.9rem">Alerts need an event's start time and the ★ "planning to play" star on the calendar. These switches apply to every device you've enabled. <strong>iPhone:</strong> add PokerHQ to your Home Screen first (Share → Add to Home Screen), open it from there, then tap Enable.</div>
@@ -996,7 +1011,7 @@
       </div>
       <div class="form-group">
         <label class="form-label">Direct Buy-in (₱)</label>
-        <input class="form-input" type="number" id="sat-target-buyin-input" placeholder="e.g. 7500">
+        <input class="form-input" type="number" id="sat-target-buyin-input" data-money placeholder="e.g. 7500">
       </div>
     </div>
     <div class="tip" style="margin-top:.6rem"><strong>Target Event</strong> lists the Main/big events from your Calendar — the seat you're chasing — so its direct buy-in fills in automatically. The <strong>Satellite Name</strong> field (in “+ Log Satellite”) lists your satellites &amp; qualifiers.</div>
@@ -1788,11 +1803,11 @@
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Current Bankroll (₱)</label>
-          <input class="form-input" id="calc-risk-bankroll" type="number" min="0" placeholder="e.g. 75000" oninput="calcRiskEngine()">
+          <input class="form-input" id="calc-risk-bankroll" data-money type="number" min="0" placeholder="e.g. 75000" oninput="calcRiskEngine()">
         </div>
         <div class="form-group">
           <label class="form-label">Average Buy-in (₱)</label>
-          <input class="form-input" id="calc-risk-buyin" type="number" min="0" placeholder="e.g. 3500" oninput="calcRiskEngine()">
+          <input class="form-input" id="calc-risk-buyin" data-money type="number" min="0" placeholder="e.g. 3500" oninput="calcRiskEngine()">
         </div>
       </div>
       <div class="form-row">
@@ -1882,11 +1897,11 @@
       </div>
       <div class="form-group">
         <label class="form-label">Buy-in (₱)</label>
-        <input class="form-input" type="number" id="t-buyin" placeholder="e.g. 10000">
+        <input class="form-input" type="number" id="t-buyin" data-money placeholder="e.g. 10000">
       </div>
       <div class="form-group">
         <label class="form-label">Guarantee (₱)</label>
-        <input class="form-input" type="text" id="t-gtd" placeholder="e.g. 500,000">
+        <input class="form-input" type="text" id="t-gtd" data-money placeholder="e.g. 500,000">
       </div>
       <div class="form-group">
         <label class="form-label">Structure</label>
@@ -2003,32 +2018,33 @@
   </div>
 </div>
 
-<script src="./js/data/util.js?v=20260930a"></script>
-<script src="./js/data/backup-format.js?v=20260930a"></script>
-<script src="./js/data/merge.js?v=20260930a"></script>
-<script src="./js/data/config-runtime.js?v=20260930a"></script>
-<script src="./js/data/ai-proxy.js?v=20260930a"></script>
-<script src="./js/features/active-session.js?v=20260930a"></script>
-<script src="./js/features/demo-mode.js?v=20260930a"></script>
-<script src="./js/data/pushfold.js?v=20260930a"></script>
-<script src="./js/data/stats.js?v=20260930a"></script>
-<script src="./js/data/drills.js?v=20260930a"></script>
-<script src="./js/data/icm.js?v=20260930a"></script>
-<script src="./js/features/calculator.js?v=20260930a"></script>
-<script src="./js/features/staking.js?v=20260930a"></script>
-<script src="./js/features/package-report.js?v=20260930a"></script>
-<script src="./js/features/review.js?v=20260930a"></script>
-<script src="./js/features/calendar.js?v=20260930a"></script>
-<script src="./js/features/study-loop.js?v=20260930a"></script>
-<script src="./js/features/strategy.js?v=20260930a"></script>
-<script src="./js/features/hands.js?v=20260930a"></script>
-<script src="./js/features/treasury.js?v=20260930a"></script>
-<script src="./js/features/bankroll-chart.js?v=20260930a"></script>
-<script src="./js/features/library.js?v=20260930a"></script>
-<script src="./js/features/push.js?v=20260930a"></script>
-<script src="./js/features/onboarding.js?v=20260930a"></script>
-<script src="./js/features/daily-drill.js?v=20260930a"></script>
-<script src="./js/features/today-glance.js?v=20260930a"></script>
+<script src="./js/data/util.js?v=20260930b"></script>
+<script src="./js/data/backup-format.js?v=20260930b"></script>
+<script src="./js/data/privacy.js?v=20260930b"></script>
+<script src="./js/data/merge.js?v=20260930b"></script>
+<script src="./js/data/config-runtime.js?v=20260930b"></script>
+<script src="./js/data/ai-proxy.js?v=20260930b"></script>
+<script src="./js/features/active-session.js?v=20260930b"></script>
+<script src="./js/features/demo-mode.js?v=20260930b"></script>
+<script src="./js/data/pushfold.js?v=20260930b"></script>
+<script src="./js/data/stats.js?v=20260930b"></script>
+<script src="./js/data/drills.js?v=20260930b"></script>
+<script src="./js/data/icm.js?v=20260930b"></script>
+<script src="./js/features/calculator.js?v=20260930b"></script>
+<script src="./js/features/staking.js?v=20260930b"></script>
+<script src="./js/features/package-report.js?v=20260930b"></script>
+<script src="./js/features/review.js?v=20260930b"></script>
+<script src="./js/features/calendar.js?v=20260930b"></script>
+<script src="./js/features/study-loop.js?v=20260930b"></script>
+<script src="./js/features/strategy.js?v=20260930b"></script>
+<script src="./js/features/hands.js?v=20260930b"></script>
+<script src="./js/features/treasury.js?v=20260930b"></script>
+<script src="./js/features/bankroll-chart.js?v=20260930b"></script>
+<script src="./js/features/library.js?v=20260930b"></script>
+<script src="./js/features/push.js?v=20260930b"></script>
+<script src="./js/features/onboarding.js?v=20260930b"></script>
+<script src="./js/features/daily-drill.js?v=20260930b"></script>
+<script src="./js/features/today-glance.js?v=20260930b"></script>
 <script>
 // ── PWA INSTALL — captures the browser install prompt like Enclave ──
 var _deferredInstallPrompt = null;
@@ -2956,7 +2972,7 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
       </div>
       <div class="form-group">
         <label class="form-label">Buy-in (₱)</label>
-        <input class="form-input" type="number" id="sat-buyin" placeholder="e.g. 1100">
+        <input class="form-input" type="number" id="sat-buyin" data-money placeholder="e.g. 1100">
       </div>
       <div class="form-group">
         <label class="form-label">Result</label>

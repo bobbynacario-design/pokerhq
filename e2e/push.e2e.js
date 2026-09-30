@@ -128,7 +128,14 @@ const { boot, out } = require("./lib.js");
   await page.uncheck("#push-morning");
   const saved = await page.evaluate(() => window.reminderSettings);
   const email = await page.evaluate(() => window.__pokerhqAuthEmail || "bob@example.com");
-  assert.deepEqual(saved, { enabled: true, leadDays: 3, email, pushStartAlerts: false, pushMorning: false, pushLeadMinutes: 120 });
+  assert.deepEqual(saved, { enabled: true, leadDays: 3, email, pushStartAlerts: false, pushMorning: false, pushLeadMinutes: 120, pushHideAmounts: false });
+  // the Privacy switch for alerts saves with the rest, and reads back
+  await page.check("#push-hide-amounts");
+  assert.equal(await page.evaluate(() => window.reminderSettings.pushHideAmounts), true);
+  await page.evaluate(() => { renderReminderSettings(); });
+  assert.equal(await page.isChecked("#push-hide-amounts"), true);
+  await page.uncheck("#push-hide-amounts");
+  assert.equal(await page.evaluate(() => window.reminderSettings.pushHideAmounts), false);
   await page.evaluate(() => { renderReminderSettings(); });
   assert.equal(await page.isChecked("#push-start"), false);
   assert.equal(await page.inputValue("#push-lead"), "120");

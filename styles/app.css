@@ -402,6 +402,19 @@ body.light::after{background-image:linear-gradient(rgba(0,0,0,.03) 1px,transpare
 
 .theme-toggle{background:transparent;border:1px solid var(--rim2);border-radius:6px;padding:.35rem .6rem;cursor:pointer;font-size:15px;transition:all .15s;line-height:1}
 .theme-toggle:hover{border-color:var(--gold);background:var(--gold-dim)}
+.theme-toggle.active{border-color:var(--gold);background:var(--gold-dim);color:var(--gold)}
+/* -- PRIVACY MODE -- amounts in text are swapped by js/data/privacy.js; boxes that hold a saved amount are blurred (until you click into them to type) */
+body.privacy-on [data-money]:not(:focus){color:transparent!important;-webkit-text-fill-color:transparent!important;text-shadow:0 0 9px var(--wa-60);caret-color:transparent}
+body.privacy-on [data-money]:not(:focus)::placeholder{color:transparent!important}
+.privacy-card{padding:.9rem 1.1rem;margin-bottom:1.25rem}
+.privacy-card-top{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.privacy-card-title{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--gold);text-transform:uppercase;margin-bottom:.3rem}
+.privacy-card-sub{font-family:var(--mono);font-size:11px;line-height:1.5;color:var(--wa-58);max-width:60ch}
+#privacy-status{color:var(--wa-80)}
+.privacy-switch,.privacy-auto{display:flex;align-items:center;gap:.5rem;font-family:var(--mono);font-size:12px;color:var(--wa-70);cursor:pointer}
+.privacy-switch{letter-spacing:.08em;padding:.4rem .8rem;border:1px solid var(--rim2);border-radius:6px}
+.privacy-auto{margin-top:.75rem}
+
 
 /* -- MONTHLY CALENDAR VIEW -- */
 .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem}

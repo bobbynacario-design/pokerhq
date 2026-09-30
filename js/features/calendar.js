@@ -152,7 +152,8 @@ function getReminderSettings() {
     // phone notifications — on by default, like the server (functions/push.js pushPrefs)
     pushStartAlerts: r.pushStartAlerts !== false,
     pushMorning: r.pushMorning !== false,
-    pushLeadMinutes: [30, 60, 120].indexOf(Number(r.pushLeadMinutes)) !== -1 ? Number(r.pushLeadMinutes) : 60
+    pushLeadMinutes: [30, 60, 120].indexOf(Number(r.pushLeadMinutes)) !== -1 ? Number(r.pushLeadMinutes) : 60,
+    pushHideAmounts: r.pushHideAmounts === true   // Privacy: no buy-ins in phone alerts
   };
 }
 
@@ -172,6 +173,8 @@ function renderReminderSettings() {
   if (pStart) pStart.checked = s.pushStartAlerts;
   if (pLead) pLead.value = String(s.pushLeadMinutes);
   if (pMorning) pMorning.checked = s.pushMorning;
+  var pHide = document.getElementById('push-hide-amounts');
+  if (pHide) pHide.checked = s.pushHideAmounts;
   if (typeof refreshPushUi === 'function') refreshPushUi();
 }
 
@@ -184,7 +187,8 @@ function saveReminderSettings() {
     email: window.__pokerhqAuthEmail || (window.reminderSettings && window.reminderSettings.email) || '',
     pushStartAlerts: document.getElementById('push-start') ? document.getElementById('push-start').checked : getReminderSettings().pushStartAlerts,
     pushMorning: document.getElementById('push-morning') ? document.getElementById('push-morning').checked : getReminderSettings().pushMorning,
-    pushLeadMinutes: document.getElementById('push-lead') ? parseInt(document.getElementById('push-lead').value, 10) || 60 : getReminderSettings().pushLeadMinutes
+    pushLeadMinutes: document.getElementById('push-lead') ? parseInt(document.getElementById('push-lead').value, 10) || 60 : getReminderSettings().pushLeadMinutes,
+    pushHideAmounts: document.getElementById('push-hide-amounts') ? document.getElementById('push-hide-amounts').checked : getReminderSettings().pushHideAmounts
   };
   window.reminderSettings = settings;
   if (typeof save === 'function') save('reminderSettings', settings);
@@ -231,6 +235,7 @@ function exportCalendarICS() {
     alert('No upcoming target or stretch events to export. Add tournaments graded TARGET/STRETCH first.');
     return;
   }
+  if (window.PokerHQPrivacy && !window.PokerHQPrivacy.confirmExport('calendar file')) return;   // Privacy Mode: files carry real amounts
   var stamp = icsStamp();
   var lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//PokerHQ//Tournament Calendar//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH'];
   upcoming.forEach(function(t) {

@@ -12,7 +12,7 @@ Live app: <https://bobbynacario-design.github.io/pokerhq/> (the repo root, serve
 | --- | --- |
 | `index.html` | App shell and page markup; also holds the core session/dashboard code |
 | `js/app.js`, `js/data/sync.js` | Entry module: Firebase sign-in and record-level sync |
-| `js/data/*.js` | Pure helpers: `util` (dates, session result, bankroll), `merge` (sync engine), `backup-format` (backup file version + checks), `pushfold`, `icm`, `stats` |
+| `js/data/*.js` | Pure helpers: `util` (dates, session result, bankroll), `merge` (sync engine), `backup-format` (backup file version + checks), `privacy` (Privacy Mode), `pushfold`, `icm`, `stats` |
 | `js/features/*.js` | One file per feature (calendar, hands, treasury, calculator, review, …) |
 | `styles/app.css` | All styles |
 | `sw.js` | Service worker (offline shell); bump `CACHE_NAME` when the precache list changes |
@@ -51,6 +51,7 @@ browser tests below.
 - `tests/ai-proxy-client.test.js` — client fallback: local key → direct, otherwise the proxy (`js/data/ai-proxy.js`)
 - `tests/drills.test.js` — the Daily Drill library and picker: unique ids, context steering, no repeats, streaks, saved state (`js/data/drills.js`)
 - `tests/backup-format.test.js` — backup file versions: newer files refused with a clear message, older ones upgraded step by step, damaged records dropped and reported (`js/data/backup-format.js`)
+- `tests/privacy.test.js` — Privacy Mode: what counts as an amount, when the screen is hidden, and the checklist that fails when a new export, money box or canvas chart could bypass it (`js/data/privacy.js`)
 - `tests/theme.test.js` — light-theme readability guard: fails on hard-coded white text or a text colour with no light-mode value
 - `tests/events.test.js`, `tests/push.test.js`, `tests/sw-push.test.js` — event dates/times, notification selection and messages, and the service worker's push handlers
 
@@ -71,10 +72,34 @@ Google button is on the first screen at ten window sizes), `active-session` (sta
 bullets, capture a hand and a villain, log the result), `save-reload` (nothing vanishes on reload or on
 a new device), `backup-restore` (newer / foreign / damaged files), `light-contrast` (every page passes
 4.5:1 text contrast in light mode, desktop and phone), `calendar-bars` (readable full-name event bars, seven equal
-columns at desktop / laptop / phone widths), plus one per feature (`bounty`, `daily-drill`,
+columns at desktop / laptop / phone widths), `privacy` (with Privacy Mode on, every page, pop-up, chart and
+tooltip is swept for a readable amount), plus one per feature (`bounty`, `daily-drill`,
 `format`, `icm`, `modals`, `month`, `openai`, `push`, `size-guard`, `stats`, `venue`). Screenshots go to
 `E2E_OUT` (default: a temp folder); CI keeps them when a run fails. Add a suite by dropping a
 `something.e2e.js` in `e2e/` that uses `boot()` from `e2e/lib.js`.
+
+### Privacy Mode
+
+The eye in the header (and the card on Home) hides money on screen: bankroll, wallet, buy-ins, prizes,
+P&L, staking. `js/data/privacy.js` watches the whole page and swaps any peso amount (`₱1,234`,
+`−₱500`, `+₱6,000`, `₱1.5k`, `PHP 1,234`) for `₱•••`, so new screens are covered without extra code.
+It also masks tooltips and labels, and the text of `alert` / `confirm` boxes, and can switch itself on
+while a session is running. Amounts come back exactly when it is turned off. It is a display setting kept
+on the device, not synced. What it does and does not cover:
+
+| Where | What happens |
+| --- | --- |
+| Text, SVG charts and tooltips, toasts, pop-ups | Masked automatically |
+| Boxes holding a saved amount (`data-money`) | Blurred until you click into them |
+| CSV files, weekly / backer PDF, calendar `.ics` | Ask first: "this file will contain your real amounts" |
+| JSON backup | Never masked or blocked: a backup has to be complete |
+| Phone alerts | "Leave buy-in amounts out" switch (`pushHideAmounts`, applied by `functions/push.js`; needs a functions deploy) |
+| Email reminders | Not covered |
+| Percentages (ROI, ITM) | Shown |
+
+When adding to the app: print money with the `₱` sign (or `PHP`), mark new amount boxes `data-money`, draw
+charts as SVG (not canvas), and call `PokerHQPrivacy.confirmExport('…')` before any file that carries
+amounts. `tests/privacy.test.js` and `e2e/privacy.e2e.js` fail if one of those is missed.
 
 ### Changing the backup file format
 
