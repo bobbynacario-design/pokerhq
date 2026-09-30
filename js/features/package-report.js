@@ -460,6 +460,7 @@ function exportBackerPackageReportPDF(packageLabel) {
     alert('PDF export is unavailable right now.');
     return;
   }
+  if (window.PokerHQPrivacy && !window.PokerHQPrivacy.confirmExport('backer report PDF')) return;   // Privacy Mode: files carry real amounts
 
   try {
     var doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });

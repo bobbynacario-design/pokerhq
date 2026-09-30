@@ -24,6 +24,8 @@ function pushPrefs(settings) {
     startAlerts: s.pushStartAlerts !== false,
     morning: s.pushMorning !== false,
     leadMinutes: LEAD_CHOICES.includes(lead) ? lead : DEFAULT_LEAD_MINUTES,
+    // Privacy: leave the buy-in out of alerts (they show on a lock screen). Off unless switched on.
+    hideAmounts: s.pushHideAmounts === true,
   };
 }
 
@@ -140,9 +142,11 @@ function selectDigest(opts) {
   return {ymd: today, events};
 }
 
-function buildStartingSoonPayload(event, minutes) {
+// opts.hideAmounts: leave the buy-in out (Privacy Mode for phone alerts)
+function buildStartingSoonPayload(event, minutes, opts) {
+  const hide = !!(opts && opts.hideAmounts);
   const when = minutes < 60 ? minutes + " min" : (Math.round((minutes / 60) * 10) / 10) + " h";
-  const body = [timeLabel(event), event.venue, peso(event.buyin), event.gtd ? "GTD " + event.gtd : ""].filter(Boolean).join(" · ");
+  const body = [timeLabel(event), event.venue, hide ? "" : peso(event.buyin), event.gtd ? "GTD " + event.gtd : ""].filter(Boolean).join(" · ");
   return {
     title: (event.name || "Tournament") + " starts in " + when,
     body: body || "Time to get ready.",
@@ -152,9 +156,10 @@ function buildStartingSoonPayload(event, minutes) {
   };
 }
 
-function buildDigestPayload(events, ymd) {
+function buildDigestPayload(events, ymd, opts) {
+  const hide = !!(opts && opts.hideAmounts);
   const line = (t) => {
-    const bits = [timeLabel(t), peso(t.buyin)].filter(Boolean).join(" · ");
+    const bits = [timeLabel(t), hide ? "" : peso(t.buyin)].filter(Boolean).join(" · ");
     return (t.name || "Tournament") + (bits ? " (" + bits + ")" : "");
   };
   const shown = events.slice(0, 3).map(line);

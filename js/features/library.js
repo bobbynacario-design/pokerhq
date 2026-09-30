@@ -671,6 +671,7 @@ function exportCSV() {
     alert('No sessions to export.');
     return;
   }
+  if (window.PokerHQPrivacy && !window.PokerHQPrivacy.confirmExport('CSV file')) return;   // Privacy Mode: files carry real amounts
   var headers = ['Date', 'Tournament', 'Venue', 'Buy-in', 'Rebuys', 'Total Invested', 'Field', 'Position', 'Prize', 'Bounties', 'P&L', 'Hours', 'Result', 'Notes', 'Focus', 'Energy', 'Sleep', 'Fasting', 'Format'];
   var rows = sessions.map(function(s) {
     return [
@@ -694,6 +695,7 @@ function exportCSV() {
 }
 
 function exportPDF() {
+  if (window.PokerHQPrivacy && !window.PokerHQPrivacy.confirmExport('weekly report PDF')) return;   // Privacy Mode: files carry real amounts
   try {
     var doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
     var ML = 15, MR = 15, MT = 16, PW = 210, CW = PW - ML - MR;

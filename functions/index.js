@@ -488,7 +488,7 @@ exports.pokerhqPushAlerts = onSchedule(
     if (prefs.morning) {
       const digest = push.selectDigest({tourneys, now, sentDigest: digestSent});
       if (digest) {
-        const r = await sendToDevices(push.buildDigestPayload(digest.events, digest.ymd), {ttl: 4 * 3600});
+        const r = await sendToDevices(push.buildDigestPayload(digest.events, digest.ymd, {hideAmounts: prefs.hideAmounts}), {ttl: 4 * 3600});
         if (delivered(r)) { digestSent = digest.ymd; changed = true; }
         logger.info("Morning digest: " + JSON.stringify(r));
       }
@@ -497,7 +497,7 @@ exports.pokerhqPushAlerts = onSchedule(
     if (prefs.startAlerts) {
       const due = push.selectStartingSoon({tourneys, now, leadMinutes: prefs.leadMinutes, sent: startSent});
       for (const item of due) {
-        const r = await sendToDevices(push.buildStartingSoonPayload(item.event, item.minutes), {urgency: "high", ttl: 1800});
+        const r = await sendToDevices(push.buildStartingSoonPayload(item.event, item.minutes, {hideAmounts: prefs.hideAmounts}), {urgency: "high", ttl: 1800});
         if (delivered(r)) { startSent[item.key] = now.getTime(); changed = true; }
         logger.info("Starting-soon alert for " + item.key + ": " + JSON.stringify(r));
       }

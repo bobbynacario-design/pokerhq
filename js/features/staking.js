@@ -520,6 +520,7 @@ function exportStakingCSV() {
     alert('No staking data to export yet.');
     return;
   }
+  if (window.PokerHQPrivacy && !window.PokerHQPrivacy.confirmExport('CSV file')) return;   // Privacy Mode: files carry real amounts
 
   var packageRows = getStakingPackageRows();
   var lines = [];

@@ -405,6 +405,7 @@ function renderActiveSessionSurface() {
   var timerState = _timerInterval ? 'Running' : (_timerElapsed > 0 ? 'Paused' : 'Ready');
   var label = getActiveSessionLabel();
   var hasDraft = !!_activeSessionDraft || _timerInterval || _timerElapsed > 0;
+  if (window.PokerHQPrivacy) window.PokerHQPrivacy.setSessionActive(hasDraft);   // Privacy Mode can hide amounts while a session runs
   var homeTitle = document.getElementById('home-command-title');
   var homeSub = document.getElementById('home-command-sub');
   if (homeTitle && homeSub) {

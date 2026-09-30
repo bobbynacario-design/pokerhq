@@ -9,9 +9,9 @@ const ev = (o) => Object.assign({id: 1, name: "Metro Sunday Main", venue: "Metro
 
 // ── preferences ──
 test("prefs default to everything on with a 60 minute lead", () => {
-  assert.deepEqual(P.pushPrefs(undefined), {startAlerts: true, morning: true, leadMinutes: 60});
-  assert.deepEqual(P.pushPrefs({}), {startAlerts: true, morning: true, leadMinutes: 60});
-  assert.deepEqual(P.pushPrefs({pushStartAlerts: false, pushMorning: false, pushLeadMinutes: 30}), {startAlerts: false, morning: false, leadMinutes: 30});
+  assert.deepEqual(P.pushPrefs(undefined), {startAlerts: true, morning: true, leadMinutes: 60, hideAmounts: false});
+  assert.deepEqual(P.pushPrefs({}), {startAlerts: true, morning: true, leadMinutes: 60, hideAmounts: false});
+  assert.deepEqual(P.pushPrefs({pushStartAlerts: false, pushMorning: false, pushLeadMinutes: 30}), {startAlerts: false, morning: false, leadMinutes: 30, hideAmounts: false});
   assert.equal(P.pushPrefs({pushLeadMinutes: 45}).leadMinutes, 60, "only the offered choices are accepted");
   assert.equal(P.pushPrefs({pushLeadMinutes: "120"}).leadMinutes, 120);
 });
@@ -186,4 +186,20 @@ test("device labels are cleaned", () => {
   assert.equal(P.cleanDeviceLabel(""), "Device");
   assert.equal(P.cleanDeviceLabel(undefined), "Device");
   assert.equal(P.cleanDeviceLabel("x".repeat(200)).length, 60);
+});
+
+// ── privacy: no buy-ins on the lock screen ──
+test("hideAmounts leaves the buy-in out of both kinds of alert, and only when switched on", () => {
+  assert.equal(P.pushPrefs({pushHideAmounts: true}).hideAmounts, true);
+  assert.equal(P.pushPrefs({pushHideAmounts: "yes"}).hideAmounts, false, "only a real true switches it on");
+  const normal = P.buildStartingSoonPayload(ev(), 45);
+  assert.match(normal.body, /₱3,300/);
+  const hidden = P.buildStartingSoonPayload(ev({gtd: "₱1M"}), 45, {hideAmounts: true});
+  assert.doesNotMatch(hidden.body, /₱3,300/, "buy-in is gone");
+  assert.match(hidden.body, /7:00 PM · Metro Card Club/, "time and venue stay");
+  const digest = P.buildDigestPayload([ev(), ev({id: 2, name: "Second", buyin: 5000})], "2026-10-04", {hideAmounts: true});
+  assert.doesNotMatch(digest.body, /₱/, "no amounts in the morning summary");
+  assert.match(digest.body, /Metro Sunday Main \(7:00 PM\)/);
+  assert.match(P.buildDigestPayload([ev()], "2026-10-04").body, /₱3,300/, "unchanged when off");
+  assert.equal(P.buildStartingSoonPayload(ev(), 45, undefined).body, normal.body);
 });

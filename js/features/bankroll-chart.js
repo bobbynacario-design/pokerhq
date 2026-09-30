@@ -206,6 +206,7 @@ function exportMonthlyCSV() {
   if (window._demoMode) { alert('Clear demo mode first to export your real results.'); return; }
   var rows = PokerHQStats.byMonth(window.sessions || [], 0);
   if (!rows.length) { alert('No sessions to report yet.'); return; }
+  if (window.PokerHQPrivacy && !window.PokerHQPrivacy.confirmExport('CSV file')) return;   // Privacy Mode: files carry real amounts
   var blob = new Blob([PokerHQStats.monthlyCsv(rows)], { type: 'text/csv;charset=utf-8' });
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
