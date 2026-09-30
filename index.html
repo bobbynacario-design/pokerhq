@@ -13,8 +13,8 @@
 <title>PokerHQ — Tournament Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script type="module" src="./js/app.js?v=20260930h"></script>
-<link rel="stylesheet" href="./styles/app.css?v=20260930h">
+<script type="module" src="./js/app.js?v=20260930i"></script>
+<link rel="stylesheet" href="./styles/app.css?v=20260930i">
 </head>
 <body>
 <!-- LOGIN GATE — shown until Firebase auth resolves a signed-in user -->
@@ -761,6 +761,7 @@
     <div style="display:flex;gap:.5rem;flex-wrap:wrap">
       <button class="sec-action" onclick="dedupeTourneys()" title="Remove duplicate tournaments (same date, name and venue)">⧉ DEDUPE</button>
       <button class="sec-action" onclick="exportCalendarICS()" title="Download target events as a calendar file">⤓ EXPORT .ICS</button>
+      <button class="sec-action" id="cal-poster-btn" onclick="openPosterImport()" title="Take or choose a photo of a tournament poster and add its events after you check them">📷 IMPORT POSTER</button>
       <button class="sec-action" id="cal-update-btn" onclick="runCalendarUpdate()" title="Web-search upcoming PH &amp; APAC tournaments and add them — satellites tagged automatically. Uses your OpenAI key; run every 2–3 weeks.">✨ UPDATE EVENTS</button>
       <button class="sec-action primary" onclick="openNewTourneyModal()">+ ADD TOURNAMENT</button>
     </div>
@@ -1269,6 +1270,15 @@
     </div>
   </div>
 
+  <h3>3.1b — Add events from a poster photo</h3>
+  <p>See a tournament poster or a schedule on a wall or in a chat? On <strong>PLAN → 📅 Calendar</strong>, tap <strong>📷 IMPORT POSTER</strong>, take or choose the photo, and (if it helps) type a hint such as the venue or the month. Claude reads it and shows every event it found. <strong>Nothing is added until you check it.</strong></p>
+  <ol class="action-list">
+    <li><span class="al-num">1</span><div>Each event is a card you can edit: name, date, start time, venue, buy-in, guarantee, format and type. Untick the ones you don't want.</div></li>
+    <li><span class="al-num">2</span><div>Cards outlined in orange are things Claude wasn't sure about. Cards marked red can't be added yet: they need a date, or an exchange rate when the price is in another currency (the peso amount shows underneath as you type).</div></li>
+    <li><span class="al-num">3</span><div>An event already on your calendar is unticked and marked <em>Already on your calendar</em>. Tap <strong>ADD n TO CALENDAR</strong>; <strong>UNDO</strong> removes exactly what was added.</div></li>
+  </ol>
+  <p class="help-note">The photo is sent to Claude to be read and is not kept by PokerHQ. It works with the Anthropic key or the keyless setup, like the other Claude features.</p>
+
   <h3>3.2 — Mark the events you're playing</h3>
   <p>Grading tells you what you can afford; <strong>pinning</strong> records what you've actually decided to play. The two are independent — you might pin a STRETCH event you're committed to, or skip a TARGET you're not traveling for.</p>
   <ol class="action-list">
@@ -1468,12 +1478,13 @@
 
   <!-- AI FEATURES -->
   <h2 id="ai">AI features &amp; keys</h2>
-  <p>PokerHQ has five optional AI features. They're powered by your own API keys, managed in one place: <strong>IMPROVE → ♥ Strategy → 🤖 AI Assistant</strong>.</p>
+  <p>PokerHQ has six optional AI features. They're powered by your own API keys, managed in one place: <strong>IMPROVE → ♥ Strategy → 🤖 AI Assistant</strong>.</p>
   <table>
     <thead><tr><th>Feature</th><th>Where</th><th>Key used</th></tr></thead>
     <tbody>
       <tr><td><strong>Voice recording → transcript</strong></td><td>Hands → 🎙 Voice to Hand → 🎤 Record</td><td><span class="badge badge-blue">OpenAI</span> (Whisper)</td></tr>
       <tr><td><strong>Update tournament calendar</strong></td><td>Plan → Calendar → ✨ Update Events</td><td><span class="badge badge-blue">OpenAI</span> (GPT-5.6 Terra) + web search</td></tr>
+      <tr><td><strong>Read a tournament poster</strong></td><td>Plan → Calendar → 📷 Import Poster</td><td><span class="badge badge-purple">Anthropic</span> (Claude)</td></tr>
       <tr><td><strong>Structure a transcript into a hand</strong></td><td>Voice to Hand → ✨ Structure with AI</td><td><span class="badge badge-purple">Anthropic</span> (Claude)</td></tr>
       <tr><td><strong>AI-enhanced session debrief</strong></td><td>Review → open a session → ENHANCE WITH AI</td><td><span class="badge badge-purple">Anthropic</span> (Claude)</td></tr>
       <tr><td><strong>AI poker research</strong></td><td>IMPROVE → ♥ Strategy → 🔎 AI Poker Research</td><td><span class="badge badge-purple">Anthropic</span> (Claude) + web search</td></tr>
@@ -2066,39 +2077,41 @@
   </div>
 </div>
 
-<script src="./js/data/util.js?v=20260930h"></script>
-<script src="./js/data/backup-format.js?v=20260930h"></script>
-<script src="./js/data/privacy.js?v=20260930h"></script>
-<script src="./js/data/markers.js?v=20260930h"></script>
-<script src="./js/data/inbox.js?v=20260930h"></script>
-<script src="./js/data/trueroi.js?v=20260930h"></script>
-<script src="./js/data/merge.js?v=20260930h"></script>
-<script src="./js/data/config-runtime.js?v=20260930h"></script>
-<script src="./js/data/ai-proxy.js?v=20260930h"></script>
-<script src="./js/features/active-session.js?v=20260930h"></script>
-<script src="./js/features/demo-mode.js?v=20260930h"></script>
-<script src="./js/data/pushfold.js?v=20260930h"></script>
-<script src="./js/data/stats.js?v=20260930h"></script>
-<script src="./js/data/drills.js?v=20260930h"></script>
-<script src="./js/data/icm.js?v=20260930h"></script>
-<script src="./js/features/calculator.js?v=20260930h"></script>
-<script src="./js/features/staking.js?v=20260930h"></script>
-<script src="./js/features/package-report.js?v=20260930h"></script>
-<script src="./js/features/review.js?v=20260930h"></script>
-<script src="./js/features/calendar.js?v=20260930h"></script>
-<script src="./js/features/study-loop.js?v=20260930h"></script>
-<script src="./js/features/strategy.js?v=20260930h"></script>
-<script src="./js/features/hands.js?v=20260930h"></script>
-<script src="./js/features/live-markers.js?v=20260930h"></script>
-<script src="./js/features/review-inbox.js?v=20260930h"></script>
-<script src="./js/features/trips.js?v=20260930h"></script>
-<script src="./js/features/treasury.js?v=20260930h"></script>
-<script src="./js/features/bankroll-chart.js?v=20260930h"></script>
-<script src="./js/features/library.js?v=20260930h"></script>
-<script src="./js/features/push.js?v=20260930h"></script>
-<script src="./js/features/onboarding.js?v=20260930h"></script>
-<script src="./js/features/daily-drill.js?v=20260930h"></script>
-<script src="./js/features/today-glance.js?v=20260930h"></script>
+<script src="./js/data/util.js?v=20260930i"></script>
+<script src="./js/data/backup-format.js?v=20260930i"></script>
+<script src="./js/data/privacy.js?v=20260930i"></script>
+<script src="./js/data/markers.js?v=20260930i"></script>
+<script src="./js/data/inbox.js?v=20260930i"></script>
+<script src="./js/data/trueroi.js?v=20260930i"></script>
+<script src="./js/data/poster.js?v=20260930i"></script>
+<script src="./js/data/merge.js?v=20260930i"></script>
+<script src="./js/data/config-runtime.js?v=20260930i"></script>
+<script src="./js/data/ai-proxy.js?v=20260930i"></script>
+<script src="./js/features/active-session.js?v=20260930i"></script>
+<script src="./js/features/demo-mode.js?v=20260930i"></script>
+<script src="./js/data/pushfold.js?v=20260930i"></script>
+<script src="./js/data/stats.js?v=20260930i"></script>
+<script src="./js/data/drills.js?v=20260930i"></script>
+<script src="./js/data/icm.js?v=20260930i"></script>
+<script src="./js/features/calculator.js?v=20260930i"></script>
+<script src="./js/features/staking.js?v=20260930i"></script>
+<script src="./js/features/package-report.js?v=20260930i"></script>
+<script src="./js/features/review.js?v=20260930i"></script>
+<script src="./js/features/calendar.js?v=20260930i"></script>
+<script src="./js/features/study-loop.js?v=20260930i"></script>
+<script src="./js/features/strategy.js?v=20260930i"></script>
+<script src="./js/features/hands.js?v=20260930i"></script>
+<script src="./js/features/live-markers.js?v=20260930i"></script>
+<script src="./js/features/review-inbox.js?v=20260930i"></script>
+<script src="./js/features/trips.js?v=20260930i"></script>
+<script src="./js/features/poster-import.js?v=20260930i"></script>
+<script src="./js/features/treasury.js?v=20260930i"></script>
+<script src="./js/features/bankroll-chart.js?v=20260930i"></script>
+<script src="./js/features/library.js?v=20260930i"></script>
+<script src="./js/features/push.js?v=20260930i"></script>
+<script src="./js/features/onboarding.js?v=20260930i"></script>
+<script src="./js/features/daily-drill.js?v=20260930i"></script>
+<script src="./js/features/today-glance.js?v=20260930i"></script>
 <script>
 // ── PWA INSTALL — captures the browser install prompt like Enclave ──
 var _deferredInstallPrompt = null;
@@ -3069,6 +3082,48 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
 </div>
 
 <!-- Opponent Modal -->
+<div class="modal-overlay" id="modal-poster">
+  <div class="modal wide">
+    <div class="modal-title" id="modal-poster-title">Import events from a poster</div>
+
+    <div id="poster-stage-pick">
+      <p class="poster-lead">Take a photo of a tournament poster or schedule (or choose a screenshot). Claude reads it, and you check every event before anything is added to your calendar.</p>
+      <label class="poster-drop" for="poster-file">
+        <span class="poster-drop-title">📷 Take or choose a photo</span>
+        <span class="poster-drop-sub" id="poster-file-name">No photo chosen yet</span>
+        <input type="file" id="poster-file" accept="image/*" onchange="posterChooseFile(this)">
+      </label>
+      <img id="poster-preview" class="poster-preview" alt="The poster you chose" style="display:none">
+      <div class="form-group" style="margin-top:.9rem">
+        <label class="form-label" for="poster-hint">Anything Claude should know? (optional)</label>
+        <input class="form-input" type="text" id="poster-hint" maxlength="300" placeholder="e.g. Okada Manila, October series (if the poster only shows a logo)">
+      </div>
+      <div class="tip">The photo is sent to Claude to be read. PokerHQ doesn't keep it.</div>
+      <div class="trip-form-error" id="poster-error" role="alert" style="display:none"></div>
+      <div class="modal-actions">
+        <button class="sec-action" onclick="closePosterImport()">CANCEL</button>
+        <button class="sec-action primary" id="poster-read-btn" onclick="readPoster()" disabled>READ POSTER ↗</button>
+      </div>
+    </div>
+
+    <div id="poster-stage-reading" style="display:none">
+      <div class="poster-reading" role="status">Claude is reading the poster. This can take up to a minute.</div>
+      <div class="modal-actions"><button class="sec-action" onclick="closePosterImport()">CANCEL</button></div>
+    </div>
+
+    <div id="poster-stage-confirm" style="display:none">
+      <div class="poster-summary" id="poster-summary" role="status"></div>
+      <div class="poster-notes" id="poster-notes" style="display:none"></div>
+      <div id="poster-drafts"></div>
+      <div class="modal-actions">
+        <button class="sec-action" onclick="posterBack()">← DIFFERENT PHOTO</button>
+        <button class="sec-action" onclick="closePosterImport()">CANCEL</button>
+        <button class="sec-action primary" id="poster-add-btn" onclick="addPosterEvents()" disabled>NOTHING TICKED</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-trip">
   <div class="modal">
     <div class="modal-title" id="modal-trip-title">New Trip</div>

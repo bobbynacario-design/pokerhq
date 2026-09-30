@@ -522,6 +522,38 @@ body.privacy-on [data-money]:not(:focus)::placeholder{color:transparent!importan
 .trip-empty.big{padding:1.4rem 1rem;text-align:center;border:1px dashed var(--rim2);border-radius:12px;margin-bottom:.9rem}
 .trip-form-error{margin:.5rem 0;padding:.5rem .75rem;border-radius:10px;background:rgba(232,92,92,.1);border:1px solid rgba(232,92,92,.4);font-size:12.5px;color:var(--rose)}
 @media(max-width:600px){.trip-roi-arrow{display:none}.roi-box{max-width:none}}
+.modal.wide{width:min(940px,96vw)}
+/* -- EVENT POSTER IMPORT -- */
+.poster-lead{font-size:13.5px;line-height:1.6;color:var(--wa-70);margin:0 0 1rem}
+.poster-drop{display:flex;flex-direction:column;align-items:center;gap:.35rem;padding:1.4rem 1rem;border:2px dashed var(--rim2);border-radius:14px;background:var(--bg3);cursor:pointer;text-align:center;transition:border-color .15s,background .15s}
+.poster-drop:hover,.poster-drop:focus-within{border-color:var(--gold);background:var(--gold-dim)}
+.poster-drop-title{font-family:var(--mono);font-size:13px;letter-spacing:.06em;color:var(--ink)}
+.poster-drop-sub{font-family:var(--mono);font-size:11px;color:var(--wa-58);overflow-wrap:anywhere}
+.poster-drop input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.poster-preview{display:block;max-width:100%;max-height:260px;margin:.9rem auto 0;border-radius:10px;border:1px solid var(--rim2);object-fit:contain}
+.poster-reading{padding:2.2rem 1rem;text-align:center;font-family:var(--mono);font-size:13px;color:var(--wa-80)}
+.poster-summary{font-family:var(--mono);font-size:12.5px;line-height:1.6;color:var(--ink);margin-bottom:.4rem}
+.poster-notes{font-size:12.5px;line-height:1.5;color:var(--wa-70);margin-bottom:.8rem}
+.poster-card{padding:.8rem .9rem;margin-bottom:.7rem;border:1px solid var(--rim);border-radius:12px;background:var(--bg3)}
+.poster-card.on{border-color:rgba(46,204,113,.5)}
+.poster-card.blocked{border-color:rgba(232,92,92,.45)}
+.poster-card.dup{opacity:.85}
+.poster-card-top{display:flex;align-items:center;justify-content:space-between;gap:.6rem;flex-wrap:wrap;margin-bottom:.6rem}
+.poster-include{align-items:center;font-weight:500;color:var(--ink)}
+.poster-badge{font-family:var(--mono);font-size:10px;padding:2px 9px;border-radius:999px;border:1px solid var(--rim2);background:var(--chip-bg);color:var(--wa-80)}
+.poster-badge.dup{border-color:rgba(230,150,60,.6)}
+.poster-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.55rem}
+.poster-f{display:flex;flex-direction:column;gap:.2rem;min-width:0}
+.poster-f.wide{grid-column:span 2}
+.poster-f>span{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--wa-58)}
+.poster-f .form-input{padding:.4rem .55rem;font-size:13px}
+.poster-f.flagged .form-input{border-color:rgba(230,150,60,.85);box-shadow:0 0 0 1px rgba(230,150,60,.35)}
+.poster-peso{justify-content:flex-end;font-family:var(--mono);font-size:12px;color:var(--gold)}
+.poster-peso:empty{display:none}
+.poster-issues{margin-top:.5rem}
+.poster-issue{font-size:12px;line-height:1.5;color:var(--wa-85);margin-top:.15rem}
+.poster-issue.block{color:var(--rose)}
+@media(max-width:700px){.poster-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.poster-f.wide{grid-column:span 2}}
 .cost-preview{min-height:1.4rem;margin:.6rem 0 .2rem;font-family:var(--mono);font-size:13px;color:var(--gold)}
 
 
