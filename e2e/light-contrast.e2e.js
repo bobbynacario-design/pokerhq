@@ -142,6 +142,17 @@ async function audit(viewport) {
   await scan("treasury/trips+warning", () => { satellites.length = 0; switchGroup("wallet"); renderTrips(); });
   await scan("modal:trip (error)", () => { document.querySelectorAll(".modal-overlay.open").forEach((m) => m.classList.remove("open")); openNewTripModal(); const e = document.getElementById("trip-error"); e.textContent = "The last day is before the first day."; e.style.display = ""; });
   await scan("modal:trip cost (error, preview, rate)", () => { document.querySelectorAll(".modal-overlay.open").forEach((m) => m.classList.remove("open")); openNewTripCostModal(8802); document.getElementById("cost-currency").value = "USD"; fillCostRate(); document.getElementById("cost-amount").value = "420"; document.getElementById("cost-rate").value = "58.4"; updateCostPreview(); const e = document.getElementById("cost-error"); e.textContent = "Enter the exchange rate: how many pesos one USD is worth."; e.style.display = ""; });
+  // event poster import: the picking step with an error showing, and the confirm step with a blocked card
+  // (missing date, foreign price with no rate), a duplicate, an unsure field and a warning
+  await scan("modal:poster (pick, error)", () => { document.querySelectorAll(".modal-overlay.open").forEach((m) => m.classList.remove("open")); switchGroup("plan", "calendar"); openPosterImport(); posterError("That file is not a picture."); });
+  await scan("modal:poster (confirm)", () => {
+    const t = todayLocal(); const add = (n) => { const d = new Date(t + "T12:00:00"); d.setDate(d.getDate() + n); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+    tourneys.push({ id: 424243, date: add(13), name: "Weekend Special", venue: "Metro Card Club", buyin: 3300, status: "target", type: "side" }); syncGlobalAliases();
+    const ev = (o) => Object.assign({ name: "Event", date: add(10), endDate: "", time: "14:00", venue: "Okada Manila", buyin: 5500, currency: "PHP", gtd: "", structure: "Regular", category: "side", notes: "", uncertain: [] }, o);
+    _poster.drafts = PokerHQPoster.buildDrafts([ev({ name: "Poster Main Event", gtd: "₱1,000,000", uncertain: ["time"] }), ev({ name: "APT High Roller", currency: "USD", buyin: 500, date: add(12) }), ev({ name: "Mystery Event", date: "", uncertain: ["date"] }), ev({ name: "Weekend Special", date: add(13), venue: "Metro Card Club", buyin: 3300 }), ev({ name: "Old Finale", date: add(-60) })], posterDraftContext());
+    _poster.notes = "Ignored the cash game list.";
+    posterShowStage("confirm"); renderPosterDrafts();
+  });
   await scan("toast", () => { document.querySelectorAll(".modal-overlay.open").forEach((m) => m.classList.remove("open")); switchGroup("home"); showUndoToast("Removed a tournament", function () {}, 60000); const b = document.getElementById("update-banner"); if (b) b.style.display = "flex"; });
   await close();
   return problems;

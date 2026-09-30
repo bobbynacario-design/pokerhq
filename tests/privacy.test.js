@@ -144,8 +144,12 @@ test("CHECKLIST inputs: every box that holds a saved amount is marked data-money
 });
 
 test("CHECKLIST charts: nothing is drawn on a canvas, where text cannot be masked", () => {
-  const all = ["index.html"].concat(featureFiles).map((f) => [f, read(f)]);
+  // poster-import.js only shrinks a photo before it is sent to the reader: it draws no text
+  const photoResizeOnly = ["js/features/poster-import.js"];
+  const all = ["index.html"].concat(featureFiles).filter((f) => photoResizeOnly.indexOf(f) < 0).map((f) => [f, read(f)]);
   const canvasUse = all.filter(([, text]) => /getContext\(|\.fillText\(|<canvas\b/.test(text)).map(([f]) => f);
+  const resize = read("js/features/poster-import.js");
+  assert.ok(!/\.fillText\(|\.strokeText\(/.test(resize), "the poster photo resize must not draw any text");
   assert.deepEqual(canvasUse, [], "canvas drawing is invisible to Privacy Mode's page watcher: draw charts as SVG text, or mask the labels in code");
 });
 

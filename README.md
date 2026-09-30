@@ -12,7 +12,7 @@ Live app: <https://bobbynacario-design.github.io/pokerhq/> (the repo root, serve
 | --- | --- |
 | `index.html` | App shell and page markup; also holds the core session/dashboard code |
 | `js/app.js`, `js/data/sync.js` | Entry module: Firebase sign-in and record-level sync |
-| `js/data/*.js` | Pure helpers: `util` (dates, session result, bankroll), `merge` (sync engine), `backup-format` (backup file version + checks), `privacy` (Privacy Mode), `trueroi` (trip costs and true ROI), `pushfold`, `icm`, `stats` |
+| `js/data/*.js` | Pure helpers: `util` (dates, session result, bankroll), `merge` (sync engine), `backup-format` (backup file version + checks), `privacy` (Privacy Mode), `trueroi` (trip costs and true ROI), `poster` (reading a poster photo), `pushfold`, `icm`, `stats` |
 | `js/features/*.js` | One file per feature (calendar, hands, treasury, calculator, review, …) |
 | `styles/app.css` | All styles |
 | `sw.js` | Service worker (offline shell); bump `CACHE_NAME` when the precache list changes |
@@ -55,6 +55,7 @@ browser tests below.
 - `tests/inbox.test.js` — the Review Inbox: what lands in it from each of five sources, the ordering, resolving and undoing (`js/data/inbox.js`)
 - `tests/markers.test.js` — live hand markers: the six kinds, time / stack stamped on each tap, double-tap guard, tag counts and filters, finishing a hand (`js/data/markers.js`)
 - `tests/privacy.test.js` — Privacy Mode: what counts as an amount, when the screen is hidden, and the checklist that fails when a new export, money box or canvas chart could bypass it (`js/data/privacy.js`)
+- `tests/poster.test.js` — Event Poster Import: the request sent to Claude, reading the answer (also when cut off), the blocking rules and warnings, duplicates, what reaches the calendar, and that the page loads and caches the files (`js/data/poster.js`)
 - `tests/theme.test.js` — light-theme readability guard: fails on hard-coded white text or a text colour with no light-mode value
 - `tests/events.test.js`, `tests/push.test.js`, `tests/sw-push.test.js` — event dates/times, notification selection and messages, and the service worker's push handlers
 
@@ -78,7 +79,7 @@ a new device), `backup-restore` (newer / foreign / damaged files), `light-contra
 columns at desktop / laptop / phone widths), `privacy` (with Privacy Mode on, every page, pop-up, chart and
 tooltip is swept for a readable amount), `live-markers` (the six one-tap buttons, finish-later, tag filters,
 phone layout), `inbox` (every source, Review and Mark resolved, undo, reload, live updates, phone), `trips` (trips, costs in
-other currencies, poker vs true ROI, the satellite-seat rule, undo, reload, phone), plus one per feature (`bounty`, `daily-drill`,
+other currencies, poker vs true ROI, the satellite-seat rule, undo, reload, phone), `poster` (photo to confirmation screen to calendar with the AI call mocked, errors, undo, phone), plus one per feature (`bounty`, `daily-drill`,
 `format`, `icm`, `modals`, `month`, `openai`, `push`, `size-guard`, `stats`, `venue`). Screenshots go to
 `E2E_OUT` (default: a temp folder); CI keeps them when a run fails. Add a suite by dropping a
 `something.e2e.js` in `e2e/` that uses `boot()` from `e2e/lib.js`.
@@ -100,6 +101,28 @@ visa & fees, tips, other) are entered in pesos or in one of 16 currencies with t
   in the trip they belong to. Warnings appear when a seat session has no satellites counted, or when a satellite
   looks like it is also logged as a session.
 - The pieces always add up to the total (a test checks it). Costs whose trip was deleted are kept under "Not on a trip".
+
+### Event Poster Import
+
+PLAN → Calendar → 📷 IMPORT POSTER. Pick or take a photo of a poster or schedule (optionally add a hint such as the
+venue or month); Claude reads it and the app shows one editable card per event on a confirmation screen. Only what the
+player ticks reaches the calendar.
+
+- `js/data/poster.js` is pure: it builds the request (one image block, then the instructions, with today's date so
+  "Oct 12" gets the right year), a strict JSON schema (`output_config`), parses the answer (also when it is wrapped in
+  text or cut off), and turns each event into a **draft** with checks.
+- **Blocked** (cannot be added until fixed): no name, no or invalid date, a price in another currency with no exchange
+  rate. **Warnings** (still addable): a date more than 30 days ago, no buy-in, and fields Claude marked as unsure
+  (outlined in orange). Duplicates (same date + name + venue as an existing event, the calendar's own fingerprint) come
+  unticked and badged.
+- `js/features/poster-import.js` owns the pop-up. The photo is decoded, shrunk to at most 1568 px and re-encoded as JPEG
+  under 4 MB (stays inside Claude's 5 MB image limit and the 10 MB callable limit) and is **never stored**.
+  Adding uses the calendar's own `importCalendarUpdateEvents`, so records have the same shape, dedupe and pesos as the
+  ✨ Update Events import; a valid start time is kept in `time`, which the phone alerts read. Toast with **UNDO**.
+- No server change: the `pokerhqAiCall` proxy passes image blocks straight through (a test checks the model and size
+  limits against `functions/index.js`). Uses the Claude key from the AI Assistant card, or the keyless proxy.
+- Tests: `tests/poster.test.js` (pure logic and wiring), `e2e/poster.e2e.js` (the pop-up end to end with the AI call
+  mocked, including what would be sent), and the light-mode contrast scan covers the pop-up's states.
 
 ### Review Inbox
 

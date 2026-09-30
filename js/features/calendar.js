@@ -508,6 +508,7 @@ function importCalendarUpdateEvents(events) {
       url: /^https?:\/\//i.test(ev.url || '') ? ev.url : '',
       status: (typeof gradeBuyin === 'function') ? gradeBuyin(bi) : 'skip'
     };
+    if (/^\d{2}:\d{2}$/.test(ev.time || '')) t.time = ev.time;   // a start time printed on a poster (phone alerts need it)
     var fpOf = (typeof getImportedTourneyFingerprint === 'function')
       ? getImportedTourneyFingerprint
       : function (x) { return [(x.date || ''), (x.name || ''), (x.venue || '')].join('|').toLowerCase(); };
