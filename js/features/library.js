@@ -136,6 +136,7 @@ function openNewSatelliteModal() {
   });
   var dateEl = document.getElementById('sat-date');
   if (dateEl) dateEl.value = todayLocal();
+  if (typeof loadSatelliteTripField === 'function') loadSatelliteTripField(null);
   var resultEl = document.getElementById('sat-result');
   if (resultEl) resultEl.value = 'won';
   openModal('modal-satellite');
@@ -152,6 +153,7 @@ function editSatellite(id) {
   document.getElementById('sat-result').value = s.result || 'won';
   document.getElementById('sat-for').value = s.forEvent || '';
   document.getElementById('sat-notes').value = s.notes || '';
+  if (typeof loadSatelliteTripField === 'function') loadSatelliteTripField(s);
   _editingSatId = id;
   setSatelliteModalTitle('Edit Satellite');
   openModal('modal-satellite');
@@ -168,6 +170,7 @@ function addSatellite() {
     existing.result = document.getElementById('sat-result').value;
     existing.forEvent = document.getElementById('sat-for').value || '';
     existing.notes = document.getElementById('sat-notes').value || '';
+    if (typeof applySatelliteTripField === 'function') applySatelliteTripField(existing);
     window.satellites = satellites;
     save('satellites', satellites);
     _editingSatId = null;
@@ -186,12 +189,14 @@ function addSatellite() {
     forEvent: document.getElementById('sat-for').value || satTarget.name || '',
     notes: document.getElementById('sat-notes').value || ''
   };
+  if (typeof applySatelliteTripField === 'function') applySatelliteTripField(s);
   satellites.unshift(s);
   window.satellites = satellites;
   save('satellites', satellites);
   closeModal('modal-satellite');
   ['sat-name', 'sat-venue', 'sat-buyin', 'sat-for', 'sat-notes'].forEach(function(id) { document.getElementById(id).value = ''; });
   document.getElementById('sat-result').value = 'won';
+  if (typeof loadSatelliteTripField === 'function') loadSatelliteTripField(null);
   renderSatellites();
 }
 
@@ -416,6 +421,8 @@ function getBackupSnapshot() {
       bankroll: cloneBackupValue(window.bankroll || { amount: 0, rule: 15 }, { amount: 0, rule: 15 }),
       wallet: cloneBackupValue(window.wallet || { balance: 0 }, { balance: 0 }),
       walletLedger: cloneBackupValue(window.walletLedger || [], []),
+      trips: cloneBackupValue(window.trips || [], []),
+      tripExpenses: cloneBackupValue(window.tripExpenses || [], []),
       satellites: cloneBackupValue(window.satellites || [], []),
       satTarget: cloneBackupValue(window.satTarget || { name: '', buyin: 0 }, { name: '', buyin: 0 }),
       opponents: cloneBackupValue(window.opponents || [], []),
@@ -568,6 +575,14 @@ function applyBackupRestore(data) {
   window.walletLedger = Array.isArray(data.walletLedger) ? data.walletLedger : [];
   walletLedger = window.walletLedger;
   persist('walletLedger', walletLedger);
+
+  window.trips = Array.isArray(data.trips) ? data.trips : [];
+  trips = window.trips;
+  persist('trips', trips);
+
+  window.tripExpenses = Array.isArray(data.tripExpenses) ? data.tripExpenses : [];
+  tripExpenses = window.tripExpenses;
+  persist('tripExpenses', tripExpenses);
 
   satellites = data.satellites;
   window.satellites = satellites;

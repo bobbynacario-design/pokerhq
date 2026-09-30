@@ -485,6 +485,46 @@ body.privacy-on [data-money]:not(:focus)::placeholder{color:transparent!importan
 .inbox-empty-copy{max-width:56ch;margin:0 auto;font-size:13px;line-height:1.6;color:var(--wa-58)}
 #sd-debriefed-btn.done{border-color:var(--mint);color:var(--mint)}
 
+/* -- TRIPS & TRUE ROI (Treasury) -- */
+.check-row{display:flex;align-items:flex-start;gap:.55rem;font-size:12.5px;line-height:1.5;color:var(--wa-70);cursor:pointer}
+.check-row input{margin-top:.2rem;flex-shrink:0}
+.trip-card{padding:1rem 1.1rem;margin-bottom:.9rem;background:var(--bg2);border:1px solid var(--rim);border-radius:14px}
+.trip-card.overall{border-color:rgba(212,175,55,.35)}
+.trip-card.loose{border-style:dashed}
+.trip-head{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:.9rem}
+.trip-name{font-family:var(--serif);font-size:20px;font-weight:400;letter-spacing:.05em;color:var(--ink);margin:0}
+.trip-sub{margin-top:.2rem;font-family:var(--mono);font-size:11px;color:var(--wa-58)}
+.trip-notes{margin-top:.35rem;font-size:12.5px;color:var(--wa-70);line-height:1.5}
+.trip-head-actions{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.trip-roi{display:flex;align-items:stretch;gap:.6rem;flex-wrap:wrap;margin-bottom:.9rem}
+.trip-roi-arrow{align-self:center;color:var(--wa-58);font-size:18px}
+.roi-box{flex:1 1 150px;max-width:240px;padding:.65rem .9rem;border-radius:12px;border:1px solid var(--rim2);background:var(--bg3)}
+.roi-box.true{border-color:rgba(212,175,55,.5);background:var(--gold-dim)}
+.roi-box-label{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--wa-70)}
+.roi-box-value{margin-top:.2rem;font-family:var(--mono);font-size:24px;font-weight:500;color:var(--ink)}
+.roi-box.pos .roi-box-value,.trip-fig.pos .trip-fig-value{color:var(--mint)}
+.roi-box.neg .roi-box-value,.trip-fig.neg .trip-fig-value{color:var(--rose)}
+.trip-figs{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:.55rem;margin-bottom:.8rem}
+.trip-fig{padding:.55rem .75rem;border-radius:10px;background:var(--bg3);border:1px solid var(--rim)}
+.trip-fig-label{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--wa-58)}
+.trip-fig-value{margin-top:.15rem;font-family:var(--mono);font-size:14px;color:var(--ink)}
+.trip-cats{display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.8rem}
+.trip-warn{margin:.4rem 0;padding:.5rem .75rem;border-radius:10px;background:rgba(230,150,60,.1);border:1px solid rgba(230,150,60,.4);font-size:12.5px;line-height:1.5;color:var(--wa-85)}
+.trip-costs{list-style:none;margin:.5rem 0 0;padding:0}
+.trip-cost{display:flex;align-items:center;gap:.7rem;padding:.5rem 0;border-top:1px solid var(--rim);flex-wrap:wrap}
+.trip-cost-what{flex:1 1 220px;min-width:0;font-size:13px;color:var(--ink);overflow-wrap:anywhere}
+.trip-cost-meta{font-family:var(--mono);font-size:10.5px;color:var(--wa-58)}
+.trip-cost-amount{font-family:var(--mono);font-size:12.5px;color:var(--wa-85);white-space:nowrap}
+.trip-cost.needs-rate .trip-cost-amount{color:var(--amber)}
+.trip-cost-actions{display:flex;gap:.25rem}
+.trip-hint{margin:.2rem 0 .5rem;font-family:var(--mono);font-size:11px;color:var(--wa-58)}
+.trip-empty{padding:.8rem 0 .2rem;font-size:12.5px;line-height:1.6;color:var(--wa-58)}
+.trip-empty.big{padding:1.4rem 1rem;text-align:center;border:1px dashed var(--rim2);border-radius:12px;margin-bottom:.9rem}
+.trip-form-error{margin:.5rem 0;padding:.5rem .75rem;border-radius:10px;background:rgba(232,92,92,.1);border:1px solid rgba(232,92,92,.4);font-size:12.5px;color:var(--rose)}
+@media(max-width:600px){.trip-roi-arrow{display:none}.roi-box{max-width:none}}
+.cost-preview{min-height:1.4rem;margin:.6rem 0 .2rem;font-family:var(--mono);font-size:13px;color:var(--gold)}
+
+
 
 /* -- MONTHLY CALENDAR VIEW -- */
 .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem}

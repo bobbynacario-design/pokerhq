@@ -136,7 +136,7 @@ test("fbLoadAll reads every key in parallel and applies them", async () => {
   window.hands = []; window.tourneys = [];
   const gets = cloud.stats.gets;
   await sync.fbLoadAll();
-  assert.equal(cloud.stats.gets - gets, 15, "one read per key");
+  assert.equal(cloud.stats.gets - gets, 17, "one read per key (15 lists and values, plus trips and trip costs)");
   assert.equal(window.hands[0].title, "AA vs KK");
   assert.equal(window.tourneys[0].name, "Metro Main");
 });

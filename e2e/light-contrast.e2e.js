@@ -138,6 +138,10 @@ async function audit(viewport) {
   });
   await scan("review/hands+markers", () => { switchGroup("review", "hands"); setHandTagFilter("unfinished"); });
   await scan("modal:hand (marker)", () => { document.querySelectorAll(".modal-overlay.open").forEach((m) => m.classList.remove("open")); editHand(7007); });
+  // trips & true ROI: the section with a warning showing (remove the satellites so the seat session has none), and the pop-ups with their error and preview lines
+  await scan("treasury/trips+warning", () => { satellites.length = 0; switchGroup("wallet"); renderTrips(); });
+  await scan("modal:trip (error)", () => { document.querySelectorAll(".modal-overlay.open").forEach((m) => m.classList.remove("open")); openNewTripModal(); const e = document.getElementById("trip-error"); e.textContent = "The last day is before the first day."; e.style.display = ""; });
+  await scan("modal:trip cost (error, preview, rate)", () => { document.querySelectorAll(".modal-overlay.open").forEach((m) => m.classList.remove("open")); openNewTripCostModal(8802); document.getElementById("cost-currency").value = "USD"; fillCostRate(); document.getElementById("cost-amount").value = "420"; document.getElementById("cost-rate").value = "58.4"; updateCostPreview(); const e = document.getElementById("cost-error"); e.textContent = "Enter the exchange rate: how many pesos one USD is worth."; e.style.display = ""; });
   await scan("toast", () => { document.querySelectorAll(".modal-overlay.open").forEach((m) => m.classList.remove("open")); switchGroup("home"); showUndoToast("Removed a tournament", function () {}, 60000); const b = document.getElementById("update-banner"); if (b) b.style.display = "flex"; });
   await close();
   return problems;

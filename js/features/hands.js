@@ -1,4 +1,5 @@
 function populateSessionDropdowns() {
+  if (typeof populateTripSelects === 'function') populateTripSelects();
   var opts = '<option value="">Select session (optional)...</option>';
   sessions.forEach(function(s) {
     opts += '<option value="' + s.id + '">' + esc(s.date) + ' — ' + esc(s.name) + '</option>';

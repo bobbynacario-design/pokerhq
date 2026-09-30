@@ -12,7 +12,7 @@ Live app: <https://bobbynacario-design.github.io/pokerhq/> (the repo root, serve
 | --- | --- |
 | `index.html` | App shell and page markup; also holds the core session/dashboard code |
 | `js/app.js`, `js/data/sync.js` | Entry module: Firebase sign-in and record-level sync |
-| `js/data/*.js` | Pure helpers: `util` (dates, session result, bankroll), `merge` (sync engine), `backup-format` (backup file version + checks), `privacy` (Privacy Mode), `pushfold`, `icm`, `stats` |
+| `js/data/*.js` | Pure helpers: `util` (dates, session result, bankroll), `merge` (sync engine), `backup-format` (backup file version + checks), `privacy` (Privacy Mode), `trueroi` (trip costs and true ROI), `pushfold`, `icm`, `stats` |
 | `js/features/*.js` | One file per feature (calendar, hands, treasury, calculator, review, …) |
 | `styles/app.css` | All styles |
 | `sw.js` | Service worker (offline shell); bump `CACHE_NAME` when the precache list changes |
@@ -51,6 +51,7 @@ browser tests below.
 - `tests/ai-proxy-client.test.js` — client fallback: local key → direct, otherwise the proxy (`js/data/ai-proxy.js`)
 - `tests/drills.test.js` — the Daily Drill library and picker: unique ids, context steering, no repeats, streaks, saved state (`js/data/drills.js`)
 - `tests/backup-format.test.js` — backup file versions: newer files refused with a clear message, older ones upgraded step by step, damaged records dropped and reported (`js/data/backup-format.js`)
+- `tests/trueroi.test.js` — trip costs and true ROI: currency conversion, which trip a session belongs to, poker vs true ROI, the satellite-seat rule (never double counted), warnings, and that the pieces add up to the total (`js/data/trueroi.js`)
 - `tests/inbox.test.js` — the Review Inbox: what lands in it from each of five sources, the ordering, resolving and undoing (`js/data/inbox.js`)
 - `tests/markers.test.js` — live hand markers: the six kinds, time / stack stamped on each tap, double-tap guard, tag counts and filters, finishing a hand (`js/data/markers.js`)
 - `tests/privacy.test.js` — Privacy Mode: what counts as an amount, when the screen is hidden, and the checklist that fails when a new export, money box or canvas chart could bypass it (`js/data/privacy.js`)
@@ -76,10 +77,29 @@ a new device), `backup-restore` (newer / foreign / damaged files), `light-contra
 4.5:1 text contrast in light mode, desktop and phone), `calendar-bars` (readable full-name event bars, seven equal
 columns at desktop / laptop / phone widths), `privacy` (with Privacy Mode on, every page, pop-up, chart and
 tooltip is swept for a readable amount), `live-markers` (the six one-tap buttons, finish-later, tag filters,
-phone layout), `inbox` (every source, Review and Mark resolved, undo, reload, live updates, phone), plus one per feature (`bounty`, `daily-drill`,
+phone layout), `inbox` (every source, Review and Mark resolved, undo, reload, live updates, phone), `trips` (trips, costs in
+other currencies, poker vs true ROI, the satellite-seat rule, undo, reload, phone), plus one per feature (`bounty`, `daily-drill`,
 `format`, `icm`, `modals`, `month`, `openai`, `push`, `size-guard`, `stats`, `venue`). Screenshots go to
 `E2E_OUT` (default: a temp folder); CI keeps them when a run fails. Add a suite by dropping a
 `something.e2e.js` in `e2e/` that uses `boot()` from `e2e/lib.js`.
+
+### Trips & True ROI
+
+TREASURY → Trips & True ROI. A **trip** is a name and dates; its **costs** (flights, hotel, transport, food,
+visa & fees, tips, other) are entered in pesos or in one of 16 currencies with the exchange rate you got
+(`js/data/trueroi.js`; the rate becomes that trip's default for the next cost). Two synced lists hold them:
+`trips` and `tripExpenses` (also in the JSON and weekly backups). Trip costs never touch the wallet or bankroll.
+
+- **Poker ROI** = (winnings − buy-ins logged on sessions) / buy-ins: what the app always showed.
+- **True ROI** = (winnings − everything paid) / everything paid, where everything = cash buy-ins + satellite
+  buy-ins + trip costs in pesos. A trip with costs but no sessions yet shows no ROI.
+- A session or satellite belongs to a trip by its date, unless a trip (or "Not on a trip") is picked on the
+  form (`session.tripId`, `satellite.tripId`).
+- **Satellites are never counted twice.** A session marked `seatViaSatellite` (the "Seat won in a satellite"
+  box) contributes ₱0 of cash buy-in; the satellites in the Satellites tracker carry its cost, each counted once,
+  in the trip they belong to. Warnings appear when a seat session has no satellites counted, or when a satellite
+  looks like it is also logged as a session.
+- The pieces always add up to the total (a test checks it). Costs whose trip was deleted are kept under "Not on a trip".
 
 ### Review Inbox
 
@@ -126,6 +146,7 @@ on the device, not synced. What it does and does not cover:
 | Phone alerts | "Leave buy-in amounts out" switch (`pushHideAmounts`, applied by `functions/push.js`; needs a functions deploy) |
 | Email reminders | Not covered |
 | Percentages (ROI, ITM) | Shown |
+| Other currencies (USD 420, TWD 31,500, $, €, ¥ ...) | Masked like pesos (trip costs) |
 
 When adding to the app: print money with the `₱` sign (or `PHP`), mark new amount boxes `data-money`, draw
 charts as SVG (not canvas), and call `PokerHQPrivacy.confirmExport('…')` before any file that carries

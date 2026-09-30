@@ -18,10 +18,13 @@
   var STORAGE_KEY = "pokerhq_privacy_v1";
   var MASK = "₱•••";
 
-  // ₱1,234  ₱ 1,234  −₱500  +₱6,000  ₱1.5k  ₱2M  PHP 1,234  +PHP 500  -PHP 500  1,234 PHP
+  // ₱1,234  ₱ 1,234  −₱500  +₱6,000  ₱1.5k  ₱2M  PHP 1,234  +PHP 500  1,234 PHP
+  // and the other currencies trip costs use: USD 420  TWD 31,500  $420  €90  ¥12,000  ₩50,000  ฿3,000
+  // (js/data/trueroi.js CURRENCIES: a test keeps the two lists in step).
   // A sign only counts when it touches the amount, so "for ₱500" keeps its space.
-  var MONEY_SOURCE = "(?:[+\\-\\u2212\\u2013]\\s?)?(?:\\u20B1|PHP\\s?)\\s?\\d(?:[\\d,]*\\d)?(?:\\.\\d+)?(?:[kKmM]\\b)?" +
-    "|\\b\\d(?:[\\d,]*\\d)?(?:\\.\\d+)?\\s?PHP\\b";
+  var CODES = "PHP|USD|TWD|THB|VND|SGD|MYR|HKD|MOP|KRW|JPY|EUR|GBP|AUD|IDR|CNY|INR|CAD|NZD";
+  var MONEY_SOURCE = "(?:[+\\-\\u2212\\u2013]\\s?)?(?:[\\u20B1$\\u20AC\\u00A3\\u00A5\\u20A9\\u0E3F]|(?:" + CODES + ")\\s?)\\s?\\d(?:[\\d,]*\\d)?(?:\\.\\d+)?(?:[kKmM]\\b)?" +
+    "|\\b\\d(?:[\\d,]*\\d)?(?:\\.\\d+)?\\s?(?:" + CODES + ")\\b";
 
   function maskText(text) {
     if (typeof text !== "string" || !text) return text;

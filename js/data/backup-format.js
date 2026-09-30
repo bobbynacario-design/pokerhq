@@ -20,7 +20,8 @@
   var MIGRATIONS = {};
 
   var ARRAY_KEYS = ["sessions", "hands", "tourneys", "strategies", "news", "spotlights", "satellites", "opponents"];
-  var RECORD_LISTS = ARRAY_KEYS.concat(["walletLedger"]);
+  // walletLedger and the trip lists came after the first backups: an older file without them restores as empty lists
+  var RECORD_LISTS = ARRAY_KEYS.concat(["walletLedger", "trips", "tripExpenses"]);
 
   function isObj(v) { return !!v && typeof v === "object" && !Array.isArray(v); }
   function clone(v, fallback) {

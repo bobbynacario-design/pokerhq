@@ -13,8 +13,8 @@
 <title>PokerHQ — Tournament Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script type="module" src="./js/app.js?v=20260930f"></script>
-<link rel="stylesheet" href="./styles/app.css?v=20260930f">
+<script type="module" src="./js/app.js?v=20260930h"></script>
+<link rel="stylesheet" href="./styles/app.css?v=20260930h">
 </head>
 <body>
 <!-- LOGIN GATE — shown until Firebase auth resolves a signed-in user -->
@@ -505,6 +505,15 @@
         <input class="form-input" type="number" id="s-hours" placeholder="e.g. 6" step="0.5">
       </div>
     </div>
+    <div class="form-grid" style="margin-bottom:.75rem">
+      <div class="form-group">
+        <label class="form-label">Trip (for True ROI)</label>
+        <select class="form-input" id="s-trip"><option value="">Automatic (by date)</option><option value="none">Not on a trip</option></select>
+      </div>
+      <div class="form-group" style="justify-content:flex-end">
+        <label class="check-row" for="s-satseat"><input type="checkbox" id="s-satseat"> <span>Seat won in a satellite. The satellites paid for it, so True ROI doesn't count this buy-in as cash a second time.</span></label>
+      </div>
+    </div>
     <div class="form-group" style="margin-bottom:.75rem">
       <label class="form-label">Notes</label>
       <input class="form-input" type="text" id="s-notes" placeholder="e.g. Deep run, busted KK vs AA on bubble">
@@ -732,6 +741,16 @@
       </div>
     </div>
     <div id="wallet-recent-list"></div>
+  </div>
+
+  <div class="section-shell" id="trips-section">
+    <div class="sec-hdr">
+      <div class="sec-title"><span>✈️</span>Trips &amp; True ROI</div>
+      <button class="sec-action primary" onclick="openNewTripModal()">+ NEW TRIP</button>
+    </div>
+    <div class="tip" style="margin-bottom:1rem"><strong>Poker ROI</strong> only counts the buy-ins you logged. <strong>True ROI</strong> counts everything you actually paid: cash buy-ins, the satellites you played for a seat, and trip costs (flights, hotel, food and the rest, converted to pesos). A seat won in a satellite is never counted twice. Trip costs are kept apart from your wallet and bankroll.</div>
+    <div id="trips-overall"></div>
+    <div id="trips-list"></div>
   </div>
 </div>
 
@@ -1370,6 +1389,14 @@
     <li><span class="al-num">2</span><div>If your action was sold, fill the <strong>staking</strong> fields — Package, Player Share %, Markup, and Named Backers. Optional, and it doesn't change your core log.</div></li>
     <li><span class="al-num">3</span><div>Click <strong>LOG SESSION ↗</strong>. <em>This example:</em> 8th of 142 for ₱18,000 off a ₱5,500 entry.</div></li>
   </ol>
+  <div class="callout info">
+    <span class="callout-icon">✈️</span>
+    <div class="callout-body">
+      <strong>Away trip? Track the true cost</strong>
+      Poker ROI only counts buy-ins. On <strong>TREASURY → Trips &amp; True ROI</strong>, add a trip (name and dates), then its costs: flights, hotel, food, visa, tips, in pesos or another currency with the rate you got. Sessions and satellites dated inside the trip join it automatically, and you can pick a trip by hand on a session or satellite. If a session's seat was won in a satellite, tick <strong>Seat won in a satellite</strong> on the session: the satellites you logged are counted as its cost, so nothing is counted twice.
+    </div>
+  </div>
+
   <div class="callout tip">
     <span class="callout-icon">✅</span>
     <div class="callout-body">
@@ -2039,37 +2066,39 @@
   </div>
 </div>
 
-<script src="./js/data/util.js?v=20260930f"></script>
-<script src="./js/data/backup-format.js?v=20260930f"></script>
-<script src="./js/data/privacy.js?v=20260930f"></script>
-<script src="./js/data/markers.js?v=20260930f"></script>
-<script src="./js/data/inbox.js?v=20260930f"></script>
-<script src="./js/data/merge.js?v=20260930f"></script>
-<script src="./js/data/config-runtime.js?v=20260930f"></script>
-<script src="./js/data/ai-proxy.js?v=20260930f"></script>
-<script src="./js/features/active-session.js?v=20260930f"></script>
-<script src="./js/features/demo-mode.js?v=20260930f"></script>
-<script src="./js/data/pushfold.js?v=20260930f"></script>
-<script src="./js/data/stats.js?v=20260930f"></script>
-<script src="./js/data/drills.js?v=20260930f"></script>
-<script src="./js/data/icm.js?v=20260930f"></script>
-<script src="./js/features/calculator.js?v=20260930f"></script>
-<script src="./js/features/staking.js?v=20260930f"></script>
-<script src="./js/features/package-report.js?v=20260930f"></script>
-<script src="./js/features/review.js?v=20260930f"></script>
-<script src="./js/features/calendar.js?v=20260930f"></script>
-<script src="./js/features/study-loop.js?v=20260930f"></script>
-<script src="./js/features/strategy.js?v=20260930f"></script>
-<script src="./js/features/hands.js?v=20260930f"></script>
-<script src="./js/features/live-markers.js?v=20260930f"></script>
-<script src="./js/features/review-inbox.js?v=20260930f"></script>
-<script src="./js/features/treasury.js?v=20260930f"></script>
-<script src="./js/features/bankroll-chart.js?v=20260930f"></script>
-<script src="./js/features/library.js?v=20260930f"></script>
-<script src="./js/features/push.js?v=20260930f"></script>
-<script src="./js/features/onboarding.js?v=20260930f"></script>
-<script src="./js/features/daily-drill.js?v=20260930f"></script>
-<script src="./js/features/today-glance.js?v=20260930f"></script>
+<script src="./js/data/util.js?v=20260930h"></script>
+<script src="./js/data/backup-format.js?v=20260930h"></script>
+<script src="./js/data/privacy.js?v=20260930h"></script>
+<script src="./js/data/markers.js?v=20260930h"></script>
+<script src="./js/data/inbox.js?v=20260930h"></script>
+<script src="./js/data/trueroi.js?v=20260930h"></script>
+<script src="./js/data/merge.js?v=20260930h"></script>
+<script src="./js/data/config-runtime.js?v=20260930h"></script>
+<script src="./js/data/ai-proxy.js?v=20260930h"></script>
+<script src="./js/features/active-session.js?v=20260930h"></script>
+<script src="./js/features/demo-mode.js?v=20260930h"></script>
+<script src="./js/data/pushfold.js?v=20260930h"></script>
+<script src="./js/data/stats.js?v=20260930h"></script>
+<script src="./js/data/drills.js?v=20260930h"></script>
+<script src="./js/data/icm.js?v=20260930h"></script>
+<script src="./js/features/calculator.js?v=20260930h"></script>
+<script src="./js/features/staking.js?v=20260930h"></script>
+<script src="./js/features/package-report.js?v=20260930h"></script>
+<script src="./js/features/review.js?v=20260930h"></script>
+<script src="./js/features/calendar.js?v=20260930h"></script>
+<script src="./js/features/study-loop.js?v=20260930h"></script>
+<script src="./js/features/strategy.js?v=20260930h"></script>
+<script src="./js/features/hands.js?v=20260930h"></script>
+<script src="./js/features/live-markers.js?v=20260930h"></script>
+<script src="./js/features/review-inbox.js?v=20260930h"></script>
+<script src="./js/features/trips.js?v=20260930h"></script>
+<script src="./js/features/treasury.js?v=20260930h"></script>
+<script src="./js/features/bankroll-chart.js?v=20260930h"></script>
+<script src="./js/features/library.js?v=20260930h"></script>
+<script src="./js/features/push.js?v=20260930h"></script>
+<script src="./js/features/onboarding.js?v=20260930h"></script>
+<script src="./js/features/daily-drill.js?v=20260930h"></script>
+<script src="./js/features/today-glance.js?v=20260930h"></script>
 <script>
 // ── PWA INSTALL — captures the browser install prompt like Enclave ──
 var _deferredInstallPrompt = null;
@@ -2185,6 +2214,8 @@ window.spotlights = load('spotlights', []);
 window.bankroll   = load('bankroll', {amount:0, rule:5});
 window.wallet     = load('wallet', {balance:0});
 window.walletLedger = load('walletLedger', []);
+window.trips = load('trips', []);
+window.tripExpenses = load('tripExpenses', []);
 window.goals     = load('goals', {});
 window.reminderSettings = load('reminderSettings', {});
 // Shorthand aliases
@@ -2197,6 +2228,8 @@ var spotlights = window.spotlights;
 var bankroll   = window.bankroll;
 var wallet     = window.wallet;
 var walletLedger = window.walletLedger;
+var trips = window.trips;
+var tripExpenses = window.tripExpenses;
 window.syncGlobalAliases = function() {
   sessions = window.sessions;
   tourneys = window.tourneys;
@@ -2207,6 +2240,8 @@ window.syncGlobalAliases = function() {
   bankroll = window.bankroll;
   wallet = window.wallet;
   walletLedger = window.walletLedger;
+  trips = window.trips;
+  tripExpenses = window.tripExpenses;
   if (typeof satellites !== 'undefined') satellites = window.satellites || [];
   if (typeof satTarget !== 'undefined') satTarget = window.satTarget || { name:'', buyin:0 };
   if (typeof opponents !== 'undefined') opponents = window.opponents || [];
@@ -2443,6 +2478,7 @@ function editSession(id) {
   document.getElementById('s-markup').value = (typeof s.markup==='number') ? s.markup : '';
   document.getElementById('s-backer-count').value = s.backerCount||'';
   document.getElementById('s-backers').value = backersToText(s.backers);
+  if (typeof loadSessionTripFields === 'function') loadSessionTripFields(s);
   if (s.focus && window.applyRatingValue) applyRatingValue('s-focus','focus-btns', s.focus);
   if (s.energy && window.applyRatingValue) applyRatingValue('s-energy','energy-btns', s.energy);
   if (s.sleep && window.applyRatingValue) applyRatingValue('s-sleep','sleep-btns', s.sleep);
@@ -2497,6 +2533,7 @@ function addSession() {
     existing.fasting = document.getElementById('s-fasting').value||'';
     ['packageName','playerSharePct','markup','backerCount','backers'].forEach(function(k){ delete existing[k]; });
     Object.keys(stakingData).forEach(function(k){ existing[k] = stakingData[k]; });
+    if (typeof applySessionTripFields === 'function') applySessionTripFields(existing);   // trip / satellite-seat choice (True ROI)
     var editedLabel = existing.name + ' \u2014 ' + existing.date;
     hands = hands.map(function(h){ if (h.sessionId===existing.id) h.session = editedLabel; return h; });
     window.hands = hands;
@@ -2540,6 +2577,7 @@ function addSession() {
   Object.keys(stakingData).forEach(function(key) {
     s[key] = stakingData[key];
   });
+  if (typeof applySessionTripFields === 'function') applySessionTripFields(s);   // trip / satellite-seat choice (True ROI)
   if (_activeSessionDraft && _activeSessionDraft.readiness) {
     s.readiness = Object.assign({}, _activeSessionDraft.readiness);
   }
@@ -2585,6 +2623,7 @@ function clearSessionForm() {
   document.getElementById('s-date').value = todayLocal();
 var satDateEl = document.getElementById('sat-date'); if (satDateEl) satDateEl.value = todayLocal();
   if (window.renderStakingInputSummary) renderStakingInputSummary();
+  if (typeof resetSessionTripFields === 'function') resetSessionTripFields();
   populateSessionDropdowns();
 }
 
@@ -3002,6 +3041,10 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
         <input class="form-input" type="number" id="sat-buyin" data-money placeholder="e.g. 1100">
       </div>
       <div class="form-group">
+        <label class="form-label">Counts toward trip (True ROI)</label>
+        <select class="form-input" id="sat-trip"><option value="">Automatic (by date)</option><option value="none">Not on a trip</option></select>
+      </div>
+      <div class="form-group">
         <label class="form-label">Result</label>
         <select class="form-input" id="sat-result">
           <option value="won">Won Seat 🎟</option>
@@ -3026,6 +3069,99 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
 </div>
 
 <!-- Opponent Modal -->
+<div class="modal-overlay" id="modal-trip">
+  <div class="modal">
+    <div class="modal-title" id="modal-trip-title">New Trip</div>
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:1/-1">
+        <label class="form-label">Trip name</label>
+        <input class="form-input" type="text" id="trip-name" maxlength="60" placeholder="e.g. APT Taipei 2026">
+      </div>
+      <div class="form-group">
+        <label class="form-label">First day</label>
+        <input class="form-input" type="date" id="trip-start">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Last day</label>
+        <input class="form-input" type="date" id="trip-end">
+      </div>
+    </div>
+    <div class="form-group" style="margin:.75rem 0 1rem">
+      <label class="form-label">Notes (optional)</label>
+      <input class="form-input" type="text" id="trip-notes" maxlength="300" placeholder="e.g. Flights booked with miles, sharing a room">
+    </div>
+    <div class="trip-form-error" id="trip-error" role="alert" style="display:none"></div>
+    <div class="tip">Sessions and satellites dated inside these days join the trip automatically. You can also pick a trip by hand on a session or satellite.</div>
+    <div class="modal-actions">
+      <button class="sec-action" onclick="closeModal('modal-trip')">CANCEL</button>
+      <button class="sec-action primary" onclick="saveTrip()">SAVE TRIP ↗</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-trip-cost">
+  <div class="modal">
+    <div class="modal-title" id="modal-cost-title">Add a cost</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Date paid</label>
+        <input class="form-input" type="date" id="cost-date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">What for</label>
+        <select class="form-input" id="cost-category">
+          <option value="flight">✈️ Flights</option>
+          <option value="hotel">🏨 Hotel</option>
+          <option value="transport">🚕 Transport</option>
+          <option value="food">🍜 Food</option>
+          <option value="visa">🛂 Visa &amp; fees</option>
+          <option value="tips">💵 Tips</option>
+          <option value="other">🧾 Other</option>
+        </select>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label class="form-label">Description (optional)</label>
+        <input class="form-input" type="text" id="cost-desc" maxlength="80" placeholder="e.g. MNL to TPE return">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Amount</label>
+        <input class="form-input" type="number" id="cost-amount" data-money min="0" step="0.01" placeholder="e.g. 18500" oninput="updateCostPreview()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Currency</label>
+        <select class="form-input" id="cost-currency" onchange="document.getElementById('cost-rate').value='';fillCostRate()">
+          <option value="PHP">PHP · Philippine peso</option>
+          <option value="USD">USD · US dollar</option>
+          <option value="TWD">TWD · Taiwan dollar</option>
+          <option value="THB">THB · Thai baht</option>
+          <option value="VND">VND · Vietnamese dong</option>
+          <option value="SGD">SGD · Singapore dollar</option>
+          <option value="MYR">MYR · Malaysian ringgit</option>
+          <option value="HKD">HKD · Hong Kong dollar</option>
+          <option value="MOP">MOP · Macau pataca</option>
+          <option value="KRW">KRW · Korean won</option>
+          <option value="JPY">JPY · Japanese yen</option>
+          <option value="EUR">EUR · Euro</option>
+          <option value="GBP">GBP · British pound</option>
+          <option value="AUD">AUD · Australian dollar</option>
+          <option value="IDR">IDR · Indonesian rupiah</option>
+          <option value="CNY">CNY · Chinese yuan</option>
+        </select>
+      </div>
+      <div class="form-group" id="cost-rate-wrap" style="display:none;grid-column:1/-1">
+        <label class="form-label" id="cost-rate-label">Pesos per 1 USD</label>
+        <input class="form-input" type="number" id="cost-rate" min="0" step="0.0001" placeholder="the rate you actually got" oninput="updateCostPreview()">
+      </div>
+    </div>
+    <div class="cost-preview" id="cost-preview" aria-live="polite"></div>
+    <div class="trip-form-error" id="cost-error" role="alert" style="display:none"></div>
+    <div class="modal-actions">
+      <button class="sec-action" onclick="closeModal('modal-trip-cost')">CANCEL</button>
+      <button class="sec-action primary" onclick="saveTripCost()">SAVE COST ↗</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-opponent">
   <div class="modal">
     <div class="modal-title">Add Villain</div>

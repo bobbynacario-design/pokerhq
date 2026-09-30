@@ -23,6 +23,8 @@ const BACKUP_DEFAULTS = {
   wallet: () => ({balance: 0}),
   walletLedger: () => [],
   satellites: () => [],
+  trips: () => [],
+  tripExpenses: () => [],
   satTarget: () => ({name: "", buyin: 0}),
   opponents: () => [],
   goals: () => ({}),
@@ -84,7 +86,7 @@ function buildBackupPayload(data, opts) {
 function isEmptyBackupData(data) {
   if (!data) return true;
   const recordKeys = ["sessions", "hands", "tourneys", "strategies", "news", "spotlights",
-    "walletLedger", "satellites", "opponents"];
+    "walletLedger", "satellites", "opponents", "trips", "tripExpenses"];
   const hasRecords = recordKeys.some((k) => Array.isArray(data[k]) && data[k].length > 0);
   const hasMoney = (isPlainObject(data.bankroll) && Number(data.bankroll.amount) > 0) ||
     (isPlainObject(data.wallet) && Number(data.wallet.balance) > 0);
