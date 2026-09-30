@@ -4,15 +4,16 @@
 // already knows. Pure logic, loaded as a classic script (window.PokerHQInbox) and importable from
 // Node for tests/inbox.test.js. The page, the Home card and the buttons are js/features/review-inbox.js.
 //
-// Five sources, each with its own "done" flag stored on the record it came from:
+// Six sources, each with its own "done" flag or synced dismissal:
 //   hand      needs details, or tagged "review later"          hand.resolvedAt
-//   session   logged in the last 14 days, no debrief yet         session.debriefedAt
+//   session   no debrief yet; labelled overdue after 14 days     session.debriefedAt
 //   lesson    a hand's lesson, due for a re-read (3, 10, 30d)    hand.lessonStep, hand.lessonSeenAt
 //   opponent  villain notes not touched for 60+ days, at a venue you still play   opponent.reviewedAt
-//   drill     a Daily Drill you saved (the saved list is on this device, see daily-drill.js)
+//   leak      a hand tag recurring 3+ times in 90 days            reviewState.dismissedLeaks
+//   drill     a saved Daily Drill (synced in drillState)
 (function (root) {
   var DAY = 86400000;
-  var DEBRIEF_WINDOW_DAYS = 14;
+  var DEBRIEF_WINDOW_DAYS = 14; // after this, a debrief stays visible and is labelled overdue
   var OPPONENT_STALE_DAYS = 60;
   var LESSON_STEPS = [3, 10, 30];       // days before a lesson is due again: after it is written, then after each "got it"
   var REVIEW_LATER_TAG = "later";       // the id of the "Review later" marker (js/data/markers.js)
@@ -20,13 +21,14 @@
 
   // Order in the list and on the page: most time-sensitive first.
   var KINDS = {
-    session: { label: "Sessions to debrief", icon: "📝", priority: 5 },
-    hand: { label: "Hands to review", icon: "🃏", priority: 4 },
+    session: { label: "Sessions to debrief", icon: "📝", priority: 6 },
+    hand: { label: "Hands to review", icon: "🃏", priority: 5 },
+    leak: { label: "Recurring leaks", icon: "🔁", priority: 4 },
     lesson: { label: "Lessons due", icon: "💡", priority: 3 },
     opponent: { label: "Villain notes to refresh", icon: "👤", priority: 2 },
     drill: { label: "Saved drills", icon: "🎯", priority: 1 }
   };
-  var KIND_ORDER = ["session", "hand", "lesson", "opponent", "drill"];
+  var KIND_ORDER = ["session", "hand", "leak", "lesson", "opponent", "drill"];
 
   function arr(v) { return Array.isArray(v) ? v : []; }
   function isNum(n) { return typeof n === "number" && isFinite(n); }
@@ -111,10 +113,10 @@
       var t = sessionTime(s);
       if (t === null) return;
       var age = daysBetween(now, t);
-      if (age < 0 || age > DEBRIEF_WINDOW_DAYS) return;
+      if (age < 0) return;
       items.push(makeItem("session", s.id, {
         title: truncate(s.name || "Session", MAX_TITLE),
-        detail: "No debrief yet · played " + ageText(age),
+        detail: (age > DEBRIEF_WINDOW_DAYS ? "Overdue debrief · played " : "No debrief yet · played ") + ageText(age),
         ageDays: age
       }));
     });
@@ -138,7 +140,7 @@
 
     // 3. lessons due for a re-read
     hands.forEach(function (h) {
-      if (!h || h.needsDetails === true) return;
+      if (!h || h.needsDetails === true || (!h.resolvedAt && arr(h.tags).indexOf(REVIEW_LATER_TAG) !== -1)) return;
       var lesson = String(h.lesson || "").trim();
       if (!lesson) return;
       var step = Math.max(0, Math.floor(Number(h.lessonStep) || 0));
@@ -155,7 +157,34 @@
       }));
     });
 
-    // 4. stale villain notes, only where you still play
+    // 4. recurring hand-tag leaks. Three occurrences in the last 90 days is
+    // enough to be useful without turning a single rough session into a trend.
+    var ignoredLeaks = o.dismissedLeaks && typeof o.dismissedLeaks === "object" ? o.dismissedLeaks : {};
+    var tagCounts = {}, tagAfterDismiss = {};
+    hands.forEach(function (h) {
+      if (!h || h.needsDetails === true) return;
+      var t = handTime(h, sessions);
+      if (t === null || daysBetween(now, t) < 0 || daysBetween(now, t) > 90) return;
+      arr(h.tags).forEach(function (tag) {
+        if (!tag || tag === REVIEW_LATER_TAG) return;
+        var k = String(tag).toLowerCase();
+        tagCounts[k] = (tagCounts[k] || 0) + 1;
+        if (ignoredLeaks["tag:" + k] && t > Number(ignoredLeaks["tag:" + k])) tagAfterDismiss[k] = (tagAfterDismiss[k] || 0) + 1;
+      });
+    });
+    Object.keys(tagCounts).sort().forEach(function (tag) {
+      var count = tagCounts[tag];
+      var ref = "tag:" + tag;
+      if (count < 3 || (ignoredLeaks[ref] && (tagAfterDismiss[tag] || 0) < 3)) return;
+      items.push(makeItem("leak", ref, {
+        title: truncate(tag.replace(/[-_]+/g, " ") + " keeps recurring", MAX_TITLE),
+        detail: count + " tagged hands in the last 90 days · review the pattern, not just the latest hand",
+        ageDays: count,
+        action: "filter"
+      }));
+    });
+
+    // 5. stale villain notes, only where you still play
     var venues = arr(o.recentVenues);
     opponents.forEach(function (op) {
       if (!op || !String(op.notes || "").trim() || !op.venue) return;
@@ -171,7 +200,7 @@
       }));
     });
 
-    // 5. saved drills
+    // 6. saved drills
     arr(o.savedDrills).forEach(function (d) {
       if (!d || !d.id) return;
       items.push(makeItem("drill", d.id, { title: truncate(d.title || "Drill", MAX_TITLE), detail: d.detail || "You saved this to do later", ageDays: 0 }));

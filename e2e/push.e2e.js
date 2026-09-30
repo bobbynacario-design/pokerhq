@@ -1,7 +1,7 @@
 const assert = require("assert").strict;
 const { boot, out } = require("./lib.js");
 (async () => {
-  const { page, realErrors, close } = await boot({ viewport: { width: 1100, height: 1300 } });
+  const { page, realErrors, close } = await boot({ viewport: { width: 1100, height: 1300 }, expandDetails: true });
   const ok = (m) => console.log("ok  " + m);
   const text = (id) => page.evaluate((i) => document.getElementById(i).textContent.trim(), id);
   const vis = (id) => page.evaluate((i) => { const e = document.getElementById(i); return !!e && e.style.display !== "none" && e.offsetParent !== null; }, id);

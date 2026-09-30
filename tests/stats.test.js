@@ -5,6 +5,11 @@ const S = require("../js/data/stats.js");
 
 const sess = (o) => Object.assign({date: "2026-01-04", venue: "Metro", total: 1000, prize: 0, pnl: -1000, hours: 0, result: "bust"}, o);
 
+test("a recorded final table without a prize never increases the cash rate", () => {
+  const summary=S.summarize("x",[sess({result:"final",finalTable:true}),sess({result:"final",prize:3000,finalTable:true})]);
+  assert.equal(summary.itmPct,50);
+});
+
 test("weekday index is Monday-first and uses the written calendar date", () => {
   assert.equal(S.weekdayIndex("2026-01-01"), 3);   // Thursday
   assert.equal(S.weekdayIndex("2026-01-04"), 6);   // Sunday

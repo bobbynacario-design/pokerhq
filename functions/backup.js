@@ -29,6 +29,8 @@ const BACKUP_DEFAULTS = {
   opponents: () => [],
   goals: () => ({}),
   reminderSettings: () => ({}),
+  drillState: () => ({}),
+  reviewState: () => ({dismissedLeaks: {}}),
   timer: () => null,
 };
 const BACKUP_KEYS = Object.keys(BACKUP_DEFAULTS);

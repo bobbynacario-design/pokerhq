@@ -48,7 +48,7 @@ const LEAKS = () => {
 };
 
 (async () => {
-  const { page, dialogs, realErrors, close } = await boot({ viewport: { width: 1280, height: 1000 }, demo: true });
+  const { page, dialogs, realErrors, close } = await boot({ viewport: { width: 1280, height: 1000 }, demo: true, expandDetails: true });
   const ok = (m) => console.log("ok  " + m);
   await freezeMotion(page);
   const closeModals = () => page.evaluate(() => document.querySelectorAll(".modal-overlay.open").forEach((m) => m.classList.remove("open")));

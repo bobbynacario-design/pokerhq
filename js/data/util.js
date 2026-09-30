@@ -14,12 +14,14 @@
     return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
   }
 
-  // Session result badge. "final" means a top-3 cash. A cash with no finishing
-  // position logged is a plain ITM — position 0/blank must never count as 1st.
-  function sessionResult(prize, position) {
+  // New logs record final-table status explicitly. The two-argument fallback
+  // remains for legacy callers; an unrecorded new status (null) is never inferred.
+  function sessionResult(prize, position, finalTable) {
     var p = Number(prize) || 0;
     var pos = Number(position) || 0;
+    if (finalTable === true) return "final";
     if (!(p > 0)) return "bust";
+    if (finalTable !== undefined) return "itm";
     return pos >= 1 && pos <= 3 ? "final" : "itm";
   }
 
@@ -63,6 +65,11 @@
     if (!Array.isArray(list)) return { list: list, changed: false };
     list.forEach(function (s) {
       if (!s || typeof s !== "object") return;
+      if (Object.prototype.hasOwnProperty.call(s, "finalTable")) {
+        var result = sessionResult(s.prize, s.position, s.finalTable);
+        if (s.result !== result) { s.result = result; changed = true; }
+        return;
+      }
       if (s.result === "final" && (Number(s.prize) || 0) > 0 && !((Number(s.position) || 0) >= 1)) {
         s.result = "itm";
         changed = true;

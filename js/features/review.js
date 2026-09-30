@@ -1,4 +1,4 @@
-﻿var _toastSid = null;
+var _toastSid = null;
 var _toastTimer = null;
 
 function getSessionVenueHistory(session) {
@@ -46,7 +46,7 @@ function buildSessionDebrief(session, linkedHands) {
   var handSignals = getSessionHandSignals(linkedHands);
   var venueHistory = getSessionVenueHistory(session);
   var venuePnl = venueHistory.reduce(function(sum, item) { return sum + (item.pnl || 0); }, 0);
-  var venueItm = venueHistory.filter(function(item) { return item.result === 'itm' || item.result === 'final'; }).length;
+  var venueItm = venueHistory.filter(function(item) { return Number(item.prize) > 0; }).length;
   var venueWinRate = venueHistory.length ? Math.round((venueItm / venueHistory.length) * 100) : 0;
 
   var wentWell = firstNonEmpty([
@@ -243,6 +243,19 @@ function renderSessionDebrief(sid) {
   target.innerHTML = buildSessionDebriefHtml(buildSessionDebrief(session, linkedHands));
 }
 
+function buildSessionJourneyHtml(session, linkedHands) {
+  if (!window.PokerHQJourney) return '';
+  var journey = window.PokerHQJourney.build(session, linkedHands);
+  if (!journey.points.length) return '<div class="review-card"><div class="review-card-title">Session Journey</div><div class="review-card-copy">Use live stack markers during a session to build the journey chart here.</div></div>';
+  var w=520,h=150,pad=18,maxX=Math.max(1,journey.points[journey.points.length-1].elapsedMs),span=Math.max(1,journey.peak-journey.low);
+  var xy=journey.points.map(function(p){return{p:p,x:pad+(w-pad*2)*(p.elapsedMs/maxX),y:pad+(h-pad*2)*((journey.peak-p.stack)/span)};});
+  if(xy.length===1)xy[0].x=w/2;
+  var poly=xy.map(function(q){return q.x.toFixed(1)+','+q.y.toFixed(1);}).join(' ');
+  var dots=xy.map(function(q){return '<circle cx="'+q.x+'" cy="'+q.y+'" r="4" fill="var(--gold)"><title>'+esc(q.p.title)+' · '+q.p.stack.toLocaleString()+' BB'+(q.p.level?' · '+esc(q.p.level):'')+'</title></circle>';}).join('');
+  var drop=journey.biggestDrop?' · biggest marked drop '+Math.abs(journey.biggestDrop.delta).toLocaleString():'';
+  return '<div class="review-card" style="margin-bottom:1rem"><div class="review-card-title">Session Journey</div><div class="review-card-copy">'+journey.points.length+' stack checkpoints · peak '+journey.peak.toLocaleString()+' BB · low '+journey.low.toLocaleString()+' BB'+drop+'</div><svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Stack journey chart" style="width:100%;height:auto;margin-top:.75rem;overflow:visible"><polyline points="'+poly+'" fill="none" stroke="var(--gold)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>'+dots+'</svg></div>';
+}
+
 function viewSessionDetail(sid, fromLog) {
   var s = sessions.find(function(x){ return x.id===sid; });
   if (!s) return;
@@ -269,6 +282,7 @@ function viewSessionDetail(sid, fromLog) {
     if (staking.packageName) html += '<div style="font-family:var(--mono);font-size:10px;color:var(--gold);margin-top:.65rem">PACKAGE: '+esc(staking.packageName)+'</div>';
     html += '</div>';
   }
+  html += buildSessionJourneyHtml(s, linkedHands);
   html += '<div id="sd-debrief-wrap" style="margin-bottom:1rem"></div>';
 
   html += '<div style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--wa-35);text-transform:uppercase;margin-bottom:.75rem">Logged Hands ('+linkedHands.length+')</div>';
@@ -333,7 +347,7 @@ function renderHeatmap() {
     if (!venueMap[v]) venueMap[v] = {pnl:0,count:0,itm:0};
     venueMap[v].pnl += s.pnl || 0;
     venueMap[v].count++;
-    if (s.result === 'itm' || s.result === 'final') venueMap[v].itm++;
+    if (Number(s.prize) > 0) venueMap[v].itm++;
   });
   renderHeatmapBars('hmap-venue', Object.keys(venueMap).map(function(k){
     return {label:k, val:venueMap[k].pnl, display:fmtCur(venueMap[k].pnl)};

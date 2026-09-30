@@ -25,13 +25,18 @@
   var CODES = "PHP|USD|TWD|THB|VND|SGD|MYR|HKD|MOP|KRW|JPY|EUR|GBP|AUD|IDR|CNY|INR|CAD|NZD";
   var MONEY_SOURCE = "(?:[+\\-\\u2212\\u2013]\\s?)?(?:[\\u20B1$\\u20AC\\u00A3\\u00A5\\u20A9\\u0E3F]|(?:" + CODES + ")\\s?)\\s?\\d(?:[\\d,]*\\d)?(?:\\.\\d+)?(?:[kKmM]\\b)?" +
     "|\\b\\d(?:[\\d,]*\\d)?(?:\\.\\d+)?\\s?(?:" + CODES + ")\\b";
+  var MONEY_RE = new RegExp(MONEY_SOURCE, "g");
+  var MONEY_TEST_RE = new RegExp(MONEY_SOURCE);
 
   function maskText(text) {
     if (typeof text !== "string" || !text) return text;
-    return text.replace(new RegExp(MONEY_SOURCE, "g"), MASK);
+    MONEY_RE.lastIndex = 0;
+    return text.replace(MONEY_RE, MASK);
   }
   function hasMoney(text) {
-    return typeof text === "string" && new RegExp(MONEY_SOURCE).test(text);
+    if (typeof text !== "string") return false;
+    MONEY_TEST_RE.lastIndex = 0;
+    return MONEY_TEST_RE.test(text);
   }
 
   // Settings live on this device only (a display preference, not data): {manual, auto}.
@@ -92,6 +97,8 @@
   var ATTRS = ["title", "aria-label", "placeholder", "alt", "aria-valuetext"];
   var SKIP = { SCRIPT: 1, STYLE: 1, TEXTAREA: 1, NOSCRIPT: 1 };
   var nativeDialogs = {};
+  var pendingMutations = [];
+  var mutationFrame = 0;
 
   try { settings = normalizeSettings(JSON.parse(root.localStorage.getItem(STORAGE_KEY))); } catch (e) {}
 
@@ -165,13 +172,33 @@
     originalAttr.clear();
   }
 
-  function onMutations(records) {
+  function flushMutations() {
+    mutationFrame = 0;
+    var records = pendingMutations;
+    pendingMutations = [];
+    var trees = new Set();
     for (var i = 0; i < records.length; i++) {
       var r = records[i];
       if (r.type === "characterData") maskTextNode(r.target);
       else if (r.type === "attributes") { if (r.target.nodeType === 1) maskAttributes(r.target); }
-      else for (var j = 0; j < r.addedNodes.length; j++) maskTree(r.addedNodes[j]);
+      // A large innerHTML replacement can contain hundreds of sibling nodes.
+      // Walk their shared parent once instead of walking every sibling tree.
+      else if (r.target && r.target.nodeType === 1) trees.add(r.target);
+      else for (var j = 0; j < r.addedNodes.length; j++) trees.add(r.addedNodes[j]);
     }
+    trees.forEach(maskTree);
+    // Detached UI trees used to stay in the maps until Privacy Mode ended.
+    // Long sessions replace many cards, so prune them after every batch.
+    originalText.forEach(function (_, node) { if (!node.isConnected) originalText.delete(node); });
+    originalAttr.forEach(function (_, el) { if (!el.isConnected) originalAttr.delete(el); });
+  }
+
+  function onMutations(records) {
+    for (var i = 0; i < records.length; i++) pendingMutations.push(records[i]);
+    if (mutationFrame) return;
+    mutationFrame = 1;
+    if (typeof root.queueMicrotask === "function") root.queueMicrotask(flushMutations);
+    else Promise.resolve().then(flushMutations);
   }
 
   // Pop-up boxes (alert / confirm / prompt) are outside the page: mask their text too.
@@ -222,6 +249,8 @@
         if (observer) observer.observe(doc.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ATTRS });
       } else {
         if (observer) observer.disconnect();
+        mutationFrame = 0;
+        pendingMutations = [];
         restoreAll();
       }
     }

@@ -39,6 +39,17 @@ test("normalizeSessions repairs old mis-tagged cashes and is idempotent", () => 
   assert.equal(u.normalizeSessions(null).changed, false);
 });
 
+test("explicit final-table status supports deeper finishes without guessing missing status", () => {
+  assert.equal(u.sessionResult(5000,9,true),"final");
+  assert.equal(u.sessionResult(5000,3,false),"itm");
+  assert.equal(u.sessionResult(5000,1,null),"itm");
+  assert.equal(u.sessionResult(0,6,true),"final");
+  const list=[{result:"itm",prize:5000,position:8,finalTable:true},{result:"final",prize:5000,position:2,finalTable:false},{result:"final",prize:5000,position:4}];
+  u.normalizeSessions(list);
+  assert.deepEqual(list.map(s=>s.result),["final","itm","final"]);
+  assert.equal(u.normalizeSessions(list).changed,false);
+});
+
 test("bankroll: loss clipped at the ₱0 floor is fully reversible on delete", () => {
   // The reported bug: ₱0 bankroll, lose ₱1,000, delete the session -> phantom ₱1,000.
   let amount = 0;

@@ -15,7 +15,7 @@ import {
   FIRESTORE_KEYS,
   resolveProfileConfig,
   resolveLocalStorageKey
-} from "./config.js?v=20260930i";
+} from "./config.js?v=20260930k";
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -59,6 +59,26 @@ const MERGE_KEYS = [
   "spotlights", "walletLedger", "satellites", "opponents", "trips", "tripExpenses"
 ];
 
+// Firestore rejects documents near 1 MiB. Large logical lists are transparently
+// stored as a manifest plus conservative 180k-character chunks. Existing
+// single-document profiles continue to load unchanged.
+const SHARD_THRESHOLD_BYTES = 700000;
+const SHARD_CHARS = 180000;
+const shardedKeys = new Set();
+
+function byteLength(text) {
+  return typeof TextEncoder === "function" ? new TextEncoder().encode(text).length : unescape(encodeURIComponent(text)).length;
+}
+function shardDocKey(key, suffix) { return getFirestoreDocKey(key) + "__" + suffix; }
+function shardParts(value) {
+  const text = JSON.stringify(value), parts = [];
+  for (let i = 0; i < text.length; i += SHARD_CHARS) parts.push(text.slice(i, i + SHARD_CHARS));
+  return { text, parts };
+}
+function parseShardSnapshots(snaps) {
+  try { return JSON.parse(snaps.map(function(s) { return s.exists() ? String(s.data().value || "") : ""; }).join("")); } catch { return undefined; }
+}
+
 function applyLoadedValue(key, value) {
   if (key === "sessions" && typeof window.normalizeSessions === "function") window.normalizeSessions(value);
   if (key === "sessions") window.sessions = value;
@@ -77,6 +97,8 @@ function applyLoadedValue(key, value) {
   if (key === "satTarget") window.satTarget = value;
   if (key === "goals") window.goals = value;
   if (key === "reminderSettings") { window.reminderSettings = value; if (window.renderReminderSettings) window.renderReminderSettings(); }
+  if (key === "drillState") { window.drillState = value; if (window.renderDailyDrill) window.renderDailyDrill(); }
+  if (key === "reviewState") { window.reviewState = value; if (window.refreshInbox) window.refreshInbox(); }
   if (window.syncGlobalAliases) window.syncGlobalAliases();
   if (key === "timer" && window.restoreTimerState) window.restoreTimerState(value);
   localStorage.setItem(getLocalStorageKey(key), JSON.stringify(value));
@@ -187,21 +209,54 @@ const firestoreIo = {
   // Read the cloud copy and (maybe) replace it atomically. fn(remote) → {value, write}.
   async transact(key, fn) {
     const ref = doc(db, getFirestorePath(), getFirestoreDocKey(key));
+    const manifestRef = doc(db, getFirestorePath(), shardDocKey(key, "manifest"));
     let result;
     await runTransaction(db, async function(tx) {
-      const snap = await tx.get(ref);
-      result = fn(snap.exists() ? parseStoredValue(snap) : undefined);
-      if (result.write) tx.set(ref, { value: JSON.stringify(result.value), updated: Date.now() });
+      const snaps = await Promise.all([tx.get(ref), tx.get(manifestRef)]);
+      const snap = snaps[0], manifest = snaps[1];
+      let remote = snap.exists() ? parseStoredValue(snap) : undefined;
+      if (manifest.exists() && manifest.data().sharded === 1) {
+        const count = Math.max(0, Number(manifest.data().count) || 0);
+        const chunks = await Promise.all(Array.from({length: count}, function(_, i) { return tx.get(doc(db, getFirestorePath(), shardDocKey(key, "chunk_" + i))); }));
+        remote = parseShardSnapshots(chunks);
+      }
+      result = fn(remote);
+      if (!result.write) return;
+      const split = shardParts(result.value);
+      if (manifest.exists() || byteLength(split.text) > SHARD_THRESHOLD_BYTES) {
+        split.parts.forEach(function(part, i) { tx.set(doc(db, getFirestorePath(), shardDocKey(key, "chunk_" + i)), { value: part, updated: Date.now() }); });
+        tx.set(manifestRef, { sharded: 1, count: split.parts.length, updated: Date.now() });
+        shardedKeys.add(key);
+      } else tx.set(ref, { value: split.text, updated: Date.now() });
     });
     return result.value;
   },
   async write(key, value) {
-    await setDoc(doc(db, getFirestorePath(), getFirestoreDocKey(key)), {
-      value: JSON.stringify(value),
-      updated: Date.now()
+    const split = shardParts(value);
+    if (byteLength(split.text) <= SHARD_THRESHOLD_BYTES && !shardedKeys.has(key)) {
+      await setDoc(doc(db, getFirestorePath(), getFirestoreDocKey(key)), { value: split.text, updated: Date.now() });
+      return;
+    }
+    await runTransaction(db, async function(tx) {
+      split.parts.forEach(function(part, i) { tx.set(doc(db, getFirestorePath(), shardDocKey(key, "chunk_" + i)), { value: part, updated: Date.now() }); });
+      tx.set(doc(db, getFirestorePath(), shardDocKey(key, "manifest")), { sharded: 1, count: split.parts.length, updated: Date.now() });
     });
+    shardedKeys.add(key);
   }
 };
+
+async function readCloudValue(key) {
+  const refs = [doc(db, getFirestorePath(), getFirestoreDocKey(key)), doc(db, getFirestorePath(), shardDocKey(key, "manifest"))];
+  const snaps = await Promise.all(refs.map(getDoc));
+  const manifest = snaps[1];
+  if (manifest.exists() && manifest.data().sharded === 1) {
+    const count = Math.max(0, Number(manifest.data().count) || 0);
+    const chunks = await Promise.all(Array.from({length: count}, function(_, i) { return getDoc(doc(db, getFirestorePath(), shardDocKey(key, "chunk_" + i))); }));
+    shardedKeys.add(key);
+    return { exists: true, value: parseShardSnapshots(chunks) };
+  }
+  return { exists: snaps[0].exists(), value: snaps[0].exists() ? parseStoredValue(snaps[0]) : undefined };
+}
 
 const engineStore = {
   getLocal(key) { return window[windowVarFor(key)]; },
@@ -287,13 +342,11 @@ export async function fbLoadAll() {
   try {
     setSyncStatus("syncing", "Syncing...");
     const engine = getSyncEngine();
-    const snaps = await Promise.all(FIRESTORE_KEYS.map(function(key) {
-      return getDoc(doc(db, getFirestorePath(), getFirestoreDocKey(key)));
-    }));
+    const snaps = await Promise.all(FIRESTORE_KEYS.map(readCloudValue));
     FIRESTORE_KEYS.forEach(function(key, index) {
       const snap = snaps[index];
-      if (!snap.exists()) return;
-      const value = parseStoredValue(snap);
+      if (!snap.exists) return;
+      const value = snap.value;
       if (value === undefined) {
         console.error("fbLoadAll: unreadable value for " + key + " — keeping local copy");
         return;
@@ -326,7 +379,7 @@ function startRealtimeListeners() {
   const engine = getSyncEngine();
   FIRESTORE_KEYS.forEach(function(key) {
     const unsubscribe = onSnapshot(doc(db, getFirestorePath(), getFirestoreDocKey(key)), function(snap) {
-      if (!snap.exists()) return;
+      if (!snap.exists() || shardedKeys.has(key)) return;
       const value = parseStoredValue(snap);
       if (value === undefined) return;
       engine.ingest(key, value);
@@ -335,6 +388,16 @@ function startRealtimeListeners() {
       if (error && error.code === "permission-denied") handleAccessDenied();
     });
     unsubscribeListeners.push(unsubscribe);
+    const shardUnsubscribe = onSnapshot(doc(db, getFirestorePath(), shardDocKey(key, "manifest")), function(snap) {
+      if (!snap.exists() || snap.data().sharded !== 1) return;
+      shardedKeys.add(key);
+      readCloudValue(key).then(function(result) {
+        if (result.value === undefined) return;
+        engine.ingest(key, result.value);
+        setSyncStatus("ok", "Synced");
+      });
+    }, function(error) { if (error && error.code === "permission-denied") handleAccessDenied(); });
+    unsubscribeListeners.push(shardUnsubscribe);
   });
 }
 
@@ -349,6 +412,7 @@ function setLoginUiState(state, message) {
   const buttonEl = document.getElementById("login-google-btn");
   const signoutBtn = document.getElementById("signout-btn");
   if (!overlay) return;
+  if (window._demoMode) { overlay.classList.add("hidden"); if(signoutBtn)signoutBtn.style.display="none"; return; }
   if (state === "hidden") {
     overlay.classList.add("hidden");
     if (signoutBtn) signoutBtn.style.display = "";
@@ -408,6 +472,7 @@ window.pokerhqSignIn = function() {
 window.pokerhqSignOut = function() {
   signOut(auth).finally(function() { location.reload(); });
 };
+window.pokerhqShowSignIn = function() { setLoginUiState("signin"); };
 
 function startSyncForUser(user) {
   window.__pokerhqAuthUid = user.uid;

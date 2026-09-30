@@ -15,12 +15,12 @@ const build = (over) => I.build(Object.assign({ now: NOW, sessions: [], hands: [
 
 test("an empty app has an empty inbox", () => {
   const r = build();
-  assert.deepEqual(r, { items: [], total: 0, byKind: { session: 0, hand: 0, lesson: 0, opponent: 0, drill: 0 } });
+  assert.deepEqual(r, { items: [], total: 0, byKind: { session: 0, hand: 0, leak: 0, lesson: 0, opponent: 0, drill: 0 } });
   assert.equal(I.build().total, 0, "no input at all is fine");
   assert.equal(I.build({ hands: "nope", sessions: null }).total, 0, "junk lists are ignored");
 });
 
-test("sessions: logged in the last 14 days with no debrief; done, old, future and undated ones stay out", () => {
+test("sessions: every unfinished debrief stays visible; older ones become overdue", () => {
   const sessions = [
     { id: 1, name: "Yesterday's main", date: isoDaysAgo(1) },
     { id: 2, name: "Two weeks ago", date: isoDaysAgo(14) },
@@ -32,13 +32,14 @@ test("sessions: logged in the last 14 days with no debrief; done, old, future an
     null,
   ];
   const r = build({ sessions });
-  assert.deepEqual(keys(r), ["session:1", "session:2"].sort((a, b) => (a === "session:2" ? -1 : 1)), "oldest first within the kind");
+  assert.deepEqual(keys(r), ["session:3", "session:2", "session:1"], "oldest first within the kind");
   const y = r.items.find((i) => i.ref === 1);
   assert.equal(y.title, "Yesterday's main");
   assert.equal(y.detail, "No debrief yet · played yesterday");
   assert.equal(y.kind, "session");
   assert.equal(y.ageDays, 1);
   assert.equal(r.items.find((i) => i.ref === 2).detail, "No debrief yet · played 14 days ago");
+  assert.equal(r.items.find((i) => i.ref === 3).detail, "Overdue debrief · played 15 days ago");
   assert.equal(build({ sessions: [{ id: 1, name: "Today", date: isoDaysAgo(0) }] }).items[0].detail, "No debrief yet · played today");
 });
 
@@ -149,9 +150,9 @@ test("the list is ordered by kind (debrief, hands, lessons, villains, drills), t
   assert.deepEqual(r.items.map((i) => i.kind), ["session", "session", "hand", "hand", "lesson", "opponent", "drill"]);
   assert.deepEqual(r.items.filter((i) => i.kind === "session").map((i) => i.ref), [2, 1], "the older debrief first");
   assert.deepEqual(r.items.filter((i) => i.kind === "hand").map((i) => i.title), ["old marker", "new marker"]);
-  assert.deepEqual(r.byKind, { session: 2, hand: 2, lesson: 1, opponent: 1, drill: 1 });
+  assert.deepEqual(r.byKind, { session: 2, hand: 2, leak: 0, lesson: 1, opponent: 1, drill: 1 });
   assert.equal(r.total, 7);
-  assert.deepEqual(I.KIND_ORDER, ["session", "hand", "lesson", "opponent", "drill"]);
+  assert.deepEqual(I.KIND_ORDER, ["session", "hand", "leak", "lesson", "opponent", "drill"]);
   I.KIND_ORDER.forEach((k) => assert.ok(I.KINDS[k].label && I.KINDS[k].icon));
 });
 
@@ -178,11 +179,21 @@ test("resolving writes a flag on the record, removes the item, and can be undone
   assert.equal(I.resolveFields("nope", {}, NOW), null);
 });
 
-test("a hand resolved from the inbox keeps its own lesson schedule", () => {
+test("an unresolved hand is not duplicated as a lesson; resolving it reveals the lesson schedule", () => {
   const hand = { id: ago(10), title: "H", lesson: "Fold it", tags: ["later"] };
-  assert.deepEqual(keys(build({ hands: [hand] })).sort(), ["hand:" + hand.id, "lesson:" + hand.id].sort());
+  assert.deepEqual(keys(build({ hands: [hand] })), ["hand:" + hand.id]);
   I.resolve("hand", hand, NOW);
   assert.deepEqual(keys(build({ hands: [hand] })), ["lesson:" + hand.id], "resolving the hand does not silence its lesson");
+});
+
+test("three matching hand tags create one recurring leak that can be dismissed", () => {
+  const hands = [1, 2, 3].map((n) => ({ id: ago(n), title: "H" + n, tags: ["tilt"] }));
+  const r = build({ hands });
+  assert.equal(r.byKind.leak, 1);
+  assert.equal(r.items.find((i) => i.kind === "leak").ref, "tag:tilt");
+  assert.equal(build({ hands, dismissedLeaks: { "tag:tilt": NOW } }).byKind.leak, 0);
+  const olderDismissal = ago(4);
+  assert.equal(build({ hands, dismissedLeaks: { "tag:tilt": olderDismissal } }).byKind.leak, 1, "three new examples make a dismissed leak return");
 });
 
 test("the wording of ages", () => {

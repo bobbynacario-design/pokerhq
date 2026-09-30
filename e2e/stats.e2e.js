@@ -1,7 +1,7 @@
 const assert = require("assert").strict;
 const { boot, out } = require("./lib.js");
 (async () => {
-  const { page, realErrors, close } = await boot({ viewport: { width: 1100, height: 900 } });
+  const { page, realErrors, close } = await boot({ viewport: { width: 1100, height: 900 }, expandDetails: true });
   const ok = (m) => console.log("ok  " + m);
   // empty state
   await page.evaluate(() => { window.sessions = []; switchGroup("home"); refreshDashboard(); });

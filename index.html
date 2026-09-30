@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -13,8 +13,8 @@
 <title>PokerHQ — Tournament Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script type="module" src="./js/app.js?v=20260930i"></script>
-<link rel="stylesheet" href="./styles/app.css?v=20260930i">
+<script type="module" src="./js/app.js?v=20260930k"></script>
+<link rel="stylesheet" href="./styles/app.css?v=20260930k">
 </head>
 <body>
 <!-- LOGIN GATE — shown until Firebase auth resolves a signed-in user -->
@@ -74,6 +74,7 @@
           <span>Continue with Google</span>
         </button>
         <button class="login-install" id="login-install-btn" style="display:none" onclick="pokerhqInstallApp()">&#10515; Install as desktop app</button>
+        <button class="login-install" id="login-demo-btn" onclick="enterGuestDemo()">EXPLORE DEMO — NO SIGN-IN</button>
         <div class="login-card-footer">
           <span>Your account protects access to your tournament data.</span>
           <span>Private by design</span>
@@ -166,9 +167,13 @@
     <div class="surface-badge">Proof Fast</div>
   </div>
 
+  <div id="dashboard-active-session-wrap"></div>
   <div id="today-glance-wrap"></div>
   <div id="inbox-home-wrap"></div>
 
+  <details class="disclosure" id="home-settings">
+    <summary>Workspace, privacy &amp; sync</summary>
+  <div class="disclosure-body">
   <div class="status-grid">
     <div class="status-card">
       <div class="status-label">Next Move</div>
@@ -201,7 +206,6 @@
     </div>
   </div>
 
-  <div id="dashboard-active-session-wrap"></div>
   <div id="dashboard-reliability-wrap"></div>
 
   <div class="form-card privacy-card" id="privacy-card">
@@ -251,6 +255,8 @@
       <div class="flow-copy">Turn debriefs, opponent notes, and weekly briefings into the next clear adjustment.</div>
     </div>
   </div>
+
+  </div></details>
 
   <div class="bankroll-hero">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap">
@@ -319,7 +325,7 @@
     <div class="stat-card" style="--accent:var(--gold)">
       <div class="stat-label">Final Tables</div>
       <div class="stat-val" id="dash-finals">0</div>
-      <div class="stat-sub" id="dash-finals-sub">Top-3 cashes</div>
+      <div class="stat-sub" id="dash-finals-sub">Recorded final-table finishes</div>
     </div>
     <div class="stat-card" style="--accent:var(--purple)">
       <div class="stat-label">Avg Finish Depth</div>
@@ -335,6 +341,9 @@
     <div id="bankroll-chart"></div>
   </div>
 
+  <details class="disclosure" id="home-analytics">
+    <summary>More analysis — variance, charts &amp; breakdowns</summary>
+    <div class="disclosure-body">
   <div id="variance-widget"></div>
 
   <div class="chart-wrap">
@@ -367,6 +376,8 @@
     <div class="sec-title"><span>🎲</span>Performance by Format</div>
   </div>
   <div id="format-breakdown" style="margin-bottom:2rem"></div>
+    </div>
+  </details>
 
   <div class="sec-hdr">
     <div class="sec-title"><span>♠</span>Recent Sessions</div>
@@ -491,6 +502,10 @@
       <div class="form-group">
         <label class="form-label">Finish Position</label>
         <input class="form-input" type="number" id="s-position" placeholder="e.g. 12">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="s-final-table">Reached the final table?</label>
+        <select class="form-input" id="s-final-table"><option value="">Not recorded</option><option value="yes">Yes</option><option value="no">No</option></select>
       </div>
       <div class="form-group">
         <label class="form-label">Prize Won (₱)</label>
@@ -769,14 +784,25 @@
 
   <div id="cal-update-status" class="tip" style="display:none;width:100%;margin-bottom:1rem"></div>
 
+  <div class="form-card" id="slate-optimizer-card" style="margin-bottom:1.25rem">
+    <div class="sec-hdr" style="margin-bottom:.8rem"><div class="sec-title"><span>🧭</span>Slate Optimizer</div><button class="sec-action primary" onclick="renderSlateOptimizer()">BUILD SLATE</button></div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Total buy-in budget (₱)</label><input class="form-input" id="slate-budget" oninput="invalidateSlateDraft()" type="number" data-money placeholder="e.g. 30000"></div>
+      <div class="form-group"><label class="form-label">Maximum single buy-in (₱)</label><input class="form-input" id="slate-max-buyin" oninput="invalidateSlateDraft()" type="number" data-money placeholder="e.g. 10000"></div>
+      <div class="form-group"><label class="form-label">From</label><input class="form-input" id="slate-from" oninput="invalidateSlateDraft()" type="date"></div>
+      <div class="form-group"><label class="form-label">To</label><input class="form-input" id="slate-to" oninput="invalidateSlateDraft()" type="date"></div>
+      <div class="form-group"><label class="form-label" for="slate-reserve">Re-entry reserve (₱)</label><input class="form-input" id="slate-reserve" oninput="invalidateSlateDraft()" type="number" data-money min="0" placeholder="0"></div>
+    </div>
+    <div style="display:flex;gap:.5rem;margin:.7rem 0"><button class="sec-action" onclick="useBankrollForSlate()">USE CURRENT BANKROLL</button></div>
+    <div id="slate-results"></div>
+  </div>
+
   <!-- "Playing These" shortlist — rendered by renderPlannedEvents(); hidden until you pin events -->
   <div id="planned-events-wrap"></div>
 
-  <div class="form-card" id="reminder-settings-card" style="margin-bottom:1.25rem">
-    <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem">
-      <span style="font-size:15px">🔔</span>
-      <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--gold);text-transform:uppercase">Email Reminders</div>
-    </div>
+  <details class="disclosure" id="reminder-settings-card">
+    <summary>🔔 Email reminders</summary>
+    <div class="disclosure-body">
     <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
       <label style="display:flex;align-items:center;gap:.5rem;font-family:var(--mono);font-size:12px;color:var(--wa-70);cursor:pointer">
         <input type="checkbox" id="reminder-enabled" onchange="saveReminderSettings()"> Email me before target events
@@ -789,13 +815,12 @@
     </div>
     <div class="tip" style="margin-top:.8rem">Sends to <strong id="reminder-email">your account email</strong> via PokerHQ's reminder service — TARGET and STRETCH events only, once each. Requires the email backend to be set up (one-time). The ⤓ EXPORT .ICS button also gives you calendar reminders without any backend.</div>
     <div id="reminder-saved-note" style="display:none;font-family:var(--mono);font-size:11px;color:var(--green);margin-top:.6rem"></div>
-  </div>
-
-  <div class="form-card" id="push-settings-card" style="margin-bottom:1.25rem">
-    <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem">
-      <span style="font-size:15px">📱</span>
-      <div style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--gold);text-transform:uppercase">Phone Notifications</div>
     </div>
+  </details>
+
+  <details class="disclosure" id="push-settings-card">
+    <summary>📱 Phone notifications</summary>
+    <div class="disclosure-body">
     <div id="push-status" class="tip" style="margin-top:0">Checking this device…</div>
     <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.7rem">
       <button class="sec-action primary" id="push-enable-btn" onclick="enablePush()" style="display:none">ENABLE ON THIS DEVICE</button>
@@ -821,7 +846,8 @@
       </label>
     </div>
     <div class="tip" id="push-help" style="margin-top:.9rem">Alerts need an event's start time and the ★ "planning to play" star on the calendar. These switches apply to every device you've enabled. <strong>iPhone:</strong> add PokerHQ to your Home Screen first (Share → Add to Home Screen), open it from there, then tap Enable.</div>
-  </div>
+    </div>
+  </details>
 
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;margin-bottom:1rem">
     <div class="view-toggle">
@@ -2077,41 +2103,44 @@
   </div>
 </div>
 
-<script src="./js/data/util.js?v=20260930i"></script>
-<script src="./js/data/backup-format.js?v=20260930i"></script>
-<script src="./js/data/privacy.js?v=20260930i"></script>
-<script src="./js/data/markers.js?v=20260930i"></script>
-<script src="./js/data/inbox.js?v=20260930i"></script>
-<script src="./js/data/trueroi.js?v=20260930i"></script>
-<script src="./js/data/poster.js?v=20260930i"></script>
-<script src="./js/data/merge.js?v=20260930i"></script>
-<script src="./js/data/config-runtime.js?v=20260930i"></script>
-<script src="./js/data/ai-proxy.js?v=20260930i"></script>
-<script src="./js/features/active-session.js?v=20260930i"></script>
-<script src="./js/features/demo-mode.js?v=20260930i"></script>
-<script src="./js/data/pushfold.js?v=20260930i"></script>
-<script src="./js/data/stats.js?v=20260930i"></script>
-<script src="./js/data/drills.js?v=20260930i"></script>
-<script src="./js/data/icm.js?v=20260930i"></script>
-<script src="./js/features/calculator.js?v=20260930i"></script>
-<script src="./js/features/staking.js?v=20260930i"></script>
-<script src="./js/features/package-report.js?v=20260930i"></script>
-<script src="./js/features/review.js?v=20260930i"></script>
-<script src="./js/features/calendar.js?v=20260930i"></script>
-<script src="./js/features/study-loop.js?v=20260930i"></script>
-<script src="./js/features/strategy.js?v=20260930i"></script>
-<script src="./js/features/hands.js?v=20260930i"></script>
-<script src="./js/features/live-markers.js?v=20260930i"></script>
-<script src="./js/features/review-inbox.js?v=20260930i"></script>
-<script src="./js/features/trips.js?v=20260930i"></script>
-<script src="./js/features/poster-import.js?v=20260930i"></script>
-<script src="./js/features/treasury.js?v=20260930i"></script>
-<script src="./js/features/bankroll-chart.js?v=20260930i"></script>
-<script src="./js/features/library.js?v=20260930i"></script>
-<script src="./js/features/push.js?v=20260930i"></script>
-<script src="./js/features/onboarding.js?v=20260930i"></script>
-<script src="./js/features/daily-drill.js?v=20260930i"></script>
-<script src="./js/features/today-glance.js?v=20260930i"></script>
+<script src="./js/data/util.js?v=20260930k"></script>
+<script src="./js/data/backup-format.js?v=20260930k"></script>
+<script src="./js/data/privacy.js?v=20260930k"></script>
+<script src="./js/data/markers.js?v=20260930k"></script>
+<script src="./js/data/inbox.js?v=20260930k"></script>
+<script src="./js/data/journey.js?v=20260930k"></script>
+<script src="./js/data/slate.js?v=20260930k"></script>
+<script src="./js/data/trueroi.js?v=20260930k"></script>
+<script src="./js/data/poster.js?v=20260930k"></script>
+<script src="./js/data/merge.js?v=20260930k"></script>
+<script src="./js/data/config-runtime.js?v=20260930k"></script>
+<script src="./js/data/ai-proxy.js?v=20260930k"></script>
+<script src="./js/features/active-session.js?v=20260930k"></script>
+<script src="./js/features/demo-mode.js?v=20260930k"></script>
+<script src="./js/data/pushfold.js?v=20260930k"></script>
+<script src="./js/data/stats.js?v=20260930k"></script>
+<script src="./js/data/drills.js?v=20260930k"></script>
+<script src="./js/data/icm.js?v=20260930k"></script>
+<script src="./js/features/calculator.js?v=20260930k"></script>
+<script src="./js/features/staking.js?v=20260930k"></script>
+<script src="./js/features/package-report.js?v=20260930k"></script>
+<script src="./js/features/review.js?v=20260930k"></script>
+<script src="./js/features/calendar.js?v=20260930k"></script>
+<script src="./js/features/slate-optimizer.js?v=20260930k"></script>
+<script src="./js/features/study-loop.js?v=20260930k"></script>
+<script src="./js/features/strategy.js?v=20260930k"></script>
+<script src="./js/features/hands.js?v=20260930k"></script>
+<script src="./js/features/live-markers.js?v=20260930k"></script>
+<script src="./js/features/review-inbox.js?v=20260930k"></script>
+<script src="./js/features/trips.js?v=20260930k"></script>
+<script src="./js/features/poster-import.js?v=20260930k"></script>
+<script src="./js/features/treasury.js?v=20260930k"></script>
+<script src="./js/features/bankroll-chart.js?v=20260930k"></script>
+<script src="./js/features/library.js?v=20260930k"></script>
+<script src="./js/features/push.js?v=20260930k"></script>
+<script src="./js/features/onboarding.js?v=20260930k"></script>
+<script src="./js/features/daily-drill.js?v=20260930k"></script>
+<script src="./js/features/today-glance.js?v=20260930k"></script>
 <script>
 // ── PWA INSTALL — captures the browser install prompt like Enclave ──
 var _deferredInstallPrompt = null;
@@ -2231,6 +2260,8 @@ window.trips = load('trips', []);
 window.tripExpenses = load('tripExpenses', []);
 window.goals     = load('goals', {});
 window.reminderSettings = load('reminderSettings', {});
+window.drillState = load('drillState', null);
+window.reviewState = load('reviewState', {dismissedLeaks:{}});
 // Shorthand aliases
 var sessions   = window.sessions;
 var tourneys   = window.tourneys;
@@ -2482,6 +2513,7 @@ function editSession(id) {
   document.getElementById('s-rebuy').value = s.rebuy||'';
   document.getElementById('s-field').value = s.field||'';
   document.getElementById('s-position').value = s.position||'';
+  document.getElementById('s-final-table').value = typeof s.finalTable==='boolean' ? (s.finalTable?'yes':'no') : (s.result==='final'?'yes':'');
   document.getElementById('s-prize').value = s.prize||'';
   document.getElementById('s-bounty').value = s.bounties||'';
   document.getElementById('s-hours').value = s.hours||'';
@@ -2522,6 +2554,8 @@ function addSession() {
   var total  = buyin+rebuy;
   var pnl    = prize+bounties-total;
   var pos    = parseInt(document.getElementById('s-position').value)||0;
+  var finalChoice = document.getElementById('s-final-table').value;
+  var finalTable = finalChoice === 'yes' ? true : finalChoice === 'no' ? false : null;
   var field  = parseInt(document.getElementById('s-field').value)||0;
   var itm    = field>0 ? Math.ceil(field*0.15) : 0;
   var stakingData = window.collectSessionStakingData ? collectSessionStakingData() : {};
@@ -2539,7 +2573,8 @@ function addSession() {
     existing.prize = prize; existing.bounties = bounties; existing.pnl = pnl;
     existing.hours = parseFloat(document.getElementById('s-hours').value)||0;
     existing.notes = document.getElementById('s-notes').value || '';
-    existing.result = sessionResult(prize, pos);
+    existing.finalTable = finalTable;
+    existing.result = sessionResult(prize, pos, finalTable);
     existing.focus = parseFloat(document.getElementById('s-focus').value)||0;
     existing.energy = parseFloat(document.getElementById('s-energy').value)||0;
     existing.sleep = parseFloat(document.getElementById('s-sleep').value)||0;
@@ -2580,7 +2615,8 @@ function addSession() {
     prize: prize, bounties: bounties, pnl: pnl,
     hours: parseFloat(document.getElementById('s-hours').value)||0,
     notes: document.getElementById('s-notes').value || '',
-    result: sessionResult(prize, pos),
+    finalTable: finalTable,
+    result: sessionResult(prize, pos, finalTable),
     focus:   parseFloat(document.getElementById('s-focus').value)||0,
     energy:  parseFloat(document.getElementById('s-energy').value)||0,
     sleep:   parseFloat(document.getElementById('s-sleep').value)||0,
@@ -2637,6 +2673,7 @@ function clearSessionForm() {
 var satDateEl = document.getElementById('sat-date'); if (satDateEl) satDateEl.value = todayLocal();
   if (window.renderStakingInputSummary) renderStakingInputSummary();
   if (typeof resetSessionTripFields === 'function') resetSessionTripFields();
+  document.getElementById('s-final-table').value = '';
   populateSessionDropdowns();
 }
 
@@ -2779,7 +2816,7 @@ function refreshDashboard() {
     totalIn  += s.total||0;
     totalOut += sessionWinnings(s);
     if (s.prize>0) cashes++;
-    if (s.result==='itm'||s.result==='final') itm++;
+    if (s.prize>0) itm++;
     if (s.result==='final') finals++;
     if (sessionWinnings(s)>biggest){ biggest=sessionWinnings(s); biggestName=s.name; }
     if (s.position>0 && s.field>0) { depthSum += 1-(s.position/s.field); depthCount++; }
@@ -2804,7 +2841,7 @@ function refreshDashboard() {
   var _dbg=document.getElementById('dash-biggest'); if(_dbg) _dbg.textContent = '₱'+fmt(biggest);
   var _dbs=document.getElementById('dash-biggest-sub'); if(_dbs) _dbs.textContent = biggestName||'—';
   var _dfn=document.getElementById('dash-finals'); if(_dfn) _dfn.textContent = finals;
-  var _dfs=document.getElementById('dash-finals-sub'); if(_dfs) _dfs.textContent = statSessions.length>0 ? (Math.round((finals/statSessions.length)*100)+'% of sessions') : 'Top-3 cashes';
+  var _dfs=document.getElementById('dash-finals-sub'); if(_dfs) _dfs.textContent = statSessions.length>0 ? (Math.round((finals/statSessions.length)*100)+'% of sessions · recorded / legacy status') : 'Recorded final-table finishes';
   var _ddp=document.getElementById('dash-depth'); if(_ddp) _ddp.textContent = depthCount>0 ? Math.round((depthSum/depthCount)*100)+'%' : '—';
   var _dds=document.getElementById('dash-depth-sub'); if(_dds) _dds.textContent = depthCount>0 ? 'Outlast this share of the field, on avg' : 'Log field size to see this';
 
@@ -3364,7 +3401,7 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
     </div>
     <div class="modal-actions">
       <button class="sec-action" onclick="skipReadinessCheck()">SKIP</button>
-      <button class="sec-action primary" onclick="confirmReadinessCheck()">START SESSION</button>
+      <button class="sec-action primary" id="readiness-start-btn" onclick="confirmReadinessCheck()">START SESSION</button>
     </div>
   </div>
 </div>

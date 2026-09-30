@@ -117,7 +117,7 @@ const PAGES = [
 const MODALS = ["modal-tourney", "modal-hand", "modal-opponent", "modal-satellite", "modal-voice", "modal-readiness"];
 
 async function audit(viewport) {
-  const { page, close } = await boot({ viewport, demo: true });
+  const { page, close } = await boot({ viewport, demo: true, expandDetails: true });
   await freezeMotion(page);
   await page.evaluate(() => document.body.classList.add("light"));
   const problems = [];

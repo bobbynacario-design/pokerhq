@@ -527,11 +527,17 @@ exports.pokerhqWeeklyBackup = onSchedule(
   },
   async () => {
     const keys = backup.BACKUP_KEYS;
+    const manifestSnaps = await db.getAll(...keys.map((key) => db.collection(PROFILE).doc(key + "__manifest")));
     const snaps = await db.getAll(...keys.map((key) => db.collection(PROFILE).doc(key)));
     const docsByKey = {};
-    snaps.forEach((snap, i) => {
-      docsByKey[keys[i]] = snap.exists ? snap.data() : undefined;
-    });
+    await Promise.all(snaps.map(async (snap, i) => {
+      const manifest = manifestSnaps[i];
+      if (manifest.exists && manifest.data().sharded === 1) {
+        const count = Math.max(0, Number(manifest.data().count) || 0);
+        const chunks = count ? await db.getAll(...Array.from({length: count}, (_, n) => db.collection(PROFILE).doc(keys[i] + "__chunk_" + n))) : [];
+        docsByKey[keys[i]] = {value: chunks.map((chunk) => chunk.exists ? String(chunk.data().value || "") : "").join("")};
+      } else docsByKey[keys[i]] = snap.exists ? snap.data() : undefined;
+    }));
     const data = backup.buildBackupData(docsByKey);
 
     if (backup.isEmptyBackupData(data)) {

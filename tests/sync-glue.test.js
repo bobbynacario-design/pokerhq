@@ -136,9 +136,26 @@ test("fbLoadAll reads every key in parallel and applies them", async () => {
   window.hands = []; window.tourneys = [];
   const gets = cloud.stats.gets;
   await sync.fbLoadAll();
-  assert.equal(cloud.stats.gets - gets, 17, "one read per key (15 lists and values, plus trips and trip costs)");
+  assert.equal(cloud.stats.gets - gets, 38, "legacy and shard-manifest reads for all 19 synced keys");
   assert.equal(window.hands[0].title, "AA vs KK");
   assert.equal(window.tourneys[0].name, "Metro Main");
+});
+
+test("large lists are stored in chunks and load back through their manifest", async () => {
+  const large = [{id: 9901, title: "Large hand archive", detail: "x".repeat(710000)}];
+  window.hands = large;
+  await window.fbSave("hands", large, {overwrite: true});
+  await settle(80);
+  const manifest = cloud.docs.get(PATH + "/hands__manifest");
+  assert.equal(manifest.sharded, 1);
+  assert.ok(manifest.count > 1);
+  const joined = Array.from({length: manifest.count}, (_, i) => cloud.docs.get(PATH + "/hands__chunk_" + i).value).join("");
+  assert.equal(JSON.parse(joined)[0].detail.length, 710000);
+  window.hands = [];
+  localStorage.removeItem("pokerhq_syncbase_hands");
+  await sync.fbLoadAll();
+  assert.equal(window.hands[0].id, 9901);
+  assert.equal(window.hands[0].detail.length, 710000);
 });
 
 test("demo mode: saves and incoming data leave everything alone", async () => {

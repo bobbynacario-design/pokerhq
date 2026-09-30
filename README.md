@@ -24,8 +24,24 @@ Live app: <https://bobbynacario-design.github.io/pokerhq/> (the repo root, serve
 ## Run locally
 
 Any static file server works, for example `python -m http.server 8000` from the repo root.
-Signing in needs the owner Google account; **Load demo data** on the Home page works without
-touching real data.
+Signing in needs the owner Google account. **Explore demo — no sign-in** on the entry screen
+opens sample data with recent sessions and upcoming events relative to today. Demo actions
+stay in memory; leaving the demo restores cached real data, drill progress and active drafts.
+
+## Planning and session improvements
+
+- Calendar **Slate Optimizer** validates written and ISO dates, excludes past events by default,
+  and reserves money for re-entries before choosing buy-ins. Edit the suggested checkboxes,
+  then **Apply / Pin selected events** to star them on the calendar. Budget overruns and
+  overlapping dates block Apply. Existing plans remain; new stars have an undo action.
+- Log Session records **Reached the final table?** explicitly (Yes / No / Not recorded),
+  including finishes outside the top three. Older saved final-table labels remain intact.
+  A final table without a prize counts toward final tables but never toward ITM. The field
+  survives edits, sync, JSON backups and the appended CSV column.
+- Readiness shows **Complete check-in** until all six answers are available. Skip remains
+  available; Start Session enables after the check-in is complete.
+- Home puts active play first and tucks workspace settings and detailed analysis into
+  expandable panels. Calendar email and phone-notification settings start collapsed.
 
 ## Tests
 
@@ -127,15 +143,16 @@ player ticks reaches the calendar.
 ### Review Inbox
 
 REVIEW → Inbox (with a count badge, and a card on Home) lists what is waiting for a second look.
-`js/data/inbox.js` builds it from five sources, each cleared by its own flag on the record it came from:
+`js/data/inbox.js` builds it from six sources. Unresolved hands are not duplicated as lessons, and dismissed recurring leaks return after three new examples:
 
 | Source | Shows when | "Mark resolved" writes |
 | --- | --- | --- |
-| Session | logged in the last 14 days, no debrief yet | `session.debriefedAt` (also the session detail's MARK DEBRIEF DONE) |
+| Session | no debrief yet; stays visible and becomes overdue after 14 days | `session.debriefedAt` (also the session detail's MARK DEBRIEF DONE) |
 | Hand | needs details, or tagged Review later | `hand.resolvedAt` |
+| Recurring leak | the same hand tag appears 3+ times in 90 days | synced `reviewState.dismissedLeaks` |
 | Lesson | a hand's lesson is due for a re-read: 3, 10, then 30 days | `hand.lessonStep`, `hand.lessonSeenAt` |
 | Villain | notes untouched for 60+ days, at a venue you played in the last 120 days or have an event at in the next 30 | `opponent.reviewedAt` (saving the villain sets `updatedAt`) |
-| Drill | you saved it in the Daily Drill (kept on this device) | removes it from the saved list |
+| Drill | you saved it in the Daily Drill | removes it from the synced saved list |
 
 Ages are calendar days. Finishing a marker's details or editing a villain's notes clears its item by
 itself. Not in v1: recurring weaknesses, "create a drill from this".
@@ -210,7 +227,7 @@ session favours mental-game and review, a thin bankroll (under 10 average buy-in
 bankroll drills, and no logged hands favours logging one. **Go deeper** (the 10-minute version)
 counts for more: it earns a gold diamond in the week row instead of a green dot, and
 weeks in a row with at least one deep drill build a **deep weeks** streak. Progress is kept on
-that device (localStorage `pokerhq_drill_v1`), not synced.
+locally for immediate offline use and synced as `drillState`, so progress follows the signed-in profile across devices.
 
 ## Light and dark themes
 
@@ -227,10 +244,10 @@ text colours. Write new text colours with those instead of `rgba(255,255,255,…
   deliberate overwrite, and it keeps a copy of what it replaced (undo toast +
   `↩ UNDO LAST RESTORE`). Small single values (bankroll, wallet, goals) are still
   last-write-wins; the Treasury **bankroll check** flags any drift.
-- Each synced list is one Firestore document, which is capped at 1 MiB. The Home **Data safety**
-  card warns at 70% / 90% of that limit and says so plainly if a save is ever refused as too
-  large (`js/data/util.js`, `cloudSizeWarnings`). Splitting a list across documents is the
-  long-term fix if one nears the limit.
+- Synced lists start as one Firestore document. Before a logical list reaches Firestore's 1 MiB
+  document cap, `js/data/sync.js` atomically converts it to a manifest plus conservative chunks;
+  realtime sync and weekly backups reassemble those chunks transparently. The Home **Data safety**
+  card only warns if Firestore still refuses a write after this fallback.
 - `pokerhqWeeklyBackup` (Cloud Function, Sundays 03:00 Manila) writes the owner's data to
   `pokerhq-backups/weekly/PokerHQ_Backup_YYYY-MM-DD.json` in the project's default Storage
   bucket, keeps the newest 8 distinct versions, and skips empty or unchanged data. The file is

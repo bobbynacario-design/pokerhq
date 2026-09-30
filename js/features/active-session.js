@@ -21,6 +21,7 @@ function readScopedUiJson(baseKey, legacyKey, fallback) {
 }
 
 function saveScopedUiJson(baseKey, value) {
+  if (window._demoMode) return;
   try {
     var cfg = window.PokerHQConfig || {};
     var key = cfg.resolveUiStorageKey ? cfg.resolveUiStorageKey(baseKey) : LEGACY_ACTIVE_SESSION_DRAFT_STORAGE_KEY;
@@ -56,22 +57,14 @@ function getCloudSizeWarnings(force) {
 var CLOUD_LIST_LABELS = { sessions: 'Sessions', hands: 'Hands', tourneys: 'Calendar events', strategies: 'Strategy notes', news: 'News', spotlights: 'Spotlights', walletLedger: 'Treasury ledger', satellites: 'Satellites', opponents: 'Opponents', trips: 'Trips', tripExpenses: 'Trip costs' };
 
 function cloudSizeWarningHtml() {
-  var warnings = getCloudSizeWarnings(false);
   var meta = window._syncMeta || {};
-  if (!warnings.length && !meta.tooLarge) return '';
-  var top = warnings[0];
-  var key = meta.tooLarge || (top && top.key);
+  // Large lists are automatically sharded by sync.js. Only show a warning if
+  // Firestore actually refuses a write despite that fallback.
+  if (!meta.tooLarge) return '';
+  var key = meta.tooLarge;
   var label = CLOUD_LIST_LABELS[key] || key;
-  var critical = !!meta.tooLarge || (top && top.level === 'critical');
-  var text;
-  if (meta.tooLarge) {
-    text = '⚠ ' + label + ' has outgrown cloud sync (1 MB limit per list), so new changes to it are saved on this device only. Download a JSON backup, then delete items you no longer need.';
-  } else {
-    var kb = Math.round(top.bytes / 1024);
-    text = '⚠ ' + label + ' is at ' + top.pct + '% of the cloud size limit (about ' + kb + ' KB of 1,024 KB). ' + (critical ? 'Saving will start failing soon — ' : '') + 'download a JSON backup and delete items you no longer need.';
-    if (warnings.length > 1) text += ' (' + (warnings.length - 1) + ' other list' + (warnings.length > 2 ? 's are' : ' is') + ' also getting large.)';
-  }
-  return '<div class="reliability-warn' + (critical ? ' critical' : '') + '">' + esc(text) + '</div>';
+  var text = '⚠ ' + label + ' could not be split for cloud sync, so the newest change is safe on this device but has not reached the cloud. Download a JSON backup, then retry or trim old items.';
+  return '<div class="reliability-warn critical">' + esc(text) + '</div>';
 }
 
 function getReliabilitySnapshot() {
@@ -263,6 +256,9 @@ function renderPreSessionPrepBlock() {
 }
 
 function scoreReadinessState(state) {
+  var fields = ['sleep','energy','food','bankrollFit','strategyReviewed','villainNotes'];
+  var remaining = fields.filter(function(field) { return !state[field]; }).length;
+  if (remaining) return { score: null, level: 'incomplete', title: 'Complete check-in', detail: 'Choose the remaining '+remaining+' answers to see your readiness. You can also skip and start.' };
   var score = 0;
   if (state.sleep === 'good') score += 1;
   else if (state.sleep === 'poor') score -= 2;
@@ -301,8 +297,8 @@ function buildInitialReadinessState() {
       energy: existing.energy || '',
       food: existing.food || '',
       bankrollFit: existing.bankrollFit || '',
-      strategyReviewed: existing.strategyReviewed || 'no',
-      villainNotes: existing.villainNotes || 'no'
+      strategyReviewed: existing.strategyReviewed || '',
+      villainNotes: existing.villainNotes || ''
     };
   }
   var venue = _activeSessionDraft && _activeSessionDraft.venue ? _activeSessionDraft.venue : '';
@@ -312,14 +308,16 @@ function buildInitialReadinessState() {
     energy: '',
     food: '',
     bankrollFit: getReadinessBankrollFitChoice(buyin),
-    strategyReviewed: 'no',
-    villainNotes: getVenueOpponentCount(venue) > 0 ? 'yes' : 'no'
+    strategyReviewed: '',
+    villainNotes: venue ? (getVenueOpponentCount(venue) > 0 ? 'yes' : 'no') : ''
   };
 }
 
 function renderReadinessCheck() {
   if (!_readinessState) _readinessState = buildInitialReadinessState();
   var score = scoreReadinessState(_readinessState);
+  var startBtn = document.getElementById('readiness-start-btn');
+  if (startBtn) startBtn.disabled = score.level === 'incomplete';
   var titleEl = document.getElementById('readiness-title');
   var detailEl = document.getElementById('readiness-detail');
   var pillEl = document.getElementById('readiness-pill');
@@ -382,6 +380,7 @@ function skipReadinessCheck() {
 function confirmReadinessCheck() {
   if (!_readinessState) _readinessState = buildInitialReadinessState();
   var score = scoreReadinessState(_readinessState);
+  if (score.level === 'incomplete') { renderReadinessCheck(); return; }
   ensureActiveSessionDraft();
   _activeSessionDraft.readiness = {
     sleep: _readinessState.sleep || '',
