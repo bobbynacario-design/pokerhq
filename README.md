@@ -51,6 +51,7 @@ browser tests below.
 - `tests/ai-proxy-client.test.js` — client fallback: local key → direct, otherwise the proxy (`js/data/ai-proxy.js`)
 - `tests/drills.test.js` — the Daily Drill library and picker: unique ids, context steering, no repeats, streaks, saved state (`js/data/drills.js`)
 - `tests/backup-format.test.js` — backup file versions: newer files refused with a clear message, older ones upgraded step by step, damaged records dropped and reported (`js/data/backup-format.js`)
+- `tests/markers.test.js` — live hand markers: the six kinds, time / stack stamped on each tap, double-tap guard, tag counts and filters, finishing a hand (`js/data/markers.js`)
 - `tests/privacy.test.js` — Privacy Mode: what counts as an amount, when the screen is hidden, and the checklist that fails when a new export, money box or canvas chart could bypass it (`js/data/privacy.js`)
 - `tests/theme.test.js` — light-theme readability guard: fails on hard-coded white text or a text colour with no light-mode value
 - `tests/events.test.js`, `tests/push.test.js`, `tests/sw-push.test.js` — event dates/times, notification selection and messages, and the service worker's push handlers
@@ -73,10 +74,22 @@ bullets, capture a hand and a villain, log the result), `save-reload` (nothing v
 a new device), `backup-restore` (newer / foreign / damaged files), `light-contrast` (every page passes
 4.5:1 text contrast in light mode, desktop and phone), `calendar-bars` (readable full-name event bars, seven equal
 columns at desktop / laptop / phone widths), `privacy` (with Privacy Mode on, every page, pop-up, chart and
-tooltip is swept for a readable amount), plus one per feature (`bounty`, `daily-drill`,
+tooltip is swept for a readable amount), `live-markers` (the six one-tap buttons, finish-later, tag filters,
+phone layout), plus one per feature (`bounty`, `daily-drill`,
 `format`, `icm`, `modals`, `month`, `openai`, `push`, `size-guard`, `stats`, `venue`). Screenshots go to
 `E2E_OUT` (default: a temp folder); CI keeps them when a run fails. Add a suite by dropping a
 `something.e2e.js` in `e2e/` that uses `boot()` from `e2e/lib.js`.
+
+### Live hand markers
+
+The active session has six big buttons (Big pot, ICM spot, Opponent read, Uncertain decision, Tilt,
+Review later). A tap saves a normal hand record (`js/data/markers.js` builds it) with
+`marker: {kind, at, elapsedMs?, stack?, level?}`, `tags: [kind]`, `needsDetails: true` and `result: ""`
+("not sure yet"), held against the running session with `pendingSessionKey` like any hand captured
+mid-session. Saving the hand form clears `needsDetails`. The marker kinds are the hand `tags` (leak tags):
+Hand History filters by them and by "needs details", and any hand can be tagged. The app has no blind
+clock, so stack and level are two optional boxes that are stamped on each tap. Tag ids are stored on
+hands, so never rename or reuse one.
 
 ### Privacy Mode
 

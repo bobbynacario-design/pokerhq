@@ -34,7 +34,9 @@ function editHand(id) {
     if (el) el.value = fields[fid];
   });
   var resultEl = document.getElementById('h-result');
-  if (resultEl) resultEl.value = h.result || 'lost';
+  if (resultEl) resultEl.value = h.result === '' ? '' : (h.result || 'lost');
+  setHandFormTags(h.tags);
+  setHandMarkerNote(h);
   resetHandReplayFields('h-');
   var replay = h.replay || {};
   var replayIds = {
@@ -57,7 +59,7 @@ function toMultilineHtml(text) {
 function getHandResultMeta(result) {
   return {
     className: { won: 'hand-won', lost: 'hand-lost', fold: 'hand-fold' }[result] || 'hand-fold',
-    label: { won: 'WON', lost: 'LOST', fold: 'FOLD' }[result] || 'FOLD',
+    label: result === '' ? 'NOT SURE YET' : ({ won: 'WON', lost: 'LOST', fold: 'FOLD' }[result] || 'FOLD'),
     color: { won: 'var(--mint)', lost: 'var(--rose)', fold: 'var(--wa-40)' }[result] || 'var(--wa-40)'
   };
 }
@@ -192,6 +194,8 @@ function prepareNewHandForm(context) {
   if (descEl) descEl.value = '';
   if (lessonEl) lessonEl.value = '';
   if (resultEl) resultEl.value = opts.result || 'lost';
+  setHandFormTags(opts.tags);
+  setHandMarkerNote(null);
   resetHandReplayFields('h-');
 
   if (sessionLinkEl) sessionLinkEl.value = opts.sessionId ? String(opts.sessionId) : '';
@@ -229,6 +233,7 @@ function addHand() {
     existing.desc = document.getElementById('h-desc').value || '';
     existing.lesson = document.getElementById('h-lesson').value || '';
     existing.result = document.getElementById('h-result').value;
+    if (window.PokerHQMarkers) window.PokerHQMarkers.finishHand(existing, _handFormTags);   // tags kept, "needs details" cleared
     var editedReplay = collectReplayFields('h-');
     if (editedReplay) existing.replay = editedReplay;
     else delete existing.replay;
@@ -251,6 +256,7 @@ function addHand() {
     result: document.getElementById('h-result').value,
     pendingSessionKey: sessionId ? '' : pendingKey
   };
+  if (_handFormTags.length) h.tags = _handFormTags.slice();
   var replay = collectReplayFields('h-');
   if (replay) h.replay = replay;
   window.hands.unshift(h);
@@ -271,6 +277,7 @@ function deleteHand(id) {
   window.hands = hands;
   save('hands', hands);
   renderHands();
+  if (typeof renderActiveSessionSurface === 'function') renderActiveSessionSurface();
   if (typeof showUndoToast === 'function') showUndoToast('Hand deleted: ' + (removed.title || ''), function() {
     hands.splice(Math.min(idx, hands.length), 0, removed);
     window.hands = hands;
@@ -282,20 +289,26 @@ function deleteHand(id) {
 function renderHands() {
   var el = document.getElementById('hand-list');
   if (!el) return;
+  var M = window.PokerHQMarkers;
   var filterEl = document.getElementById('hand-session-filter');
   var filterVal = filterEl ? parseInt(filterEl.value, 10) || 0 : 0;
-  var filtered = filterVal ? hands.filter(function(h) { return h.sessionId === filterVal; }) : hands;
+  var inSession = filterVal ? hands.filter(function(h) { return h.sessionId === filterVal; }) : hands;
+  if (typeof renderHandTagBar === 'function') renderHandTagBar(inSession);
+  var filtered = M ? M.filterHands(inSession, { tag: _handTagFilter }) : inSession;
   var countEl = document.getElementById('hand-count');
   if (countEl) countEl.textContent = filtered.length + ' hand' + (filtered.length !== 1 ? 's' : '');
   if (!filtered.length) {
-    el.innerHTML = '<div style="padding:3rem;text-align:center;color:var(--wa-20);font-family:var(--mono);font-size:13px">' + (filterVal ? 'No hands linked to this session yet.' : 'No hands logged yet. Capture a hand manually or turn a voice memo into a structured review.') + '</div>';
+    el.innerHTML = '<div style="padding:3rem;text-align:center;color:var(--wa-20);font-family:var(--mono);font-size:13px">' +
+      (_handTagFilter && inSession.length ? 'No hands match this tag. <button class="sec-action" style="margin-left:.5rem" onclick="setHandTagFilter(_handTagFilter)">SHOW ALL</button>' : (filterVal ? 'No hands linked to this session yet.' : 'No hands logged yet. Capture a hand manually or turn a voice memo into a structured review.')) + '</div>';
     return;
   }
   el.innerHTML = filtered.map(function(h) {
     var resultMeta = getHandResultMeta(h.result);
+    var unfinished = M && !M.isFinished(h);
     var linkedSession = h.sessionId ? sessions.find(function(s) { return s.id === h.sessionId; }) : null;
     var sessionBadge = linkedSession ? '<span style="font-family:var(--mono);font-size:9px;background:var(--gold-dim);color:var(--gold);border:1px solid rgba(201,168,76,.25);border-radius:20px;padding:2px 7px;margin-left:.4rem">' + esc(linkedSession.name) + '</span>' : '';
-    return '<div class="hand-card"><div class="hand-top"><div style="flex:1"><div class="hand-meta">' + esc(h.session) + sessionBadge + '</div><div class="hand-title">' + esc(h.title) + '</div></div><div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;justify-content:flex-end"><button class="sec-action" style="padding:.32rem .7rem;font-size:10px" onclick="event.stopPropagation();editHand(' + h.id + ')">EDIT</button><button class="sec-action" style="padding:.32rem .7rem;font-size:10px" onclick="event.stopPropagation();openHandReplay(' + h.id + ')">REPLAY</button><span class="hand-result ' + resultMeta.className + '">' + resultMeta.label + '</span><button class="del-btn" onclick="event.stopPropagation();deleteHand(' + h.id + ')">✕</button></div></div>' + (h.desc ? '<div class="hand-body">' + esc(h.desc) + '</div>' : '') + (h.lesson ? '<div style="margin-top:.6rem;font-size:11px;color:var(--gold);font-family:var(--mono)">💡 ' + esc(h.lesson) + '</div>' : '') + '</div>';
+    var finishBtn = unfinished ? '<button class="sec-action primary" style="padding:.32rem .7rem;font-size:10px" onclick="event.stopPropagation();editHand(' + h.id + ')">FINISH ↗</button>' : '';
+    return '<div class="hand-card' + (unfinished ? ' unfinished' : '') + '"><div class="hand-top"><div style="flex:1"><div class="hand-meta">' + esc(h.session) + sessionBadge + '</div><div class="hand-title">' + esc(h.title) + '</div>' + handTagChipsHtml(h) + handMarkerMetaHtml(h) + '</div><div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;justify-content:flex-end">' + finishBtn + '<button class="sec-action" style="padding:.32rem .7rem;font-size:10px" onclick="event.stopPropagation();editHand(' + h.id + ')">EDIT</button><button class="sec-action" style="padding:.32rem .7rem;font-size:10px" onclick="event.stopPropagation();openHandReplay(' + h.id + ')">REPLAY</button><span class="hand-result ' + resultMeta.className + '">' + resultMeta.label + '</span><button class="del-btn" onclick="event.stopPropagation();deleteHand(' + h.id + ')">✕</button></div></div>' + (h.desc ? '<div class="hand-body">' + esc(h.desc) + '</div>' : '') + (h.lesson ? '<div style="margin-top:.6rem;font-size:11px;color:var(--gold);font-family:var(--mono)">💡 ' + esc(h.lesson) + '</div>' : '') + '</div>';
   }).join('');
 }
 

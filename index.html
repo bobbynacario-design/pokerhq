@@ -13,8 +13,8 @@
 <title>PokerHQ — Tournament Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script type="module" src="./js/app.js?v=20260930b"></script>
-<link rel="stylesheet" href="./styles/app.css?v=20260930b">
+<script type="module" src="./js/app.js?v=20260930d"></script>
+<link rel="stylesheet" href="./styles/app.css?v=20260930d">
 </head>
 <body>
 <!-- LOGIN GATE — shown until Firebase auth resolves a signed-in user -->
@@ -978,6 +978,7 @@
     <span id="hand-count" style="font-family:var(--mono);font-size:11px;color:var(--wa-30)"></span>
   </div>
 
+  <div id="hand-tag-bar"></div>
   <div id="hand-list"></div>
 </div>
 
@@ -1335,6 +1336,8 @@
   <!-- STAGE 5 -->
   <h2 id="s5"><span class="step-badge">5</span>&nbsp; Capture hands</h2>
   <p>The best time to record a hand is while it's fresh. Capture it during the session and it links to this run automatically.</p>
+  <h3>5.0 — In the middle of a hand? Tap a marker</h3>
+  <p>Too busy to type? The active session has six big buttons: <strong>💰 Big pot</strong>, <strong>⚖️ ICM spot</strong>, <strong>👁 Opponent read</strong>, <strong>🤔 Uncertain decision</strong>, <strong>🔥 Tilt</strong> and <strong>🔖 Review later</strong>. One tap saves the moment to Hand History with how far into the session it was (and your stack and blind level if you typed them in the two small boxes). The hand is marked <strong>needs details</strong>: after the hand, tap <strong>FINISH</strong> and add what happened. Each marker is also a <strong>tag</strong> on the hand, so Hand History can show you how often big pots, tilt or uncertain decisions come up, and you can add the same tags to any hand you log yourself.</p>
   <h3>5.1 — Log a hand by hand</h3>
   <ol class="action-list">
     <li><span class="al-num">1</span><div>From the active session, click <strong>CAPTURE HAND</strong> (or go to <strong>PLAY → 🃏 Hands → + LOG HAND</strong>).</div></li>
@@ -1945,10 +1948,16 @@
       <div class="form-group">
         <label class="form-label">Result</label>
         <select class="form-input" id="h-result">
+          <option value="">Not sure yet</option>
           <option value="won">Won</option>
           <option value="lost">Lost</option>
           <option value="fold">Folded / Hero fold</option>
         </select>
+      </div>
+      <div id="h-marker-note" class="lm-note" style="display:none;grid-column:1/-1"></div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label class="form-label">Tags (optional): also used to spot leaks</label>
+        <div id="h-tags" class="lm-form-tags"></div>
       </div>
       <div class="form-group" style="grid-column:1/-1">
         <label class="form-label">Hand Title / Situation</label>
@@ -2018,33 +2027,35 @@
   </div>
 </div>
 
-<script src="./js/data/util.js?v=20260930b"></script>
-<script src="./js/data/backup-format.js?v=20260930b"></script>
-<script src="./js/data/privacy.js?v=20260930b"></script>
-<script src="./js/data/merge.js?v=20260930b"></script>
-<script src="./js/data/config-runtime.js?v=20260930b"></script>
-<script src="./js/data/ai-proxy.js?v=20260930b"></script>
-<script src="./js/features/active-session.js?v=20260930b"></script>
-<script src="./js/features/demo-mode.js?v=20260930b"></script>
-<script src="./js/data/pushfold.js?v=20260930b"></script>
-<script src="./js/data/stats.js?v=20260930b"></script>
-<script src="./js/data/drills.js?v=20260930b"></script>
-<script src="./js/data/icm.js?v=20260930b"></script>
-<script src="./js/features/calculator.js?v=20260930b"></script>
-<script src="./js/features/staking.js?v=20260930b"></script>
-<script src="./js/features/package-report.js?v=20260930b"></script>
-<script src="./js/features/review.js?v=20260930b"></script>
-<script src="./js/features/calendar.js?v=20260930b"></script>
-<script src="./js/features/study-loop.js?v=20260930b"></script>
-<script src="./js/features/strategy.js?v=20260930b"></script>
-<script src="./js/features/hands.js?v=20260930b"></script>
-<script src="./js/features/treasury.js?v=20260930b"></script>
-<script src="./js/features/bankroll-chart.js?v=20260930b"></script>
-<script src="./js/features/library.js?v=20260930b"></script>
-<script src="./js/features/push.js?v=20260930b"></script>
-<script src="./js/features/onboarding.js?v=20260930b"></script>
-<script src="./js/features/daily-drill.js?v=20260930b"></script>
-<script src="./js/features/today-glance.js?v=20260930b"></script>
+<script src="./js/data/util.js?v=20260930d"></script>
+<script src="./js/data/backup-format.js?v=20260930d"></script>
+<script src="./js/data/privacy.js?v=20260930d"></script>
+<script src="./js/data/markers.js?v=20260930d"></script>
+<script src="./js/data/merge.js?v=20260930d"></script>
+<script src="./js/data/config-runtime.js?v=20260930d"></script>
+<script src="./js/data/ai-proxy.js?v=20260930d"></script>
+<script src="./js/features/active-session.js?v=20260930d"></script>
+<script src="./js/features/demo-mode.js?v=20260930d"></script>
+<script src="./js/data/pushfold.js?v=20260930d"></script>
+<script src="./js/data/stats.js?v=20260930d"></script>
+<script src="./js/data/drills.js?v=20260930d"></script>
+<script src="./js/data/icm.js?v=20260930d"></script>
+<script src="./js/features/calculator.js?v=20260930d"></script>
+<script src="./js/features/staking.js?v=20260930d"></script>
+<script src="./js/features/package-report.js?v=20260930d"></script>
+<script src="./js/features/review.js?v=20260930d"></script>
+<script src="./js/features/calendar.js?v=20260930d"></script>
+<script src="./js/features/study-loop.js?v=20260930d"></script>
+<script src="./js/features/strategy.js?v=20260930d"></script>
+<script src="./js/features/hands.js?v=20260930d"></script>
+<script src="./js/features/live-markers.js?v=20260930d"></script>
+<script src="./js/features/treasury.js?v=20260930d"></script>
+<script src="./js/features/bankroll-chart.js?v=20260930d"></script>
+<script src="./js/features/library.js?v=20260930d"></script>
+<script src="./js/features/push.js?v=20260930d"></script>
+<script src="./js/features/onboarding.js?v=20260930d"></script>
+<script src="./js/features/daily-drill.js?v=20260930d"></script>
+<script src="./js/features/today-glance.js?v=20260930d"></script>
 <script>
 // ── PWA INSTALL — captures the browser install prompt like Enclave ──
 var _deferredInstallPrompt = null;

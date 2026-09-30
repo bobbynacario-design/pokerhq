@@ -414,6 +414,53 @@ body.privacy-on [data-money]:not(:focus)::placeholder{color:transparent!importan
 .privacy-switch,.privacy-auto{display:flex;align-items:center;gap:.5rem;font-family:var(--mono);font-size:12px;color:var(--wa-70);cursor:pointer}
 .privacy-switch{letter-spacing:.08em;padding:.4rem .8rem;border:1px solid var(--rim2);border-radius:6px}
 .privacy-auto{margin-top:.75rem}
+/* -- LIVE HAND MARKERS -- big one-tap buttons on the active-session card, tag chips on hands */
+.live-markers{margin:1rem 0 .25rem;padding:.9rem 1rem;background:var(--bg3);border:1px solid var(--rim);border-radius:12px}
+.lm-sub{font-family:var(--mono);font-size:11px;color:var(--wa-58);margin:.2rem 0 .8rem;line-height:1.5}
+.lm-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.6rem}
+@media(max-width:600px){.lm-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.lm-btn{min-height:68px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.3rem;padding:.6rem .5rem;border-radius:12px;border:1px solid var(--rim2);border-left-width:4px;background:var(--bg2);color:var(--ink);font-family:var(--sans);font-size:14px;font-weight:500;line-height:1.2;text-align:center;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:transform .08s,background .15s,border-color .15s}
+.lm-btn:hover{background:var(--chip-bg)}
+.lm-btn:active{transform:scale(.97)}
+.lm-btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.lm-icon{font-size:22px;line-height:1}
+.lm-bigpot{border-left-color:rgba(212,175,55,.85)}
+.lm-icm{border-left-color:rgba(52,152,219,.85)}
+.lm-read{border-left-color:rgba(155,89,182,.85)}
+.lm-unsure{border-left-color:rgba(230,150,60,.9)}
+.lm-tilt{border-left-color:rgba(232,92,92,.9)}
+.lm-later{border-left-color:rgba(46,204,113,.85)}
+.lm-flash{animation:lm-flash .45s ease-out}
+@keyframes lm-flash{0%{background:var(--gold-dim);border-color:var(--gold)}100%{}}
+.lm-context{display:flex;gap:.75rem;flex-wrap:wrap;margin-top:.8rem}
+.lm-context label{display:flex;align-items:center;gap:.45rem;font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--wa-58);text-transform:uppercase}
+.lm-context input{width:9.5rem;padding:.4rem .6rem;font-size:13px;font-family:var(--sans);text-transform:none;letter-spacing:0;background:var(--bg2);border:1px solid var(--rim2);border-radius:8px;color:var(--ink)}
+.lm-recent{margin-top:.85rem;display:flex;flex-direction:column;gap:.4rem}
+.lm-recent-row{display:flex;align-items:center;justify-content:space-between;gap:.6rem;padding:.4rem .6rem;background:var(--bg2);border:1px solid var(--rim);border-radius:8px}
+.lm-recent-text{font-size:12.5px;color:var(--wa-85);min-width:0}
+.lm-recent-row .sec-action{white-space:nowrap;flex-shrink:0}
+.lm-done{font-family:var(--mono);font-size:10px;color:var(--mint)}
+.lm-chips{display:flex;flex-wrap:wrap;gap:.35rem;margin:.4rem 0 0}
+.lm-chip{display:inline-flex;align-items:center;gap:.3rem;font-family:var(--mono);font-size:10px;letter-spacing:.03em;padding:2px 9px;border-radius:999px;border:1px solid var(--rim2);background:var(--chip-bg);color:var(--wa-80)}
+.lm-chip-bigpot{border-color:rgba(212,175,55,.55)}
+.lm-chip-icm{border-color:rgba(52,152,219,.55)}
+.lm-chip-read{border-color:rgba(155,89,182,.6)}
+.lm-chip-unsure{border-color:rgba(230,150,60,.6)}
+.lm-chip-tilt{border-color:rgba(232,92,92,.6)}
+.lm-chip-later{border-color:rgba(46,204,113,.55)}
+.lm-meta{margin-top:.4rem;font-family:var(--mono);font-size:11px;color:var(--wa-70)}
+.lm-meta strong{color:var(--amber);font-weight:500}
+.hand-card.unfinished{border-color:rgba(230,150,60,.5);border-left-width:4px}
+.lm-filterbar{display:flex;flex-wrap:wrap;gap:.4rem;margin:0 0 1rem}
+.lm-filter{display:inline-flex;align-items:center;gap:.35rem;font-family:var(--mono);font-size:11px;padding:.35rem .75rem;border-radius:999px;border:1px solid var(--rim2);background:transparent;color:var(--wa-70);cursor:pointer;transition:all .15s}
+.lm-filter:hover{border-color:var(--gold)}
+.lm-filter.on{background:var(--gold-dim);border-color:var(--gold);color:var(--ink)}
+.lm-filter-warn{border-color:rgba(230,150,60,.6)}
+.lm-count{color:var(--wa-58);font-size:10px}
+.lm-form-tags{display:flex;flex-wrap:wrap;gap:.4rem}
+.lm-chip-pick{cursor:pointer;font-size:11px;padding:.3rem .75rem;background:transparent}
+.lm-chip-pick.on{background:var(--gold-dim);border-color:var(--gold);color:var(--ink)}
+.lm-note{padding:.6rem .8rem;border-radius:10px;background:var(--gold-dim);border:1px solid rgba(212,175,55,.3);font-family:var(--mono);font-size:11px;line-height:1.5;color:var(--wa-85)}
 
 
 /* -- MONTHLY CALENDAR VIEW -- */
@@ -1377,6 +1424,8 @@ body.light .opp-tag.loose{color:var(--red)}
 body.light .opp-tag.tight{color:var(--green)}
 body.light .opp-tag.passive{color:var(--blue)}
 body.light .opp-tag.fish{color:var(--purple)}
+body.light .opp-tag.aggressive{color:#6A4300}   /* the amber / gold tints were 3.8-4.2:1 on the scouting box */
+body.light .opp-tag.reg{color:#5A4306}
 body.light .view-btn.active,body.light .cal-venue-select.active{color:var(--gold)}
 /* help page: a light "document" in both themes, with an always-dark hero */
 .help-doc .hero strong{color:#fff}
