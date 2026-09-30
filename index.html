@@ -13,8 +13,8 @@
 <title>PokerHQ — Tournament Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script type="module" src="./js/app.js?v=20260930d"></script>
-<link rel="stylesheet" href="./styles/app.css?v=20260930d">
+<script type="module" src="./js/app.js?v=20260930f"></script>
+<link rel="stylesheet" href="./styles/app.css?v=20260930f">
 </head>
 <body>
 <!-- LOGIN GATE — shown until Firebase auth resolves a signed-in user -->
@@ -105,7 +105,7 @@
         <button class="group-tab" id="gtab-plan" onclick="switchGroup('plan')">PLAN</button>
         <button class="group-tab" id="gtab-play" onclick="switchGroup('play')">PLAY</button>
         <button class="group-tab" id="gtab-wallet" onclick="switchGroup('wallet')">TREASURY</button>
-        <button class="group-tab" id="gtab-review" onclick="switchGroup('review')">REVIEW</button>
+        <button class="group-tab" id="gtab-review" onclick="switchGroup('review')">REVIEW <span class="inbox-badge" style="display:none"></span></button>
         <button class="group-tab" id="gtab-improve" onclick="switchGroup('improve')">IMPROVE</button>
         <button class="group-tab" id="gtab-help" onclick="switchGroup('help')">❓ HELP</button>
       </div>
@@ -145,6 +145,7 @@
     <div class="subtab-group" id="subtabs-review">
       <button class="subtab" data-page="sessions" onclick="switchTab('sessions')">♦ History</button>
       <button class="subtab" data-page="heatmap" onclick="switchTab('heatmap')">🔥 Heatmap</button>
+      <button class="subtab" data-page="inbox" onclick="switchTab('inbox')">📥 Inbox <span class="inbox-badge" style="display:none"></span></button>
     </div>
     <div class="subtab-group" id="subtabs-improve">
       <button class="subtab" data-page="strategy" onclick="switchTab('strategy')">♥ Strategy</button>
@@ -166,6 +167,7 @@
   </div>
 
   <div id="today-glance-wrap"></div>
+  <div id="inbox-home-wrap"></div>
 
   <div class="status-grid">
     <div class="status-card">
@@ -1337,6 +1339,7 @@
   <h2 id="s5"><span class="step-badge">5</span>&nbsp; Capture hands</h2>
   <p>The best time to record a hand is while it's fresh. Capture it during the session and it links to this run automatically.</p>
   <h3>5.0 — In the middle of a hand? Tap a marker</h3>
+  <p class="help-note">Everything you mark, plus sessions still waiting for a debrief, lessons due for a re-read, stale villain notes and saved drills, lands in <strong>REVIEW → 📥 Inbox</strong>. <strong>Review</strong> opens it, <strong>Mark resolved</strong> clears it.</p>
   <p>Too busy to type? The active session has six big buttons: <strong>💰 Big pot</strong>, <strong>⚖️ ICM spot</strong>, <strong>👁 Opponent read</strong>, <strong>🤔 Uncertain decision</strong>, <strong>🔥 Tilt</strong> and <strong>🔖 Review later</strong>. One tap saves the moment to Hand History with how far into the session it was (and your stack and blind level if you typed them in the two small boxes). The hand is marked <strong>needs details</strong>: after the hand, tap <strong>FINISH</strong> and add what happened. Each marker is also a <strong>tag</strong> on the hand, so Hand History can show you how often big pots, tilt or uncertain decisions come up, and you can add the same tags to any hand you log yourself.</p>
   <h3>5.1 — Log a hand by hand</h3>
   <ol class="action-list">
@@ -1580,6 +1583,15 @@
 </div>
 
 <!-- ════════════════════ HEATMAP PAGE ════════════════════ -->
+<!-- ════════════════════ REVIEW INBOX ════════════════════ -->
+<div class="page" id="page-inbox">
+  <div class="sec-hdr">
+    <div class="sec-title"><span>📥</span>Review Inbox</div>
+  </div>
+  <div class="tip" style="margin-bottom:1.25rem">Everything waiting for a second look, in one place. <strong>Review</strong> opens it; <strong>Mark resolved</strong> clears it. (Undo is on the toast.)</div>
+  <div id="inbox-list"></div>
+</div>
+
 <div class="page" id="page-heatmap">
   <div class="surface-hero">
     <div>
@@ -2027,35 +2039,37 @@
   </div>
 </div>
 
-<script src="./js/data/util.js?v=20260930d"></script>
-<script src="./js/data/backup-format.js?v=20260930d"></script>
-<script src="./js/data/privacy.js?v=20260930d"></script>
-<script src="./js/data/markers.js?v=20260930d"></script>
-<script src="./js/data/merge.js?v=20260930d"></script>
-<script src="./js/data/config-runtime.js?v=20260930d"></script>
-<script src="./js/data/ai-proxy.js?v=20260930d"></script>
-<script src="./js/features/active-session.js?v=20260930d"></script>
-<script src="./js/features/demo-mode.js?v=20260930d"></script>
-<script src="./js/data/pushfold.js?v=20260930d"></script>
-<script src="./js/data/stats.js?v=20260930d"></script>
-<script src="./js/data/drills.js?v=20260930d"></script>
-<script src="./js/data/icm.js?v=20260930d"></script>
-<script src="./js/features/calculator.js?v=20260930d"></script>
-<script src="./js/features/staking.js?v=20260930d"></script>
-<script src="./js/features/package-report.js?v=20260930d"></script>
-<script src="./js/features/review.js?v=20260930d"></script>
-<script src="./js/features/calendar.js?v=20260930d"></script>
-<script src="./js/features/study-loop.js?v=20260930d"></script>
-<script src="./js/features/strategy.js?v=20260930d"></script>
-<script src="./js/features/hands.js?v=20260930d"></script>
-<script src="./js/features/live-markers.js?v=20260930d"></script>
-<script src="./js/features/treasury.js?v=20260930d"></script>
-<script src="./js/features/bankroll-chart.js?v=20260930d"></script>
-<script src="./js/features/library.js?v=20260930d"></script>
-<script src="./js/features/push.js?v=20260930d"></script>
-<script src="./js/features/onboarding.js?v=20260930d"></script>
-<script src="./js/features/daily-drill.js?v=20260930d"></script>
-<script src="./js/features/today-glance.js?v=20260930d"></script>
+<script src="./js/data/util.js?v=20260930f"></script>
+<script src="./js/data/backup-format.js?v=20260930f"></script>
+<script src="./js/data/privacy.js?v=20260930f"></script>
+<script src="./js/data/markers.js?v=20260930f"></script>
+<script src="./js/data/inbox.js?v=20260930f"></script>
+<script src="./js/data/merge.js?v=20260930f"></script>
+<script src="./js/data/config-runtime.js?v=20260930f"></script>
+<script src="./js/data/ai-proxy.js?v=20260930f"></script>
+<script src="./js/features/active-session.js?v=20260930f"></script>
+<script src="./js/features/demo-mode.js?v=20260930f"></script>
+<script src="./js/data/pushfold.js?v=20260930f"></script>
+<script src="./js/data/stats.js?v=20260930f"></script>
+<script src="./js/data/drills.js?v=20260930f"></script>
+<script src="./js/data/icm.js?v=20260930f"></script>
+<script src="./js/features/calculator.js?v=20260930f"></script>
+<script src="./js/features/staking.js?v=20260930f"></script>
+<script src="./js/features/package-report.js?v=20260930f"></script>
+<script src="./js/features/review.js?v=20260930f"></script>
+<script src="./js/features/calendar.js?v=20260930f"></script>
+<script src="./js/features/study-loop.js?v=20260930f"></script>
+<script src="./js/features/strategy.js?v=20260930f"></script>
+<script src="./js/features/hands.js?v=20260930f"></script>
+<script src="./js/features/live-markers.js?v=20260930f"></script>
+<script src="./js/features/review-inbox.js?v=20260930f"></script>
+<script src="./js/features/treasury.js?v=20260930f"></script>
+<script src="./js/features/bankroll-chart.js?v=20260930f"></script>
+<script src="./js/features/library.js?v=20260930f"></script>
+<script src="./js/features/push.js?v=20260930f"></script>
+<script src="./js/features/onboarding.js?v=20260930f"></script>
+<script src="./js/features/daily-drill.js?v=20260930f"></script>
+<script src="./js/features/today-glance.js?v=20260930f"></script>
 <script>
 // ── PWA INSTALL — captures the browser install prompt like Enclave ──
 var _deferredInstallPrompt = null;
@@ -2245,6 +2259,7 @@ function switchTab(id) {
   if (id==='satellite') renderSatellites();
   if (id==='opponents') renderOpponents();
   if (id==='heatmap') renderHeatmap();
+  if (id==='inbox') { refreshInboxNow(); renderInbox(); }
   renderReliability();
 }
 
@@ -2697,6 +2712,7 @@ function setDashStatsPeriod(period) {
 
 function refreshDashboard() {
   if (typeof renderTodayGlance === 'function') renderTodayGlance();
+  if (typeof refreshInbox === 'function') refreshInbox();
   var br = bankroll.amount, rule = bankroll.rule||5;
   var rec = br/rule, stretch = br/(rule*0.6);
 
@@ -3208,7 +3224,7 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
     <span class="mobile-tab-icon">💼</span>WALLET
   </button>
   <button class="mobile-tab" id="mob-review" onclick="switchGroup('review')">
-    <span class="mobile-tab-icon">📊</span>REVIEW
+    <span class="mobile-tab-icon">📊</span>REVIEW<span class="inbox-badge" style="display:none"></span>
   </button>
   <button class="mobile-tab" id="mob-improve" onclick="switchGroup('improve')">
     <span class="mobile-tab-icon">🧠</span>IMPROVE
@@ -3235,6 +3251,7 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
   <div class="mob-subtab-group" id="mob-subtabs-review">
     <button class="mob-subtab" data-page="sessions" onclick="switchTab('sessions')">♦ History</button>
     <button class="mob-subtab" data-page="heatmap" onclick="switchTab('heatmap')">🔥 Heatmap</button>
+    <button class="mob-subtab" data-page="inbox" onclick="switchTab('inbox')">📥 Inbox <span class="inbox-badge" style="display:none"></span></button>
   </div>
   <div class="mob-subtab-group" id="mob-subtabs-improve">
     <button class="mob-subtab" data-page="strategy" onclick="switchTab('strategy')">♥ Strategy</button>

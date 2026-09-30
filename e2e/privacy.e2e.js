@@ -20,6 +20,7 @@ const PAGES = [
   ["review/hands", () => switchGroup("review", "hands")],
   ["review/opponents", () => switchGroup("review", "opponents")],
   ["review/heatmap", () => switchGroup("review", "heatmap")],
+  ["review/inbox", () => switchGroup("review", "inbox")],
   ["improve/strategy", () => switchGroup("improve", "strategy")],
   ["help", () => switchGroup("help")],
 ];

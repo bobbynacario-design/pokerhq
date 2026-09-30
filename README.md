@@ -51,6 +51,7 @@ browser tests below.
 - `tests/ai-proxy-client.test.js` — client fallback: local key → direct, otherwise the proxy (`js/data/ai-proxy.js`)
 - `tests/drills.test.js` — the Daily Drill library and picker: unique ids, context steering, no repeats, streaks, saved state (`js/data/drills.js`)
 - `tests/backup-format.test.js` — backup file versions: newer files refused with a clear message, older ones upgraded step by step, damaged records dropped and reported (`js/data/backup-format.js`)
+- `tests/inbox.test.js` — the Review Inbox: what lands in it from each of five sources, the ordering, resolving and undoing (`js/data/inbox.js`)
 - `tests/markers.test.js` — live hand markers: the six kinds, time / stack stamped on each tap, double-tap guard, tag counts and filters, finishing a hand (`js/data/markers.js`)
 - `tests/privacy.test.js` — Privacy Mode: what counts as an amount, when the screen is hidden, and the checklist that fails when a new export, money box or canvas chart could bypass it (`js/data/privacy.js`)
 - `tests/theme.test.js` — light-theme readability guard: fails on hard-coded white text or a text colour with no light-mode value
@@ -75,10 +76,26 @@ a new device), `backup-restore` (newer / foreign / damaged files), `light-contra
 4.5:1 text contrast in light mode, desktop and phone), `calendar-bars` (readable full-name event bars, seven equal
 columns at desktop / laptop / phone widths), `privacy` (with Privacy Mode on, every page, pop-up, chart and
 tooltip is swept for a readable amount), `live-markers` (the six one-tap buttons, finish-later, tag filters,
-phone layout), plus one per feature (`bounty`, `daily-drill`,
+phone layout), `inbox` (every source, Review and Mark resolved, undo, reload, live updates, phone), plus one per feature (`bounty`, `daily-drill`,
 `format`, `icm`, `modals`, `month`, `openai`, `push`, `size-guard`, `stats`, `venue`). Screenshots go to
 `E2E_OUT` (default: a temp folder); CI keeps them when a run fails. Add a suite by dropping a
 `something.e2e.js` in `e2e/` that uses `boot()` from `e2e/lib.js`.
+
+### Review Inbox
+
+REVIEW → Inbox (with a count badge, and a card on Home) lists what is waiting for a second look.
+`js/data/inbox.js` builds it from five sources, each cleared by its own flag on the record it came from:
+
+| Source | Shows when | "Mark resolved" writes |
+| --- | --- | --- |
+| Session | logged in the last 14 days, no debrief yet | `session.debriefedAt` (also the session detail's MARK DEBRIEF DONE) |
+| Hand | needs details, or tagged Review later | `hand.resolvedAt` |
+| Lesson | a hand's lesson is due for a re-read: 3, 10, then 30 days | `hand.lessonStep`, `hand.lessonSeenAt` |
+| Villain | notes untouched for 60+ days, at a venue you played in the last 120 days or have an event at in the next 30 | `opponent.reviewedAt` (saving the villain sets `updatedAt`) |
+| Drill | you saved it in the Daily Drill (kept on this device) | removes it from the saved list |
+
+Ages are calendar days. Finishing a marker's details or editing a villain's notes clears its item by
+itself. Not in v1: recurring weaknesses, "create a drill from this".
 
 ### Live hand markers
 
