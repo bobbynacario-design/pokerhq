@@ -443,6 +443,7 @@ function renderActiveSessionSurface() {
     empty.innerHTML = hasDraft ? '' : '<div class="play-empty"><div class="play-empty-title">No active session yet</div><div class="play-empty-sub">Start from CALENDAR LIST when you have a scheduled event, or use HOME only for a manual session.</div><button class="sec-action" onclick="startSessionFromHome()">MANUAL SESSION</button></div>';
   }
   renderReliability();
+  if (typeof refreshInbox === 'function') refreshInbox();   // the Review Inbox follows data changes
 }
 
 function jumpToMentalCheckin() {

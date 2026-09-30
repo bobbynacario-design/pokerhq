@@ -190,6 +190,30 @@
     window.renderDailyDrill();
   };
   window.drillBack = function () { viewSaved = null; window.renderDailyDrill(); };
+
+  // For the Review Inbox (js/features/review-inbox.js): the drills you saved, and what to do with them.
+  window.drillSavedList = function () {
+    var L = lib();
+    return load().saved.map(function (id) {
+      var d = L.byId(id);
+      return d ? { id: id, title: d.title, detail: (L.CATEGORIES[d.cat] || 'Drill') + ' · you saved this to do later' } : null;
+    }).filter(Boolean);
+  };
+  window.drillOpenSaved = function (id) {
+    if (load().saved.indexOf(id) < 0) return;
+    viewSaved = id;
+    if (typeof window.switchGroup === 'function') window.switchGroup('home');
+    window.renderDailyDrill();
+    var card = document.getElementById('tg-drill');
+    if (card && card.scrollIntoView) card.scrollIntoView({ block: 'center' });
+  };
+  window.drillUnsave = function (id) {
+    if (viewSaved === id) viewSaved = null;
+    if (load().saved.indexOf(id) >= 0) update(function (st) { return lib().toggleSaved(st, id); });
+  };
+  window.drillResave = function (id) {
+    if (load().saved.indexOf(id) < 0) update(function (st) { return lib().toggleSaved(st, id); });
+  };
   window.drillMood = function (mood) {
     viewSaved = null;
     update(function (s) { s.mood = mood; delete s.skips[todayLocal()]; return s; });

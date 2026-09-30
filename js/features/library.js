@@ -310,6 +310,7 @@ function addOpponent() {
     existing.venue = document.getElementById('opp-venue').value || '';
     existing.tags = _selectedOppTags.slice();
     existing.notes = document.getElementById('opp-notes').value || '';
+    existing.updatedAt = Date.now();   // the Review Inbox flags notes nobody has touched for a while
     window.opponents = opponents;
     save('opponents', opponents);
     document.getElementById('opp-name').value = '';
