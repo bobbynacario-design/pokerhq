@@ -13,8 +13,8 @@
 <title>PokerHQ — Tournament Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script type="module" src="./js/app.js?v=20261001b"></script>
-<link rel="stylesheet" href="./styles/app.css?v=20261001b">
+<script type="module" src="./js/app.js?v=20261001c"></script>
+<link rel="stylesheet" href="./styles/app.css?v=20261001c">
 </head>
 <body>
 <!-- LOGIN GATE — shown until Firebase auth resolves a signed-in user -->
@@ -802,6 +802,7 @@
       <div class="form-group"><label class="form-label" for="slate-travel">Travel allowance (₱)</label><input class="form-input" id="slate-travel" oninput="invalidateSlateDraft()" type="number" data-money min="0" placeholder="0"></div>
       <div class="form-group"><label class="form-label" for="slate-hotel">Hotel allowance (₱)</label><input class="form-input" id="slate-hotel" oninput="invalidateSlateDraft()" type="number" data-money min="0" placeholder="0"></div>
     </div></details></div>
+    <details id="slate-personalize"><summary>Personalize picks</summary><div id="slate-personalize-controls"></div></details>
     <p class="slate-footnote">Budget includes all pinned events within these dates, across every location. Allowances are estimates; they do not create expenses or change your bankroll.</p>
     <div id="slate-results"><p class="slate-empty">Your shortlist will appear here after you build it.</p></div>
   </div>
@@ -2116,50 +2117,52 @@
 
 <div class="modal-overlay" id="modal-calendar-cleanup"><div class="modal" style="max-width:720px"><div class="modal-title">Review calendar duplicates</div><div id="cleanup-body"></div><div class="modal-actions"><button class="sec-action" onclick="closeModal('modal-calendar-cleanup')">CLOSE</button></div></div></div>
 <div class="modal-overlay" id="modal-practice"><div class="modal"><div class="modal-title">Create a practice drill</div><div class="form-group"><label class="form-label" for="practice-title">Drill title</label><input class="form-input" id="practice-title" maxlength="160"></div><div class="form-group"><label class="form-label" for="practice-prompt">What will you practice?</label><textarea class="form-input" id="practice-prompt" rows="6"></textarea></div><p id="practice-error" role="alert"></p><div class="modal-actions"><button class="sec-action" onclick="closeModal('modal-practice')">CANCEL</button><button class="sec-action primary" onclick="savePracticeDraft()">SAVE PRACTICE DRILL</button></div></div></div>
-<script src="./js/data/util.js?v=20261001b"></script>
-<script src="./js/data/backup-format.js?v=20261001b"></script>
-<script src="./js/data/privacy.js?v=20261001b"></script>
-<script src="./js/data/markers.js?v=20261001b"></script>
-<script src="./js/data/inbox.js?v=20261001b"></script>
-<script src="./js/data/journey.js?v=20261001b"></script>
-<script src="./js/data/slate.js?v=20261001b"></script>
-<script src="./js/data/trueroi.js?v=20261001b"></script>
-<script src="./js/data/poster.js?v=20261001b"></script>
-<script src="./js/data/merge.js?v=20261001b"></script>
-<script src="./js/data/config-runtime.js?v=20261001b"></script>
-<script src="./js/data/ai-proxy.js?v=20261001b"></script>
-<script src="./js/features/active-session.js?v=20261001b"></script>
-<script src="./js/features/demo-mode.js?v=20261001b"></script>
-<script src="./js/data/pushfold.js?v=20261001b"></script>
-<script src="./js/data/stats.js?v=20261001b"></script>
-<script src="./js/data/drills.js?v=20261001b"></script>
-<script src="./js/data/planning.js?v=20261001b"></script>
-<script src="./js/data/live-clock.js?v=20261001b"></script>
-<script src="./js/features/calendar-cleanup.js?v=20261001b"></script>
-<script src="./js/features/live-clock.js?v=20261001b"></script>
-<script src="./js/features/practice-drills.js?v=20261001b"></script>
-<script src="./js/features/demo-tour.js?v=20261001b"></script>
-<script src="./js/data/icm.js?v=20261001b"></script>
-<script src="./js/features/calculator.js?v=20261001b"></script>
-<script src="./js/features/staking.js?v=20261001b"></script>
-<script src="./js/features/package-report.js?v=20261001b"></script>
-<script src="./js/features/review.js?v=20261001b"></script>
-<script src="./js/features/calendar.js?v=20261001b"></script>
-<script src="./js/features/slate-optimizer.js?v=20261001b"></script>
-<script src="./js/features/study-loop.js?v=20261001b"></script>
-<script src="./js/features/strategy.js?v=20261001b"></script>
-<script src="./js/features/hands.js?v=20261001b"></script>
-<script src="./js/features/live-markers.js?v=20261001b"></script>
-<script src="./js/features/review-inbox.js?v=20261001b"></script>
-<script src="./js/features/trips.js?v=20261001b"></script>
-<script src="./js/features/poster-import.js?v=20261001b"></script>
-<script src="./js/features/treasury.js?v=20261001b"></script>
-<script src="./js/features/bankroll-chart.js?v=20261001b"></script>
-<script src="./js/features/library.js?v=20261001b"></script>
-<script src="./js/features/push.js?v=20261001b"></script>
-<script src="./js/features/onboarding.js?v=20261001b"></script>
-<script src="./js/features/daily-drill.js?v=20261001b"></script>
-<script src="./js/features/today-glance.js?v=20261001b"></script>
+<script src="./js/data/util.js?v=20261001c"></script>
+<script src="./js/data/backup-format.js?v=20261001c"></script>
+<script src="./js/data/privacy.js?v=20261001c"></script>
+<script src="./js/data/markers.js?v=20261001c"></script>
+<script src="./js/data/inbox.js?v=20261001c"></script>
+<script src="./js/data/journey.js?v=20261001c"></script>
+<script src="./js/data/slate.js?v=20261001c"></script>
+<script src="./js/data/trueroi.js?v=20261001c"></script>
+<script src="./js/data/poster.js?v=20261001c"></script>
+<script src="./js/data/merge.js?v=20261001c"></script>
+<script src="./js/data/config-runtime.js?v=20261001c"></script>
+<script src="./js/data/ai-proxy.js?v=20261001c"></script>
+<script src="./js/features/active-session.js?v=20261001c"></script>
+<script src="./js/features/demo-mode.js?v=20261001c"></script>
+<script src="./js/data/pushfold.js?v=20261001c"></script>
+<script src="./js/data/stats.js?v=20261001c"></script>
+<script src="./js/data/drills.js?v=20261001c"></script>
+<script src="./js/data/planning.js?v=20261001c"></script>
+<script src="./js/data/live-clock.js?v=20261001c"></script>
+<script src="./js/data/player-planning.js?v=20261001c"></script>
+<script src="./js/features/reentry-guard.js?v=20261001c"></script>
+<script src="./js/features/calendar-cleanup.js?v=20261001c"></script>
+<script src="./js/features/live-clock.js?v=20261001c"></script>
+<script src="./js/features/practice-drills.js?v=20261001c"></script>
+<script src="./js/features/demo-tour.js?v=20261001c"></script>
+<script src="./js/data/icm.js?v=20261001c"></script>
+<script src="./js/features/calculator.js?v=20261001c"></script>
+<script src="./js/features/staking.js?v=20261001c"></script>
+<script src="./js/features/package-report.js?v=20261001c"></script>
+<script src="./js/features/review.js?v=20261001c"></script>
+<script src="./js/features/calendar.js?v=20261001c"></script>
+<script src="./js/features/slate-optimizer.js?v=20261001c"></script>
+<script src="./js/features/study-loop.js?v=20261001c"></script>
+<script src="./js/features/strategy.js?v=20261001c"></script>
+<script src="./js/features/hands.js?v=20261001c"></script>
+<script src="./js/features/live-markers.js?v=20261001c"></script>
+<script src="./js/features/review-inbox.js?v=20261001c"></script>
+<script src="./js/features/trips.js?v=20261001c"></script>
+<script src="./js/features/poster-import.js?v=20261001c"></script>
+<script src="./js/features/treasury.js?v=20261001c"></script>
+<script src="./js/features/bankroll-chart.js?v=20261001c"></script>
+<script src="./js/features/library.js?v=20261001c"></script>
+<script src="./js/features/push.js?v=20261001c"></script>
+<script src="./js/features/onboarding.js?v=20261001c"></script>
+<script src="./js/features/daily-drill.js?v=20261001c"></script>
+<script src="./js/features/today-glance.js?v=20261001c"></script>
 <script>
 // ── PWA INSTALL — captures the browser install prompt like Enclave ──
 var _deferredInstallPrompt = null;
@@ -2386,7 +2389,7 @@ function updateBRMTip() {
 }
 function fmt(n) { return Math.round(n).toLocaleString(); }
 function fmtCur(n) { var v=Math.round(n); return (v>=0?'₱':'−₱')+Math.abs(v).toLocaleString(); }
-['s-date','s-name','s-venue','s-structure','s-buyin','s-focus','s-energy','s-sleep','s-fasting'].forEach(function(id) {
+['s-date','s-name','s-venue','s-structure','s-buyin','s-rebuy','s-focus','s-energy','s-sleep','s-fasting'].forEach(function(id) {
   var el = document.getElementById(id);
   if (el) el.addEventListener('input', syncActiveDraftFromForm);
   if (el) el.addEventListener('change', syncActiveDraftFromForm);
@@ -2649,6 +2652,7 @@ function addSession() {
   if (_activeSessionDraft && _activeSessionDraft.readiness) {
     s.readiness = Object.assign({}, _activeSessionDraft.readiness);
   }
+  if (_activeSessionDraft && _activeSessionDraft.tourneyId != null) s.tourneyId = _activeSessionDraft.tourneyId;
   var newApplied = applySessionToBankroll(bankroll.amount, 0, pnl);
   s.bankrollApplied = newApplied.applied;
   window.sessions.unshift(s); sessions = window.sessions;

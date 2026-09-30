@@ -1180,7 +1180,7 @@ function renderCalendarList() {
       if (t.notes) html += '<span>' + esc(t.notes) + '</span>';
       html += '</div></div>';
       html += '<div class="event-right">';
-      html += '<div class="event-buyin">₱' + t.buyin.toLocaleString() + '</div>';
+      html += '<div class="event-buyin">' + (Number(t.buyin)>0 ? fmtCur(Number(t.buyin)) : 'Buy-in to confirm') + '</div>';
       html += '<span class="' + badgeCls + '">' + badgeTxt + '</span>';
       html += '<span class="tourney-status ' + sc + '">' + sl + '</span>';
       html += '<button class="sec-action" style="font-size:10px;padding:3px 9px;margin-top:2px;border-color:var(--green);color:var(--green)" onclick="startSessionFromTourney(' + t.id + ')">▶ START SESSION</button>';

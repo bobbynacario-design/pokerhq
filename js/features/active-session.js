@@ -154,7 +154,8 @@ function syncActiveDraftFromForm() {
   _activeSessionDraft.venue = document.getElementById('s-venue').value || _activeSessionDraft.venue || '';
   _activeSessionDraft.structure = document.getElementById('s-structure').value || _activeSessionDraft.structure || '';
   _activeSessionDraft.packageName = document.getElementById('s-package').value || _activeSessionDraft.packageName || '';
-  _activeSessionDraft.buyin = parseFloat(document.getElementById('s-buyin').value) || _activeSessionDraft.buyin || 0;
+  _activeSessionDraft.buyin = parseFloat(document.getElementById('s-buyin').value) || 0;
+  _activeSessionDraft.rebuy = parseFloat(document.getElementById('s-rebuy').value) || 0;
   _activeSessionDraft.focus = parseFloat(document.getElementById('s-focus').value) || _activeSessionDraft.focus || 0;
   _activeSessionDraft.energy = parseFloat(document.getElementById('s-energy').value) || _activeSessionDraft.energy || 0;
   _activeSessionDraft.sleep = parseFloat(document.getElementById('s-sleep').value) || _activeSessionDraft.sleep || 0;
@@ -172,6 +173,7 @@ function hydrateSessionFormFromDraft(force) {
     ['s-structure', _activeSessionDraft.structure || ''],
     ['s-package', _activeSessionDraft.packageName || ''],
     ['s-buyin', _activeSessionDraft.buyin || ''],
+    ['s-rebuy', _activeSessionDraft.rebuy || ''],
     ['s-focus', _activeSessionDraft.focus || ''],
     ['s-energy', _activeSessionDraft.energy || ''],
     ['s-sleep', _activeSessionDraft.sleep || ''],
@@ -436,7 +438,7 @@ function renderActiveSessionSurface() {
     var prep = renderPreSessionPrepBlock();
     var buyin = _activeSessionDraft && _activeSessionDraft.buyin ? '₱'+fmt(_activeSessionDraft.buyin) : 'Buy-in not set';
     el.innerHTML =
-      '<div class="active-session-card"><div class="active-session-top"><div><div class="surface-kicker">Play</div><div class="active-session-title">'+esc(label || 'Active session')+'</div><div class="active-session-sub">'+esc(venue)+' · '+buyin+' · Timer '+timerState.toLowerCase()+'. Quick actions stay linked to this run.</div></div><div class="surface-actions"><button class="sec-action" onclick="switchGroup(\'play\',\'sessions\')">OPEN PLAY</button><button class="sec-action" onclick="endActiveSession()">END SESSION</button></div></div><div class="active-session-grid"><div class="active-session-metric"><div class="active-session-metric-label">Timer</div><div class="active-session-metric-value" id="active-session-timer-copy">'+(document.getElementById('timer-display') ? document.getElementById('timer-display').textContent : '00:00:00')+'</div></div><div class="active-session-metric"><div class="active-session-metric-label">Bullets</div><div class="active-session-metric-value">'+bullets+'</div></div><div class="active-session-metric"><div class="active-session-metric-label">Focus</div><div class="active-session-metric-value">'+focus+'</div></div><div class="active-session-metric"><div class="active-session-metric-label">Energy</div><div class="active-session-metric-value">'+energy+'</div></div></div>'+liveMarkersHtml()+'<div class="active-session-actions"><button class="sec-action primary" onclick="openHandModalForActiveSession()">CAPTURE HAND</button><button class="sec-action" onclick="openActiveOpponentCapture()">CAPTURE VILLAIN NOTE</button><button class="sec-action" onclick="jumpToMentalCheckin()">MENTAL CHECK-IN</button><button class="sec-action" onclick="logTimerToSession()">LOG TIMER TO SESSION</button></div>'+(id==='play-active-session-wrap'?liveClockHtml():'')+prep+scouting+'<div class="active-session-quick"><div class="quick-panel"><div class="quick-panel-title">Quick check-in</div><div class="quick-checkins"><button class="quick-checkin" onclick="applyQuickCheckin(\'rough\')">ROUGH</button><button class="quick-checkin" onclick="applyQuickCheckin(\'steady\')">STEADY</button><button class="quick-checkin" onclick="applyQuickCheckin(\'sharp\')">SHARP</button></div></div><div class="quick-panel"><div class="quick-panel-title">Re-entry / bullet count</div><div class="quick-counter"><div><div class="status-sub" style="margin-top:0">Track bullets before you log the final result.</div></div><div class="counter-controls"><button class="counter-btn" onclick="updateBulletCount(-1)">−</button><div class="counter-value">'+bullets+'</div><button class="counter-btn" onclick="updateBulletCount(1)">+</button></div></div></div></div></div>';
+      '<div class="active-session-card"><div class="active-session-top"><div><div class="surface-kicker">Play</div><div class="active-session-title">'+esc(label || 'Active session')+'</div><div class="active-session-sub">'+esc(venue)+' · '+buyin+' · Timer '+timerState.toLowerCase()+'. Quick actions stay linked to this run.</div></div><div class="surface-actions"><button class="sec-action" onclick="switchGroup(\'play\',\'sessions\')">OPEN PLAY</button><button class="sec-action" onclick="endActiveSession()">END SESSION</button></div></div><div class="active-session-grid"><div class="active-session-metric"><div class="active-session-metric-label">Timer</div><div class="active-session-metric-value" id="active-session-timer-copy">'+(document.getElementById('timer-display') ? document.getElementById('timer-display').textContent : '00:00:00')+'</div></div><div class="active-session-metric"><div class="active-session-metric-label">Bullets</div><div class="active-session-metric-value">'+bullets+'</div></div><div class="active-session-metric"><div class="active-session-metric-label">Focus</div><div class="active-session-metric-value">'+focus+'</div></div><div class="active-session-metric"><div class="active-session-metric-label">Energy</div><div class="active-session-metric-value">'+energy+'</div></div></div>'+liveMarkersHtml()+'<div class="active-session-actions"><button class="sec-action primary" onclick="openHandModalForActiveSession()">CAPTURE HAND</button><button class="sec-action" onclick="openActiveOpponentCapture()">CAPTURE VILLAIN NOTE</button><button class="sec-action" onclick="jumpToMentalCheckin()">MENTAL CHECK-IN</button><button class="sec-action" onclick="logTimerToSession()">LOG TIMER TO SESSION</button></div>'+(id==='play-active-session-wrap'?liveClockHtml():'')+prep+scouting+reentryGuardHtml(id==='play-active-session-wrap')+'<div class="active-session-quick"><div class="quick-panel"><div class="quick-panel-title">Quick check-in</div><div class="quick-checkins"><button class="quick-checkin" onclick="applyQuickCheckin(\'rough\')">ROUGH</button><button class="quick-checkin" onclick="applyQuickCheckin(\'steady\')">STEADY</button><button class="quick-checkin" onclick="applyQuickCheckin(\'sharp\')">SHARP</button></div></div><div class="quick-panel"><div class="quick-panel-title">Re-entry / bullet count</div><div class="quick-counter"><div><div class="status-sub" style="margin-top:0">Track bullets before you log the final result.</div></div><div class="counter-controls"><button class="counter-btn" onclick="updateBulletCount(-1)">−</button><div class="counter-value">'+bullets+'</div><button class="counter-btn" onclick="updateBulletCount(1)">+</button></div></div></div></div></div>';
   });
   var empty = document.getElementById('play-empty-wrap');
   if (empty) {
@@ -472,9 +474,9 @@ function applyQuickCheckin(mode) {
   persistActiveSessionDraft();
 }
 
-function updateBulletCount(delta) {
+function updateBulletCount(delta,reviewed) {
   ensureActiveSessionDraft();
-  _activeSessionDraft.bullets = Math.max(1, (_activeSessionDraft.bullets || 1) + delta);
+  if (!changeReentryBullet(delta,reviewed)) return;
   persistActiveSessionDraft();
 }
 
@@ -709,6 +711,7 @@ function startSessionFromTourney(tid) {
   resetTimerState();
   replaceActiveSessionDraft({
     date: parsedDate || todayLocal(),
+    tourneyId: t.id,
     name: t.name || '',
     venue: t.venue || '',
     structure: normalizeFormat(t.structure),

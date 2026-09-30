@@ -52,6 +52,20 @@ stay in memory; leaving the demo restores cached real data, drill progress and a
 
 ## More planning, demo and practice tools
 
+- **Personalize picks** uses up to 80 recent logged sessions to favour familiar venues and
+  formats, with optional preferred format, available days and hours. Costs and durations use
+  medians from at least 3 comparable sessions, with sample counts inside **Why this pick?**.
+  History influences ranking; wins and ROI do not. Existing pins stay protected. Unknown
+  durations stay available for schedule review. Preferences stay on this device and demo
+  preferences are separate. Buy-in commitments and the reserve remain explicit budget inputs.
+- **Re-entry guard** previews the next bullet against the bankroll, all upcoming pinned
+  buy-ins, an optional session cap and other protected funds. Starting from a planned event
+  avoids counting its initial entry twice. Limits or unpriced future events open an inline
+  review before adding a bullet; a changed budget requires a fresh review. Variable entry
+  costs stay recorded, decrement removes the last cost, and the session form receives the
+  re-entry total. You can edit that total before logging. Guard settings restore with the
+  active draft. Linked completed events stop reserving another buy-in for future sessions.
+
 - Slate budgets include pinned events at **every location within the chosen dates**, counting
   selected pins once. Optional travel and hotel allowances sit beside the re-entry reserve.
   These estimates never change the bankroll or create trip expenses. An unknown pinned
@@ -121,6 +135,8 @@ node e2e/run.js signin            # only suites whose file name contains "signin
 clock reload and keyboard behavior, and the direct demo tour at desktop and phone widths.
 `planned-events` covers the collapsed plan, six-row pagination, unpinning without losing your
 place or keyboard focus, Start next, Privacy Mode, and desktop/phone layouts.
+`player-planning` covers personal ranking and explanations, day/time preferences, re-entry
+preview and review, variable costs, Privacy Mode, reload and demo isolation on desktop/phone.
 
 Suites: `smoke` (boot, calculator, sessions, bankroll check, restore + undo), `signin` (the gate; the
 Google button is on the first screen at ten window sizes), `active-session` (start, timer, check-in,

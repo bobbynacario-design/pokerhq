@@ -1,5 +1,51 @@
 var _slateDraft = null;
 var SLATE_PAGE_SIZE = 6;
+var _slatePreferences = null;
+var _slatePreferenceScope = '';
+
+function renderSlatePreferences() {
+  var wrap = document.getElementById('slate-personalize-controls');
+  if (!wrap) return;
+  var cfg = window.PokerHQConfig || {}, scope = (cfg.resolveUiStorageKey ? cfg.resolveUiStorageKey('slate_preferences') : 'pokerhq_slate_preferences') + ':' + !!window._demoMode;
+  if (_slatePreferences && scope === _slatePreferenceScope) return;
+  _slatePreferenceScope = scope;
+  var saved = window._demoMode ? {} : readScopedUiJson('slate_preferences','pokerhq_slate_preferences',{});
+  _slatePreferences = { history: saved.history !== false, format: SESSION_FORMATS.indexOf(saved.format)>=0 ? saved.format : 'auto', maxHours: Number(saved.maxHours)>0 ? Number(saved.maxHours) : '', days: Array.isArray(saved.days) ? saved.days.filter(function(d) { return Number.isInteger(d) && d>=0 && d<=6; }) : [0,1,2,3,4,5,6] };
+  wrap.innerHTML = '<label class="slate-history-toggle"><input id="slate-use-history" type="checkbox" onchange="setSlatePreference(\'history\',this.checked)" '+(_slatePreferences.history ? 'checked' : '')+'> Use my session history</label>' +
+    '<div class="form-grid"><div class="form-group"><label class="form-label" for="slate-preferred-format">Preferred format</label><select class="form-input" id="slate-preferred-format" onchange="setSlatePreference(\'format\',this.value)"><option value="auto">Learn from my sessions</option>'+SESSION_FORMATS.map(function(f) { return '<option '+(_slatePreferences.format===f ? 'selected ' : '')+'value="'+esc(f)+'">'+esc(f)+'</option>'; }).join('')+'</select></div>'+
+    '<div class="form-group"><label class="form-label" for="slate-max-hours">Time available per event (hours)</label><input class="form-input" type="number" min="0.5" step="0.5" id="slate-max-hours" placeholder="Optional" value="'+_slatePreferences.maxHours+'" oninput="setSlatePreference(\'maxHours\',this.value)"></div></div>'+
+    '<fieldset class="slate-days"><legend>Available days</legend>'+[1,2,3,4,5,6,0].map(function(d) { return '<label><input type="checkbox" value="'+d+'" aria-label="Available '+['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d]+'" '+(_slatePreferences.days.indexOf(d)>=0 ? 'checked ' : '')+'onchange="setSlateAvailableDay('+d+',this.checked)">'+['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d]+'</label>'; }).join('')+'</fieldset>'+
+    '<p class="slate-footnote">Saved on this device. Estimates use at least 3 relevant sessions. Events with unknown duration need a schedule check.</p>';
+}
+
+function setSlatePreference(key,value) {
+  if (!_slatePreferences) renderSlatePreferences();
+  _slatePreferences[key] = key==='maxHours' ? (value==='' ? '' : Number(value)) : value;
+  saveScopedUiJson('slate_preferences',_slatePreferences);
+  invalidateSlateDraft();
+}
+
+function setSlateAvailableDay(day,available) {
+  var days = _slatePreferences.days.filter(function(d) { return d!==day; });
+  if (available) days.push(day);
+  setSlatePreference('days',days);
+}
+
+function slatePickReasons(c) {
+  var p = c.personal || {}, reasons = [];
+  if (c.event.planning) reasons.push('Already in your plan');
+  if (c.event.status==='target') reasons.push('Buy-in fits your current bankroll rule');
+  else if (c.event.status==='stretch') reasons.push('Buy-in stretches your current bankroll rule');
+  else reasons.push('Buy-in exceeds your current bankroll rule; review before playing');
+  reasons = reasons.concat(p.reasons || []);
+  if (PokerHQSlate.guarantee(c.event.gtd)) reasons.push('Published guarantee is part of the ranking');
+  if (p.cost) reasons.push('Typical entry spend: '+fmtCur(p.cost)+' · '+p.costSamples+' '+p.scope+' sessions'+(p.costSamples<10 ? ' · limited sample' : ''));
+  else reasons.push(p.usingHistory===false ? 'Session-history estimates are turned off' : 'Entry-cost estimate needs 3 comparable logged sessions'+(p.earlyCount ? ' · '+p.earlyCount+' available' : ''));
+  if (p.hours) reasons.push('Typical session: '+p.hours+' hours · '+p.hourSamples+' '+p.scope+' sessions');
+  else reasons.push('Duration unknown — check the event schedule');
+  if (p.outsidePreferences) reasons.push('Outside your day/time preferences; kept because it is already pinned');
+  return '<ul>'+reasons.map(function(r) { return '<li>'+esc(r)+'</li>'; }).join('')+'</ul><p>History reflects your habits and entry costs. Set a reserve for extra entries.</p>';
+}
 
 function invalidateSlateDraft(message) {
   _slateDraft = null;
@@ -16,6 +62,7 @@ function setSlateDateWindow(days) {
 }
 
 function renderSlateLocationFilter() {
+  renderSlatePreferences();
   var select = document.getElementById('slate-location');
   if (!select || !window.PokerHQStats) return;
   if (!select.dataset.initialized) {
@@ -56,17 +103,22 @@ function renderSlateOptimizer() {
   }
   if (to && to<from) { invalidateSlateDraft('The end date must be on or after the start date.'); return; }
   if (!isFinite(travel) || !isFinite(hotel) || travel<0 || hotel<0) { invalidateSlateDraft('Travel and hotel allowances must be zero or positive.'); return; }
+  if (!_slatePreferences.days.length) { invalidateSlateDraft('Choose at least one available day in Personalize picks.'); return; }
+  if (_slatePreferences.maxHours!=='' && (!isFinite(_slatePreferences.maxHours) || _slatePreferences.maxHours<=0)) { invalidateSlateDraft('Enter a positive time allowance, or leave it blank.'); return; }
+  var history = _slatePreferences.history ? PokerHQPlayerPlanning.profile(window.sessions,todayLocal()) : [];
+  var preferences = Object.assign({},_slatePreferences,{days:_slatePreferences.days.slice()});
+  var assess = function(t,r) { return PokerHQPlayerPlanning.assessment(t,r,history,preferences); };
   var options = {budget:budget,reserve:reserve,travel:travel,hotel:hotel,from:from,to:to,parse:parseTourneyDateRange};
   var plan = PokerHQPlanning.budget(window.tourneys,[],options);
   var events = window.PokerHQStats.filterByVenue(window.tourneys || [], location === '*' ? '' : location).map(function(t) {
     return Object.assign({},t,{status:typeof gradeBuyin==='function' ? gradeBuyin(t.buyin) : t.status});
   });
-  var result = window.PokerHQSlate.optimize(events,{budget:budget,maxBuyin:maxBuyin,reserve:reserve,from:from,to:to,dateRange:parseTourneyDateRange});
-  if (!result.candidates.length) { invalidateSlateDraft('No events fit this location and these limits. Try the next 30 days, a wider date range, or another location.'); return; }
+  var result = window.PokerHQSlate.optimize(events,{budget:budget,maxBuyin:maxBuyin,reserve:reserve,from:from,to:to,dateRange:parseTourneyDateRange,assess:assess});
+  if (!result.candidates.length) { invalidateSlateDraft('No events fit this location, available days and limits. Try a wider date range or adjust Personalize picks.'); return; }
   var freeEvents = result.candidates.filter(function(c) {
     return !c.event.planning && !plan.pinned.some(function(t) { var r=parseTourneyDateRange(t);return r && c.date<=PokerHQSlate.normalizeDate(r.end) && c.endDate>=PokerHQSlate.normalizeDate(r.start); });
   }).map(function(c){return c.event;});
-  var additions = PokerHQSlate.optimize(freeEvents,{budget:plan.available,maxBuyin:maxBuyin,from:from,to:to,dateRange:parseTourneyDateRange});
+  var additions = PokerHQSlate.optimize(freeEvents,{budget:plan.available,maxBuyin:maxBuyin,from:from,to:to,dateRange:parseTourneyDateRange,assess:assess});
   var suggested = result.candidates.map(function(c) { return !!c.event.planning || additions.selected.some(function(a){return a.event.id===c.event.id;}); });
   _slateDraft = {result:result,options:options,chosen:suggested.slice(),suggested:suggested,shortlist:suggested.slice(),view:'shortlist',page:0,search:'',message:''};
   out.innerHTML = '<div class="slate-selection-bar"><div id="slate-summary" role="status" aria-live="polite"></div><button class="sec-action primary" id="slate-apply" onclick="applySlatePlan()">PIN SELECTED EVENTS</button></div>'+
@@ -115,7 +167,7 @@ function renderSlateEventList() {
     var date = new Date(c.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
     if (c.endDate!==c.date) date += ' – '+new Date(c.endDate+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});
     var metadata = date+(c.event.time ? ' · '+c.event.time : '')+(c.event.planning ? ' · Already pinned' : '');
-    html += '<label class="slate-choice'+(draft.chosen[row.index] ? ' is-selected' : '')+'"><input type="checkbox" aria-label="Select '+esc(name)+'" '+(draft.chosen[row.index] ? 'checked ' : '')+'onchange="toggleSlateChoice('+row.index+',this.checked)"><span class="slate-choice-main"><strong>'+esc(name)+'</strong><span>'+esc(metadata)+'</span></span><span class="slate-choice-price">'+fmtCur(c.buyin)+'</span></label>';
+    html += '<div class="slate-candidate"><label class="slate-choice'+(draft.chosen[row.index] ? ' is-selected' : '')+'"><input type="checkbox" aria-label="Select '+esc(name)+'" '+(draft.chosen[row.index] ? 'checked ' : '')+'onchange="toggleSlateChoice('+row.index+',this.checked)"><span class="slate-choice-main"><strong>'+esc(name)+'</strong><span>'+esc(metadata)+'</span></span><span class="slate-choice-price">'+fmtCur(c.buyin)+'</span></label><details class="slate-why"><summary>Why this pick?</summary>'+slatePickReasons(c)+'</details></div>';
   });
   if (!visible.length) html = '<p class="slate-empty">'+(browsing ? 'No events match this search.' : 'No suggested picks fit the available budget. Browse events to choose a smaller buy-in, or adjust your limits.')+'</p>';
   document.getElementById('slate-event-list').innerHTML = html;
@@ -154,6 +206,20 @@ function resetSlateSuggestions() {
 
 function selectedSlatePicks() { return _slateDraft ? _slateDraft.result.candidates.filter(function(c,i) { return _slateDraft.chosen[i]; }) : []; }
 
+function slateExtraEntryEstimate(plan,picks) {
+  if (!_slatePreferences.history) return '';
+  var ids = plan.pinned.map(function(t) { return t.id; });
+  var events = plan.pinned.concat(picks.filter(function(c) { return ids.indexOf(c.event.id)<0; }).map(function(c) { return c.event; }));
+  var history = PokerHQPlayerPlanning.profile(window.sessions,todayLocal()), extra = 0, count = 0;
+  events.forEach(function(t) {
+    var range = parseTourneyDateRange(t);
+    if (!range) return;
+    var estimate = PokerHQPlayerPlanning.assessment(t,{start:PokerHQSlate.normalizeDate(range.start),end:PokerHQSlate.normalizeDate(range.end)},history,{});
+    if (estimate.cost>Number(t.buyin)) { extra += estimate.cost-Number(t.buyin); count++; }
+  });
+  return extra ? '<span class="slate-entry-estimate">Estimated extra entries: '+fmtCur(extra)+' for '+count+' event'+(count!==1?'s':'')+' with history · '+fmtCur(plan.reserve)+' reserved.</span>' : '';
+}
+
 function slateSelectionIssue(picks) {
   var plan = PokerHQPlanning.budget(window.tourneys,picks.map(function(c){return c.event;}),_slateDraft.options);
   if (plan.over) return 'The whole plan exceeds your budget, including existing stars, allowances and reserve.';
@@ -175,6 +241,7 @@ function updateSlateSummary() {
   var plan = PokerHQPlanning.budget(window.tourneys,picks.map(function(c){return c.event;}),_slateDraft.options);
   document.getElementById('slate-summary').innerHTML = '<strong>'+picks.length+' selected · '+fmtCur(spent)+'</strong><span>'+fmtCur(plan.reserve)+' reserved · '+fmtCur(Math.max(0,plan.remaining))+' unallocated</span><span>Whole plan: '+fmtCur(plan.total)+' of '+fmtCur(_slateDraft.options.budget)+' · '+fmtCur(plan.committed)+' already pinned'+(plan.travel || plan.hotel ? ' · '+fmtCur(plan.travel+plan.hotel)+' travel / hotel' : '')+'</span>'+(issue || _slateDraft.message ? '<span class="'+(issue ? 'slate-issue' : 'slate-success')+'">'+esc(issue || _slateDraft.message)+'</span>' : '');
   document.getElementById('slate-apply').disabled = !!issue;
+  document.getElementById('slate-summary').insertAdjacentHTML('beforeend',slateExtraEntryEstimate(plan,picks));
 }
 
 function applySlatePlan() {

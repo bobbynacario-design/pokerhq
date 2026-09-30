@@ -87,6 +87,8 @@ const LEAKS = () => {
   }
   await page.evaluate(() => { switchGroup('plan','calendar');renderSlateLocationFilter();document.getElementById('slate-location').value='okada';document.getElementById('slate-budget').value=18500;document.getElementById('slate-travel').value=500;document.getElementById('slate-hotel').value=1000;renderSlateOptimizer(); });
   await settle();(await leaks()).forEach(l=>problems.push('whole-plan budget → '+l));
+  await page.evaluate(() => { document.getElementById('slate-personalize').open=true;document.querySelectorAll('.slate-why').forEach(function(el){el.open=true;}); });
+  await settle();(await leaks()).forEach(l=>problems.push('personal pick explanations → '+l));
   await page.evaluate(() => { var a=tourneys[0];tourneys.push(Object.assign({},a,{id:9999,name:a.name+' ',notes:'Buy-in ₱7,500'}));openCalendarCleanup();previewCalendarMerge(a.id,9999); });
   await settle();(await leaks()).forEach(l=>problems.push('merge preview → '+l));
   await page.evaluate(() => { closeModal('modal-calendar-cleanup');openPracticeFromHand(hands[0].id);savePracticeDraft(); });

@@ -32,8 +32,11 @@
       // Calendar handles year-less legacy dates; explicit invalid dates must stay rejected.
       if(!r&&!/\d{4}/.test(String(e.date||''))&&typeof o.dateRange==='function') {var parsed=o.dateRange(e);if(parsed)r={start:normalizeDate(parsed.start),end:normalizeDate(parsed.end)};}
       if(!b||b>maxBuyin||!r||!r.start||!r.end||r.end<r.start||(o.from&&r.start<o.from)||(o.to&&r.end>o.to))return null;
+      var personal = typeof o.assess === 'function' ? o.assess(e,r) : null;
+      if (personal && personal.eligible === false) return null;
       var g=guarantee(e.gtd),score=(e.planning?35:0)+(e.status==='target'?25:e.status==='stretch'?10:0)+Math.min(30,g?Math.log10(g/b+1)*12:0);
-      return {event:e,buyin:b,date:r.start,endDate:r.end,score:Math.round(score*10)/10};
+      score += personal ? Number(personal.bonus)||0 : 0;
+      return {event:e,buyin:b,date:r.start,endDate:r.end,score:Math.round(score*10)/10,personal:personal};
     }).filter(Boolean).sort(function(a,b){return b.score-a.score||a.buyin-b.buyin||a.date.localeCompare(b.date);});
     var selected=[],spent=0;
     candidates.forEach(function(c){if(spent+c.buyin>available||selected.some(function(x){return c.date<=x.endDate&&c.endDate>=x.date;}))return;selected.push(c);spent+=c.buyin;});
