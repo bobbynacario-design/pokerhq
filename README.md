@@ -50,6 +50,28 @@ stay in memory; leaving the demo restores cached real data, drill progress and a
 - Home puts active play first and tucks workspace settings and detailed analysis into
   expandable panels. Calendar email and phone-notification settings start collapsed.
 
+## More planning, demo and practice tools
+
+- Slate budgets include pinned events at **every location within the chosen dates**, counting
+  selected pins once. Optional travel and hotel allowances sit beside the re-entry reserve.
+  These estimates never change the bankroll or create trip expenses. An unknown pinned
+  buy-in needs to be filled before applying; overruns block new pinning.
+- **Calendar cleanup → Review duplicates** finds conservative name / venue variants on the
+  same dates. Different flights, formats, buy-ins and known start times stay separate.
+  Preview each pair, choose which name to keep, and merge explicitly. Stars, complementary
+  fields, notes and sources survive; Undo restores both entries.
+- Add `?demo=1` to the app URL for a direct, sign-in-free sample-data tour: plan → capture
+  a hand → review a session. **Copy demo link** shares that URL; **Tour** restarts the guide.
+  Leaving demo removes the URL flag and restores real data. Demo actions remain in memory.
+- PLAY's active session includes **Blind level, stack & breaks**. Set the room's big blind,
+  stack, level duration and break cadence. The clock can start, pause and resume; **Next level**
+  advances manually. Stack converts to BB; break reminders appear in-app while open. Clock
+  settings and paused/running state restore with the local active draft after reload.
+- **Create practice drill** on a hand replay or recurring leak opens an editable exercise.
+  Saved drills appear in IMPROVE → Strategy with source-hand links and practice-day history.
+  Today's completion toggles with Undo; removing a drill also has Undo. Progress syncs inside
+  `drillState`, survives Daily Drill actions, and is included in existing backups.
+
 ## Tests
 
 Pure logic is covered by Node's built-in test runner (Node 20+, no install needed):
@@ -73,6 +95,7 @@ browser tests below.
 - `tests/openai-proxy.test.js` — the OpenAI proxy's allowlists (`functions/openai-proxy.js`), checked against the app's real requests
 - `tests/ai-proxy-client.test.js` — client fallback: local key → direct, otherwise the proxy (`js/data/ai-proxy.js`)
 - `tests/drills.test.js` — the Daily Drill library and picker: unique ids, context steering, no repeats, streaks, saved state (`js/data/drills.js`)
+- `tests/planning-tools.test.js` — whole-plan budgeting, conservative duplicate detection and detail retention, paused/running blind clocks, and custom practice surviving Daily Drill updates.
 - `tests/backup-format.test.js` — backup file versions: newer files refused with a clear message, older ones upgraded step by step, damaged records dropped and reported (`js/data/backup-format.js`)
 - `tests/trueroi.test.js` — trip costs and true ROI: currency conversion, which trip a session belongs to, poker vs true ROI, the satellite-seat rule (never double counted), warnings, and that the pieces add up to the total (`js/data/trueroi.js`)
 - `tests/inbox.test.js` — the Review Inbox: what lands in it from each of five sources, the ordering, resolving and undoing (`js/data/inbox.js`)
@@ -93,6 +116,11 @@ npx playwright install chromium   # once
 npm run test:e2e                  # all suites, a few at a time
 node e2e/run.js signin            # only suites whose file name contains "signin"
 ```
+
+`planning-practice` covers whole-plan limits, merge previews and Undo, saved hand/leak practice,
+clock reload and keyboard behavior, and the direct demo tour at desktop and phone widths.
+`planned-events` covers the collapsed plan, six-row pagination, unpinning without losing your
+place or keyboard focus, Start next, Privacy Mode, and desktop/phone layouts.
 
 Suites: `smoke` (boot, calculator, sessions, bankroll check, restore + undo), `signin` (the gate; the
 Google button is on the first screen at ten window sizes), `active-session` (start, timer, check-in,
@@ -220,6 +248,11 @@ ignored (`js/data/stats.js`, `placeOf` — add a line to `KNOWN_PLACES` to give 
 a standard name). Events with no venue collect under "(no venue)", and the choice is remembered on
 that device. It combines
 with **Planned only**; the "Playing These" card and the .ics export always include everything.
+
+**Playing These** starts collapsed, with the next event and **Start next** ready to use.
+Expand **Manage events** for six compact rows at a time, in date order, with short location
+labels, buy-ins, and quick start/remove controls. Removing a pick preserves the open list and
+page; it leaves the tournament in the calendar so you can pin it again.
 
 ## Daily Drill
 

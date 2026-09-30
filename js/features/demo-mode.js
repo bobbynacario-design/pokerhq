@@ -138,10 +138,10 @@ function resetDemoTimer() {
   document.getElementById('timer-start-btn').style.display='inline-block';document.getElementById('timer-start-btn').textContent='START';
   document.getElementById('timer-stop-btn').style.display='none';document.getElementById('timer-log-btn').style.display='none';
 }
-function enterGuestDemo() { loadDemoMode(); }
+function enterGuestDemo() { loadDemoMode(true); startDemoTour(); }
 
-function loadDemoMode() {
-  if (!confirm('This will load sample data so you can explore PokerHQ.\n\nYour real data is safe and will not be affected.')) return;
+function loadDemoMode(skipConfirmation) {
+  if (skipConfirmation !== true && !confirm('This will load sample data so you can explore PokerHQ.\n\nYour real data is safe and will not be affected.')) return;
   if(!window._demoMode) {
     _demoOriginal={data:getBackupSnapshot().data,draft:demoClone(_activeSessionDraft),editing:_editingSessionId,form:[]};
     document.querySelectorAll('#page-sessions input,#page-sessions select,#page-sessions textarea').forEach(function(el){_demoOriginal.form.push({id:el.id,value:el.value,checked:el.checked});});
@@ -182,6 +182,7 @@ function loadDemoMode() {
   var clearBtn = document.getElementById('demo-clear-btn');
   if (badge) badge.classList.add('visible');
   if (clearBtn) clearBtn.classList.add('visible');
+  document.getElementById('demo-tour-btn').classList.add('visible');
   calYear=new Date().getFullYear();calMonth=new Date().getMonth();
   document.getElementById('login-overlay').classList.add('hidden');
   document.getElementById('signout-btn').style.display='none';
@@ -202,6 +203,9 @@ function loadDemoMode() {
 }
 
 function clearDemoMode() {
+  closeDemoTour();
+  document.getElementById('demo-tour-btn').classList.remove('visible');
+  var cleanUrl=new URL(location.href);cleanUrl.searchParams.delete('demo');history.replaceState(null,'',cleanUrl.href);
   hideUndoToast();
   if(typeof invalidateSlateDraft==='function')invalidateSlateDraft();
   resetDemoTimer();

@@ -55,6 +55,7 @@ const S = require("./lib.js").OUT;
 
   // 4. the Playing These card and the choices don't change
   assert.deepEqual(await options(), ["All locations (7)", "Metro Card Club (3)", "Okada Manila (2)", "Solaire (1)", "(no venue) (1)"]);
+  await page.click('#planned-details summary');
   const planned = await page.evaluate(() => document.getElementById("planned-events-wrap").innerText);
   assert.match(planned, /Okada Main/, "Playing These card still lists the Okada pick");
   ok("choices stay complete, and the 'Playing These' card ignores the filter");

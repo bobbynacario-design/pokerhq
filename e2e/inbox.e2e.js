@@ -131,7 +131,7 @@ const { boot, freezeMotion, OWNER } = require("./lib.js");
   ok("resolving a review-later hand, a lesson ('got it'), a villain note and a saved drill each clears just that item");
 
   // undo for the drill too
-  await page.evaluate(() => { window.drillState = PokerHQDrills.normalizeState({ saved: ["pre-pushfold"] }); localStorage.setItem("pokerhq_drill_v1", JSON.stringify(window.drillState)); refreshInboxNow(); });
+  await page.evaluate(async () => { window.drillState = PokerHQDrills.normalizeState({ saved: ["pre-pushfold"] }); localStorage.setItem("pokerhq_drill_v1", JSON.stringify(window.drillState)); await window.fbSave('drillState',window.drillState); refreshInboxNow(); });
   await settle();
   await resolve("drill");
   await page.click("#undo-toast button");

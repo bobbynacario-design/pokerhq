@@ -49,18 +49,26 @@ function renderSlateOptimizer() {
   var budget = Number(document.getElementById('slate-budget').value);
   var capText = document.getElementById('slate-max-buyin').value, reserveText = document.getElementById('slate-reserve').value;
   var maxBuyin = capText === '' ? budget : Number(capText), reserve = reserveText === '' ? 0 : Number(reserveText);
+  var travel = Number(document.getElementById('slate-travel').value || 0), hotel = Number(document.getElementById('slate-hotel').value || 0);
   var from = document.getElementById('slate-from').value || todayLocal(), to = document.getElementById('slate-to').value;
   if (!isFinite(budget) || !isFinite(maxBuyin) || !isFinite(reserve) || budget<=0 || maxBuyin<=0 || reserve<0 || reserve>=budget) {
     invalidateSlateDraft('Enter a positive budget and buy-in cap, with a reserve smaller than the budget.'); return;
   }
   if (to && to<from) { invalidateSlateDraft('The end date must be on or after the start date.'); return; }
+  if (!isFinite(travel) || !isFinite(hotel) || travel<0 || hotel<0) { invalidateSlateDraft('Travel and hotel allowances must be zero or positive.'); return; }
+  var options = {budget:budget,reserve:reserve,travel:travel,hotel:hotel,from:from,to:to,parse:parseTourneyDateRange};
+  var plan = PokerHQPlanning.budget(window.tourneys,[],options);
   var events = window.PokerHQStats.filterByVenue(window.tourneys || [], location === '*' ? '' : location).map(function(t) {
     return Object.assign({},t,{status:typeof gradeBuyin==='function' ? gradeBuyin(t.buyin) : t.status});
   });
   var result = window.PokerHQSlate.optimize(events,{budget:budget,maxBuyin:maxBuyin,reserve:reserve,from:from,to:to,dateRange:parseTourneyDateRange});
   if (!result.candidates.length) { invalidateSlateDraft('No events fit this location and these limits. Try the next 30 days, a wider date range, or another location.'); return; }
-  var suggested = result.candidates.map(function(c) { return result.selected.indexOf(c)!==-1; });
-  _slateDraft = {result:result,chosen:suggested.slice(),suggested:suggested,shortlist:suggested.slice(),view:'shortlist',page:0,search:'',message:''};
+  var freeEvents = result.candidates.filter(function(c) {
+    return !c.event.planning && !plan.pinned.some(function(t) { var r=parseTourneyDateRange(t);return r && c.date<=PokerHQSlate.normalizeDate(r.end) && c.endDate>=PokerHQSlate.normalizeDate(r.start); });
+  }).map(function(c){return c.event;});
+  var additions = PokerHQSlate.optimize(freeEvents,{budget:plan.available,maxBuyin:maxBuyin,from:from,to:to,dateRange:parseTourneyDateRange});
+  var suggested = result.candidates.map(function(c) { return !!c.event.planning || additions.selected.some(function(a){return a.event.id===c.event.id;}); });
+  _slateDraft = {result:result,options:options,chosen:suggested.slice(),suggested:suggested,shortlist:suggested.slice(),view:'shortlist',page:0,search:'',message:''};
   out.innerHTML = '<div class="slate-selection-bar"><div id="slate-summary" role="status" aria-live="polite"></div><button class="sec-action primary" id="slate-apply" onclick="applySlatePlan()">PIN SELECTED EVENTS</button></div>'+
     '<div class="slate-toolbar"><div class="slate-view-tabs" aria-label="Event lists"><button class="sec-action" id="slate-shortlist-tab" aria-pressed="true" onclick="setSlateView(\'shortlist\')">SHORTLIST</button><button class="sec-action" id="slate-browse-tab" aria-pressed="false" onclick="setSlateView(\'browse\')">BROWSE EVENTS</button></div><div class="slate-bulk-actions"><button class="sec-action" onclick="resetSlateSuggestions()">RESET SUGGESTIONS</button><button class="sec-action" onclick="clearSlateSelection()">CLEAR SELECTION</button></div></div>'+
     '<div id="slate-search-wrap" hidden><label class="form-label" for="slate-search">Find an event</label><input class="form-input" type="search" id="slate-search" placeholder="Search event or venue" oninput="searchSlateEvents(this.value)"></div>'+
@@ -147,8 +155,10 @@ function resetSlateSuggestions() {
 function selectedSlatePicks() { return _slateDraft ? _slateDraft.result.candidates.filter(function(c,i) { return _slateDraft.chosen[i]; }) : []; }
 
 function slateSelectionIssue(picks) {
+  var plan = PokerHQPlanning.budget(window.tourneys,picks.map(function(c){return c.event;}),_slateDraft.options);
+  if (plan.over) return 'The whole plan exceeds your budget, including existing stars, allowances and reserve.';
+  if (plan.unknown) return 'A pinned event has no buy-in. Add its buy-in on the calendar before pinning this slate.';
   if (!picks.length) return 'Select an event to pin.';
-  if (picks.reduce(function(n,c) { return n+c.buyin; },0)>_slateDraft.result.available) return 'Selected buy-ins exceed your budget after the reserve.';
   for (var i=0;i<picks.length;i++) for (var j=i+1;j<picks.length;j++) if (picks[i].date<=picks[j].endDate && picks[i].endDate>=picks[j].date) return 'These dates overlap. Uncheck one of the overlapping events.';
   var conflict = (window.tourneys || []).some(function(t) {
     if (!t.planning || picks.some(function(c) { return c.event.id===t.id; })) return false;
@@ -162,7 +172,8 @@ function slateSelectionIssue(picks) {
 function updateSlateSummary() {
   if (!_slateDraft) return;
   var picks = selectedSlatePicks(), spent = picks.reduce(function(n,c) { return n+c.buyin; },0), issue = slateSelectionIssue(picks);
-  document.getElementById('slate-summary').innerHTML = '<strong>'+picks.length+' selected · '+fmtCur(spent)+'</strong><span>'+fmtCur(_slateDraft.result.reserve)+' reserved · '+fmtCur(Math.max(0,_slateDraft.result.available-spent))+' unallocated</span>'+(issue || _slateDraft.message ? '<span class="'+(issue ? 'slate-issue' : 'slate-success')+'">'+esc(issue || _slateDraft.message)+'</span>' : '');
+  var plan = PokerHQPlanning.budget(window.tourneys,picks.map(function(c){return c.event;}),_slateDraft.options);
+  document.getElementById('slate-summary').innerHTML = '<strong>'+picks.length+' selected · '+fmtCur(spent)+'</strong><span>'+fmtCur(plan.reserve)+' reserved · '+fmtCur(Math.max(0,plan.remaining))+' unallocated</span><span>Whole plan: '+fmtCur(plan.total)+' of '+fmtCur(_slateDraft.options.budget)+' · '+fmtCur(plan.committed)+' already pinned'+(plan.travel || plan.hotel ? ' · '+fmtCur(plan.travel+plan.hotel)+' travel / hotel' : '')+'</span>'+(issue || _slateDraft.message ? '<span class="'+(issue ? 'slate-issue' : 'slate-success')+'">'+esc(issue || _slateDraft.message)+'</span>' : '');
   document.getElementById('slate-apply').disabled = !!issue;
 }
 

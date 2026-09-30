@@ -45,6 +45,7 @@ function inboxRowHtml(item, compact) {
     '<div class="inbox-main"><div class="inbox-title"><span class="inbox-icon" aria-hidden="true">' + kind.icon + '</span> ' + esc(item.title) + '</div>' +
     '<div class="inbox-detail">' + esc(item.detail) + '</div></div>' +
     '<div class="inbox-actions"><button class="sec-action primary" onclick="inboxReview(\'' + key + '\')">' + reviewLabel + '</button>' +
+    (item.kind === 'leak' ? '<button class="sec-action" onclick="openPracticeFromLeak(\'' + key + '\')">CREATE PRACTICE DRILL</button>' : '') +
     '<button class="sec-action" onclick="inboxResolve(\'' + key + '\')" title="Clear this from your inbox">MARK RESOLVED</button></div></div>';
 }
 
