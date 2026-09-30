@@ -15,7 +15,7 @@ import {
   FIRESTORE_KEYS,
   resolveProfileConfig,
   resolveLocalStorageKey
-} from "./config.js?v=20260930f";
+} from "./config.js?v=20260930h";
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -56,7 +56,7 @@ function windowVarFor(key) { return WINDOW_VAR[key] || key; }
 // see js/data/merge.js. Everything else is a small single value (last write wins).
 const MERGE_KEYS = [
   "sessions", "tourneys", "hands", "strategies", "news",
-  "spotlights", "walletLedger", "satellites", "opponents"
+  "spotlights", "walletLedger", "satellites", "opponents", "trips", "tripExpenses"
 ];
 
 function applyLoadedValue(key, value) {
@@ -71,6 +71,8 @@ function applyLoadedValue(key, value) {
   if (key === "wallet") window.wallet = value;
   if (key === "walletLedger") window.walletLedger = value;
   if (key === "satellites") window.satellites = value;
+  if (key === "trips") window.trips = value;
+  if (key === "tripExpenses") window.tripExpenses = value;
   if (key === "opponents") window.opponents = value;
   if (key === "satTarget") window.satTarget = value;
   if (key === "goals") window.goals = value;

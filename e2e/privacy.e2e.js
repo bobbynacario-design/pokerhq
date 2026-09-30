@@ -90,6 +90,16 @@ const LEAKS = () => {
     await settle(80);
     (await leaks()).forEach((l) => problems.push("modal " + id + " → " + l));
   }
+  // trips: a foreign-currency cost being entered (USD/TWD amounts are amounts too), and the trip form
+  await page.evaluate(() => { document.querySelectorAll(".modal-overlay.open").forEach((m) => m.classList.remove("open")); switchGroup("wallet"); openNewTripCostModal(8802); });
+  await page.selectOption("#cost-currency", "TWD");
+  await page.fill("#cost-amount", "31500");
+  await page.fill("#cost-rate", "1.82");
+  await settle(80);
+  assert.match(await page.textContent("#cost-preview"), /₱•••/, "the live preview of a foreign cost is masked");
+  (await leaks()).forEach((l) => problems.push("trip cost pop-up → " + l));
+  await page.evaluate(() => { document.querySelectorAll(".modal-overlay.open").forEach((m) => m.classList.remove("open")); openModal("modal-trip"); });
+  (await leaks()).forEach((l) => problems.push("trip pop-up → " + l));
   await page.evaluate(() => { document.querySelectorAll(".modal-overlay.open").forEach((m) => m.classList.remove("open")); switchGroup("review", "sessions"); viewSessionDetail(sessions[0].id, true); });
   await settle();
   (await leaks()).forEach((l) => problems.push("session detail → " + l));

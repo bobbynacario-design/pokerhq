@@ -18,6 +18,8 @@ export const FIRESTORE_KEYS = [
   "wallet",
   "walletLedger",
   "satellites",
+  "trips",
+  "tripExpenses",
   "satTarget",
   "opponents",
   "goals",

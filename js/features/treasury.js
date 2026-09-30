@@ -234,6 +234,7 @@ function resetWallet() {
 }
 
 function renderTreasury() {
+  if (typeof renderTrips === 'function') renderTrips();
   wallet = window.wallet || { balance: 0 };
   walletLedger = Array.isArray(window.walletLedger) ? window.walletLedger : [];
   bankroll = window.bankroll || { amount: 0, rule: 15 };

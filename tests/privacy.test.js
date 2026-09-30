@@ -173,3 +173,14 @@ test("the page is wired up: script loaded early, offline copy cached, header eye
   const css = read("styles/app.css");
   assert.match(css, /body\.privacy-on \[data-money\]/);
 });
+
+test("other currencies are amounts too: trip costs shown as USD 420, $420, TWD 31,500 are masked", () => {
+  const cases = { "USD 420": "₱•••", "$420": "₱•••", "TWD 31,500": "₱•••", "€90": "₱•••", "¥12,000": "₱•••", "₩50,000": "₱•••", "฿3,000": "₱•••", "420 USD": "₱•••", "USD 420 × 58.4 = ₱24,528": "₱••• × 58.4 = ₱•••", "USD 1,234.56": "₱•••" };
+  Object.keys(cases).forEach((input) => assert.equal(P.maskText(input), cases[input], input));
+  // a currency code on its own, or in a word, or with no number after it, is not an amount
+  ["USD", "EUR rates", "ITM 33", "USDA 5", "US 5", "Pos 12"].forEach((t) => assert.equal(P.maskText(t), t, t));
+  // every currency the trip form offers is masked
+  const T = require("../js/data/trueroi.js");
+  T.CURRENCIES.forEach((c) => assert.equal(P.maskText(c.code + " 1,500"), "₱•••", c.code));
+  assert.equal(P.hasMoney("TWD 100"), true);
+});

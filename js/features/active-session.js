@@ -45,14 +45,15 @@ function getCloudSizeWarnings(force) {
     warnings = cloudSizeWarnings({
       sessions: window.sessions, hands: window.hands, tourneys: window.tourneys,
       strategies: window.strategies, news: window.newsItems, spotlights: window.spotlights,
-      walletLedger: window.walletLedger, satellites: window.satellites, opponents: window.opponents
+      walletLedger: window.walletLedger, satellites: window.satellites, opponents: window.opponents,
+      trips: window.trips, tripExpenses: window.tripExpenses
     });
   }
   _cloudSizeCache = { at: now, warnings: warnings };
   return warnings;
 }
 
-var CLOUD_LIST_LABELS = { sessions: 'Sessions', hands: 'Hands', tourneys: 'Calendar events', strategies: 'Strategy notes', news: 'News', spotlights: 'Spotlights', walletLedger: 'Treasury ledger', satellites: 'Satellites', opponents: 'Opponents' };
+var CLOUD_LIST_LABELS = { sessions: 'Sessions', hands: 'Hands', tourneys: 'Calendar events', strategies: 'Strategy notes', news: 'News', spotlights: 'Spotlights', walletLedger: 'Treasury ledger', satellites: 'Satellites', opponents: 'Opponents', trips: 'Trips', tripExpenses: 'Trip costs' };
 
 function cloudSizeWarningHtml() {
   var warnings = getCloudSizeWarnings(false);

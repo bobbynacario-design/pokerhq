@@ -17,7 +17,7 @@ function readDemoBannerDismissed() {
 }
 
 var _demoSessions = [
-  {id:9001,date:'2026-03-22',name:'Okada Manila Millions - Day 1A',venue:'Okada Manila',buyin:7500,rebuy:0,total:7500,field:187,position:23,prize:0,pnl:-7500,hours:8.5,notes:'Deep run, busted AK vs QQ 3-way all-in',result:'bust',focus:8,energy:7,sleep:7,fasting:'no'},
+  {id:9001,tripId:8801,seatViaSatellite:true,date:'2026-03-22',name:'Okada Manila Millions - Day 1A',venue:'Okada Manila',buyin:7500,rebuy:0,total:7500,field:187,position:23,prize:0,pnl:-7500,hours:8.5,notes:'Deep run, busted AK vs QQ 3-way all-in',result:'bust',focus:8,energy:7,sleep:7,fasting:'no'},
   {id:9002,date:'2026-03-15',name:'Metro Sunday Main',venue:'Metro Card Club',buyin:3300,rebuy:3300,total:6600,field:214,position:4,prize:28000,pnl:21400,hours:11,notes:'Final table! Lost AJ vs K9 runner runner',result:'final',focus:9,energy:8,sleep:8,fasting:'yes'},
   {id:9003,date:'2026-03-08',name:'Solaire Weekly Special',venue:'Solaire Resort',buyin:5500,rebuy:0,total:5500,field:98,position:67,prize:0,pnl:-5500,hours:3,notes:'Card dead all day',result:'bust',focus:5,energy:4,sleep:4,fasting:'no'},
   {id:9004,date:'2026-03-01',name:'Metro Sunday Main',venue:'Metro Card Club',buyin:3300,rebuy:0,total:3300,field:198,position:18,prize:8500,pnl:5200,hours:9,notes:'ITM, busted 99 vs AA',result:'itm',focus:8,energy:9,sleep:9,fasting:'yes'},
@@ -61,11 +61,26 @@ var _demoHands = [
   ,{id:7008,sessionId:9002,session:'Metro Sunday Main — 2026-03-15',title:'Review later',desc:'',lesson:'',result:'',tags:['later','read'],needsDetails:true,marker:{kind:'later',at:1773587100000,elapsedMs:6932000,stack:'22bb'}}
 ];
 
+var _demoTrips = [
+  {id:8801,name:'Okada Manila Millions',start:'2026-03-20',end:'2026-03-24',notes:'Series week, stayed at the venue hotel',rates:{}},
+  {id:8802,name:'APT Taipei 2026',start:'2026-04-20',end:'2026-04-30',notes:'Planned: costs booked, no sessions yet',rates:{USD:58.4,TWD:1.82}}
+];
+
+var _demoTripExpenses = [
+  {id:8811,tripId:8801,date:'2026-03-20',category:'hotel',description:'4 nights at the Okada hotel',amount:16800,currency:'PHP'},
+  {id:8812,tripId:8801,date:'2026-03-22',category:'food',description:'Meals during Day 1A',amount:2400,currency:'PHP'},
+  {id:8813,tripId:8801,date:'2026-03-21',category:'transport',description:'Grab to and from the venue',amount:1900,currency:'PHP'},
+  {id:8814,tripId:8801,date:'2026-03-22',category:'tips',description:'Dealer and floor tips',amount:1500,currency:'PHP'},
+  {id:8821,tripId:8802,date:'2026-02-10',category:'flight',description:'MNL to TPE return',amount:412,currency:'USD',rate:58.4},
+  {id:8822,tripId:8802,date:'2026-02-12',category:'hotel',description:'9 nights near the venue',amount:31500,currency:'TWD',rate:1.82},
+  {id:8823,tripId:8802,date:'2026-02-12',category:'visa',description:'Travel authorisation',amount:1200,currency:'PHP'}
+];
+
 var _demoSatellites = [
-  {id:6001,date:'2026-03-20',name:'Okada Daily Satellite',venue:'Okada Manila',buyin:1100,result:'lost',forEvent:'Okada Manila Millions Main Event',notes:'Busted KK vs AA 3 seats given'},
-  {id:6002,date:'2026-03-14',name:'Okada Daily Satellite',venue:'Okada Manila',buyin:1100,result:'won',forEvent:'Okada Manila Millions Main Event',notes:'Won seat! Saved ₱6,400 vs direct buy-in'},
+  {id:6001,tripId:8801,date:'2026-03-20',name:'Okada Daily Satellite',venue:'Okada Manila',buyin:1100,result:'lost',forEvent:'Okada Manila Millions Main Event',notes:'Busted KK vs AA 3 seats given'},
+  {id:6002,tripId:8801,date:'2026-03-14',name:'Okada Daily Satellite',venue:'Okada Manila',buyin:1100,result:'won',forEvent:'Okada Manila Millions Main Event',notes:'Won seat! Saved ₱6,400 vs direct buy-in'},
   {id:6003,date:'2026-03-07',name:'Metro Satellite to Sunday Main',venue:'Metro Card Club',buyin:550,result:'won',forEvent:'Metro Sunday Main Event',notes:'Fastest satellite win — 90 mins'},
-  {id:6004,date:'2026-02-28',name:'Okada Daily Satellite',venue:'Okada Manila',buyin:1100,result:'lost',forEvent:'Okada Manila Millions Main Event',notes:'AK < 77 preflop flip'}
+  {id:6004,tripId:8801,date:'2026-02-28',name:'Okada Daily Satellite',venue:'Okada Manila',buyin:1100,result:'lost',forEvent:'Okada Manila Millions Main Event',notes:'AK < 77 preflop flip'}
 ];
 
 var _demoOpponents = [
@@ -107,6 +122,8 @@ function loadDemoMode() {
   window.bankroll   = Object.assign({}, _demoBankroll);
   window.wallet     = Object.assign({}, _demoWallet);
   window.walletLedger = _demoWalletLedger.slice();
+  window.trips = _demoTrips.slice();
+  window.tripExpenses = _demoTripExpenses.slice();
   sessions   = window.sessions;
   tourneys   = window.tourneys;
   hands      = window.hands;
@@ -114,6 +131,8 @@ function loadDemoMode() {
   bankroll   = window.bankroll;
   wallet     = window.wallet;
   walletLedger = window.walletLedger;
+  trips = window.trips;
+  tripExpenses = window.tripExpenses;
   satellites = window.satellites;
   opponents  = window.opponents;
   satTarget  = Object.assign({}, _demoSatTarget);
@@ -150,6 +169,8 @@ function clearDemoMode() {
   window.bankroll   = load('bankroll', {amount:0, rule:15});
   window.wallet     = load('wallet', {balance:0});
   window.walletLedger = load('walletLedger', []);
+  window.trips = load('trips', []);
+  window.tripExpenses = load('tripExpenses', []);
   sessions   = window.sessions;
   tourneys   = window.tourneys;
   hands      = window.hands;
@@ -157,6 +178,8 @@ function clearDemoMode() {
   bankroll   = window.bankroll;
   wallet     = window.wallet;
   walletLedger = window.walletLedger;
+  trips = window.trips;
+  tripExpenses = window.tripExpenses;
   satellites = window.satellites;
   opponents  = window.opponents;
   satTarget  = load('satTarget', {name:'',buyin:0});
