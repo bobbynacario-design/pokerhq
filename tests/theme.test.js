@@ -140,3 +140,22 @@ test("calendar bars: dark-theme text is the main text colour, and the light them
     assert.match(rules, /background:rgba/, cls + " keeps its light-theme fill");
   }
 });
+
+test("calendar bars are set in the sans font at a weight that is really loaded, and a long name never widens a column", () => {
+  const rule = css.match(/\n\.cal-event-bar\{([^}]*)\}/);
+  assert.ok(rule, "found the .cal-event-bar rule");
+  const props = rule[1];
+  // DM Mono is only loaded at 400/500 and DM Sans at 300/400/500: anything heavier is a browser-faked bold that smudges at small sizes.
+  assert.match(props, /font-family:var\(--sans\)/, "bar text uses the sans font, not 10px monospace");
+  const weight = Number((props.match(/font-weight:(\d+)/) || [])[1]);
+  assert.ok(weight >= 400 && weight <= 500, "bar font-weight " + weight + " must be a loaded weight (400-500)");
+  const size = parseFloat((props.match(/font-size:([\d.]+)px/) || [])[1]);
+  assert.ok(size >= 12, "bar text is at least 12px on desktop (was 10px), got " + size);
+  const fonts = read("index.html").match(/fonts\.googleapis\.com\/css2\?[^"]*/)[0];
+  assert.match(fonts, /DM\+Sans:wght@[\d;]*500/, "DM Sans 500 is loaded");
+  // equal columns whatever the names inside are
+  assert.match(css, /\.cal-days\{[^}]*repeat\(7,minmax\(0,1fr\)\)/, "the calendar grid uses minmax(0,1fr) columns");
+  // the name is cut by CSS to the real width of the cell, not by a fixed character count
+  const cal = read("js/features/calendar.js");
+  assert.doesNotMatch(cal, /r\.t\.name\.substring\(0, *\d+\)/, "month bars must not hard-cut the name to a fixed length");
+});

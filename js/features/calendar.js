@@ -986,10 +986,12 @@ function renderCalendarMonth() {
       // Label every segment (not just the start) so a multi-day event's
       // continuation days aren't unreadable empty slivers. A leading "↳" marks
       // the continued days.
-      var label = r.t.name.substring(0, 14) + (r.t.name.length > 14 ? '…' : '');
+      // The whole name goes in; the bar's CSS ellipsis cuts it to whatever width the
+      // cell really has (a fixed 14-character cut wasted most of a wide desktop cell).
+      var label = r.t.name;
       var name = (isStart || isSolo) ? label : '↳ ' + label;
-      // Tooltip carries the at-a-glance details (the month bar itself only fits a
-      // truncated name): name · venue · buy-in · structure.
+      // Tooltip carries the at-a-glance details (the month bar can be too narrow to
+      // show the whole name): name · venue · buy-in · structure.
       var tipBits = [r.t.name];
       if (r.t.venue) tipBits.push(r.t.venue);
       if (r.t.buyin) tipBits.push('₱' + Number(r.t.buyin).toLocaleString());

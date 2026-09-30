@@ -115,6 +115,8 @@ test("a server-built backup passes the app's REAL validateBackupPayload", () => 
     console, alert() {}, confirm: () => false, Blob: function() {}, URL: {}, todayLocal: () => "2026-09-29",
   };
   vm.createContext(sandbox);
+  // library.js hands the actual checking to js/data/backup-format.js
+  vm.runInContext(fs.readFileSync(require.resolve("../js/data/backup-format.js"), "utf8"), sandbox);
   vm.runInContext(src, sandbox);
   const data = b.buildBackupData({
     sessions: doc([{id: 1, pnl: 500}]),

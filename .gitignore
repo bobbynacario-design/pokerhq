@@ -10,3 +10,6 @@ functions/node_modules/
 functions/.env
 functions/.env.*
 functions/firebase-debug.log
+
+node_modules/
+e2e-output/

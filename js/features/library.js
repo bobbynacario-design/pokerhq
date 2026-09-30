@@ -398,7 +398,7 @@ function getBackupSnapshot() {
   return {
     app: 'PokerHQ',
     format: 'backup',
-    version: 1,
+    version: window.PokerHQBackup ? window.PokerHQBackup.CURRENT_VERSION : 1,
     exportedAt: new Date().toISOString(),
     profile: profile ? {
       id: profile.id || '',
@@ -520,59 +520,12 @@ function openBackupRestorePicker() {
   input.click();
 }
 
+// The rules (version check, upgrades, damaged-record clean-up) live in
+// js/data/backup-format.js so they can be unit tested. Returns
+// {ok, message} or {ok, data, notes, exportedAt, version, ...}.
 function validateBackupPayload(parsed) {
-  var source = isPlainBackupObject(parsed) && isPlainBackupObject(parsed.data) ? parsed.data : parsed;
-  if (!isPlainBackupObject(source)) {
-    return { ok: false, message: 'That file is not a valid PokerHQ backup object.' };
-  }
-
-  var arrayKeys = ['sessions', 'hands', 'tourneys', 'strategies', 'news', 'spotlights', 'satellites', 'opponents'];
-  for (var i = 0; i < arrayKeys.length; i++) {
-    var key = arrayKeys[i];
-    if (!Array.isArray(source[key])) {
-      return { ok: false, message: 'Backup is missing a valid "' + key + '" array.' };
-    }
-  }
-
-  if (!isPlainBackupObject(source.bankroll)) {
-    return { ok: false, message: 'Backup is missing a valid bankroll object.' };
-  }
-  if (!isPlainBackupObject(source.satTarget)) {
-    return { ok: false, message: 'Backup is missing a valid satellite target object.' };
-  }
-  if (!(source.timer === null || typeof source.timer === 'undefined' || isPlainBackupObject(source.timer))) {
-    return { ok: false, message: 'Backup timer data is invalid.' };
-  }
-  // goals/reminderSettings were added to the backup format after v1 — tolerate
-  // older backups that don't have them, but reject the key if it's present
-  // and malformed.
-  if (typeof source.goals !== 'undefined' && !isPlainBackupObject(source.goals)) {
-    return { ok: false, message: 'Backup goals data is invalid.' };
-  }
-  if (typeof source.reminderSettings !== 'undefined' && !isPlainBackupObject(source.reminderSettings)) {
-    return { ok: false, message: 'Backup reminder settings are invalid.' };
-  }
-
-  return {
-    ok: true,
-    data: {
-      sessions: cloneBackupValue(source.sessions, []),
-      hands: cloneBackupValue(source.hands, []),
-      tourneys: cloneBackupValue(source.tourneys, []),
-      strategies: cloneBackupValue(source.strategies, []),
-      news: cloneBackupValue(source.news, []),
-      spotlights: cloneBackupValue(source.spotlights, []),
-      bankroll: cloneBackupValue(source.bankroll, { amount: 0, rule: 15 }),
-      wallet: isPlainBackupObject(source.wallet) ? cloneBackupValue(source.wallet, { balance: 0 }) : { balance: 0 },
-      walletLedger: Array.isArray(source.walletLedger) ? cloneBackupValue(source.walletLedger, []) : [],
-      satellites: cloneBackupValue(source.satellites, []),
-      satTarget: cloneBackupValue(source.satTarget, { name: '', buyin: 0 }),
-      opponents: cloneBackupValue(source.opponents, []),
-      goals: isPlainBackupObject(source.goals) ? cloneBackupValue(source.goals, {}) : {},
-      reminderSettings: isPlainBackupObject(source.reminderSettings) ? cloneBackupValue(source.reminderSettings, {}) : {},
-      timer: typeof source.timer === 'undefined' ? null : cloneBackupValue(source.timer, null)
-    }
-  };
+  if (!window.PokerHQBackup) return { ok: false, message: 'Backup support did not load. Reload PokerHQ and try again.' };
+  return window.PokerHQBackup.parse(parsed);
 }
 
 function applyBackupRestore(data) {
@@ -677,7 +630,10 @@ function handleBackupRestoreFile(event) {
         return;
       }
       var summary = checked.data.sessions.length + ' sessions, ' + checked.data.hands.length + ' hands, ' + checked.data.tourneys.length + ' tournaments';
-      var confirmed = confirm('Restore this PokerHQ backup and overwrite the current saved data for this profile?\n\n' + summary + '\n\nA copy of your current data is kept first, so you can undo this right after.');
+      var made = checked.exportedAt ? new Date(checked.exportedAt) : null;
+      var madeText = made && !isNaN(made.getTime()) ? '\nBacked up: ' + made.toLocaleString() : '';
+      var noteText = checked.notes && checked.notes.length ? '\n\n' + checked.notes.join('\n') : '';
+      var confirmed = confirm('Restore this PokerHQ backup and overwrite the current saved data for this profile?\n\n' + summary + madeText + noteText + '\n\nA copy of your current data is kept first, so you can undo this right after.');
       if (!confirmed) return;
       var before = getBackupSnapshot();
       if (!savePreRestoreSnapshot(before)) {

@@ -12,12 +12,13 @@ Live app: <https://bobbynacario-design.github.io/pokerhq/> (the repo root, serve
 | --- | --- |
 | `index.html` | App shell and page markup; also holds the core session/dashboard code |
 | `js/app.js`, `js/data/sync.js` | Entry module: Firebase sign-in and record-level sync |
-| `js/data/*.js` | Pure helpers: `util` (dates, session result, bankroll), `merge` (sync engine), `pushfold`, `icm`, `stats` |
+| `js/data/*.js` | Pure helpers: `util` (dates, session result, bankroll), `merge` (sync engine), `backup-format` (backup file version + checks), `pushfold`, `icm`, `stats` |
 | `js/features/*.js` | One file per feature (calendar, hands, treasury, calculator, review, …) |
 | `styles/app.css` | All styles |
 | `sw.js` | Service worker (offline shell); bump `CACHE_NAME` when the precache list changes |
 | `functions/` | Cloud Functions: event reminder email, Anthropic + OpenAI proxies, phone notifications, weekly backup |
-| `tests/` | Node tests (see below) |
+| `tests/` | Node tests for the logic (see below) |
+| `e2e/` | Browser tests: the real app driven in Chromium (see below) |
 | `deploy/firestore.rules` | Reference copy only — rules are deployed from the sonicvault repo |
 
 ## Run locally
@@ -35,7 +36,8 @@ node --test "tests/*.test.js"
 node scripts/check-ai-request-compat.js
 ```
 
-Both run in CI on every push and pull request (`.github/workflows/test.yml`).
+Both run in CI on every push and pull request (`.github/workflows/test.yml`), together with the
+browser tests below.
 
 - `tests/util.test.js` — local date, session result, bankroll bookkeeping
 - `tests/pushfold.test.js` — push/fold ranges and notation (`js/data/pushfold.js`)
@@ -48,8 +50,37 @@ Both run in CI on every push and pull request (`.github/workflows/test.yml`).
 - `tests/openai-proxy.test.js` — the OpenAI proxy's allowlists (`functions/openai-proxy.js`), checked against the app's real requests
 - `tests/ai-proxy-client.test.js` — client fallback: local key → direct, otherwise the proxy (`js/data/ai-proxy.js`)
 - `tests/drills.test.js` — the Daily Drill library and picker: unique ids, context steering, no repeats, streaks, saved state (`js/data/drills.js`)
+- `tests/backup-format.test.js` — backup file versions: newer files refused with a clear message, older ones upgraded step by step, damaged records dropped and reported (`js/data/backup-format.js`)
 - `tests/theme.test.js` — light-theme readability guard: fails on hard-coded white text or a text colour with no light-mode value
 - `tests/events.test.js`, `tests/push.test.js`, `tests/sw-push.test.js` — event dates/times, notification selection and messages, and the service worker's push handlers
+
+### Browser tests
+
+`e2e/` drives the real app in Chromium (Playwright) with the Firebase pieces swapped for the
+in-memory fakes in `tests/fakes/`, so nothing touches live data:
+
+```
+npm ci
+npx playwright install chromium   # once
+npm run test:e2e                  # all suites, a few at a time
+node e2e/run.js signin            # only suites whose file name contains "signin"
+```
+
+Suites: `smoke` (boot, calculator, sessions, bankroll check, restore + undo), `signin` (the gate; the
+Google button is on the first screen at ten window sizes), `active-session` (start, timer, check-in,
+bullets, capture a hand and a villain, log the result), `save-reload` (nothing vanishes on reload or on
+a new device), `backup-restore` (newer / foreign / damaged files), `light-contrast` (every page passes
+4.5:1 text contrast in light mode, desktop and phone), `calendar-bars` (readable full-name event bars, seven equal
+columns at desktop / laptop / phone widths), plus one per feature (`bounty`, `daily-drill`,
+`format`, `icm`, `modals`, `month`, `openai`, `push`, `size-guard`, `stats`, `venue`). Screenshots go to
+`E2E_OUT` (default: a temp folder); CI keeps them when a run fails. Add a suite by dropping a
+`something.e2e.js` in `e2e/` that uses `boot()` from `e2e/lib.js`.
+
+### Changing the backup file format
+
+Bump `CURRENT_VERSION` in `js/data/backup-format.js`, add the step that upgrades the old shape to
+`MIGRATIONS`, and change the weekly server backup (`functions/backup.js`) to write the same number. A
+unit test fails if the two disagree. Older files keep restoring; files from a newer PokerHQ are refused.
 
 `scripts/gen-hand-ranking.js` regenerates the 169-hand ordering embedded in `js/data/pushfold.js`
 (seeded Monte Carlo; it self-checks against known equities).
