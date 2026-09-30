@@ -3,7 +3,7 @@ function getStudyLoopStatus() {
   weekStart.setDate(now.getDate() - now.getDay());
   weekStart.setHours(0, 0, 0, 0);
   var thisWeekSessions = sessions.filter(function(s) { return new Date(s.date) >= weekStart; });
-  var thisWeekHands = hands.filter(function(h) { return thisWeekSessions.some(function(s) { return s.id === h.sessionId; }); });
+  var thisWeekHands = hands.filter(function(h) { return !h.needsDetails && thisWeekSessions.some(function(s) { return s.id === h.sessionId; }); });   // an unfinished marker is not a reviewed hand
   var thisWeekNotes = strategies.filter(function(s) { return new Date(s.id) >= weekStart.getTime(); });
   var thisWeekBriefing = newsItems.filter(function(n) { return new Date(n.id) >= weekStart.getTime(); });
   return {

@@ -148,7 +148,8 @@ function buildAiDebriefPrompt(session, linkedHands, localReport) {
       title: hand.title || '',
       result: hand.result || '',
       desc: hand.desc || '',
-      lesson: hand.lesson || ''
+      lesson: hand.lesson || '',
+      tags: hand.tags || []
     };
   });
   return 'You are enhancing a poker session review. Improve the existing local debrief, but stay concrete, concise, and practical. Session: ' + JSON.stringify({
@@ -275,10 +276,12 @@ function viewSessionDetail(sid, fromLog) {
     html += '<div style="font-size:12px;color:var(--wa-25);font-style:italic;margin-bottom:.75rem">No hands logged for this session yet.</div>';
   } else {
     linkedHands.forEach(function(h) {
-      var rc = {won:'var(--mint)',lost:'var(--rose)',fold:'var(--wa-30)'}[h.result] || 'var(--wa-30)';
-      var rl = {won:'WON',lost:'LOST',fold:'FOLD'}[h.result] || 'FOLD';
+      var handMeta = getHandResultMeta(h.result);
+      var rc = handMeta.color;
+      var rl = handMeta.label;
       html += '<div style="background:var(--bg3);border-radius:8px;padding:.75rem;margin-bottom:.5rem">';
       html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.35rem"><span style="font-size:13px;font-weight:500;color:var(--ink)">'+esc(h.title)+'</span><div style="display:flex;align-items:center;gap:.45rem;flex-wrap:wrap"><button class="sec-action" style="padding:.25rem .6rem;font-size:10px" onclick="closeModal(\'modal-session-detail\');openHandReplay('+h.id+')">REPLAY</button><span style="font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:20px;background:var(--chip-bg);color:'+rc+'">'+rl+'</span></div></div>';
+      html += handTagChipsHtml(h) + handMarkerMetaHtml(h);
       if (h.desc) html += '<div style="font-size:12px;color:var(--wa-45);line-height:1.6;margin-bottom:.35rem">'+esc(h.desc)+'</div>';
       if (h.lesson) html += '<div style="font-size:11px;color:var(--gold);font-family:var(--mono)">💡 '+esc(h.lesson)+'</div>';
       html += '</div>';

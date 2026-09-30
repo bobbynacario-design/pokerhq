@@ -128,6 +128,15 @@ async function audit(viewport) {
   for (const [label, prep] of PAGES) await scan(label, prep);
   for (const id of MODALS) await scan("modal:" + id, (i) => { document.querySelectorAll(".modal-overlay.open").forEach((m) => m.classList.remove("open")); openModal(i); }, id);
   await scan("modal:session-detail", () => { document.querySelectorAll(".modal-overlay.open").forEach((m) => m.classList.remove("open")); switchGroup("review", "sessions"); viewSessionDetail(sessions[0].id, true); });
+  // live hand markers: the running-session card with its big buttons, Hand History with tag chips and the
+  // "needs details" filter on, and the finish form with its marker note (the demo data has two marked hands)
+  await scan("play/active-session+markers", () => {
+    ensureActiveSessionDraft({ date: todayLocal(), name: "Contrast check", venue: "Okada Manila" });
+    [["bigpot", 61], ["icm", 62], ["unsure", 63]].forEach(([kind, id]) => { hands.unshift(PokerHQMarkers.buildMarker({ kind, now: id, elapsedMs: 754000, stack: "24", level: "L12", sessionLabel: "Contrast check", pendingSessionKey: _activeSessionDraft.key, existingIds: [] })); });
+    switchGroup("play", "sessions"); renderActiveSessionSurface();
+  });
+  await scan("review/hands+markers", () => { switchGroup("review", "hands"); setHandTagFilter("unfinished"); });
+  await scan("modal:hand (marker)", () => { document.querySelectorAll(".modal-overlay.open").forEach((m) => m.classList.remove("open")); editHand(7007); });
   await scan("toast", () => { document.querySelectorAll(".modal-overlay.open").forEach((m) => m.classList.remove("open")); switchGroup("home"); showUndoToast("Removed a tournament", function () {}, 60000); const b = document.getElementById("update-banner"); if (b) b.style.display = "flex"; });
   await close();
   return problems;
