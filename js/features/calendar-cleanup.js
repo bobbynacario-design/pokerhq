@@ -35,7 +35,7 @@ function applyCalendarBatch(){
   window.tourneys=tourneys=plan.events;
   if(draftLink)persistActiveSessionDraft();
   save('tourneys',tourneys);if(links.length)save('sessions',sessions);
-  invalidateSlateDraft();renderCalendar();refreshDashboard();openCalendarCleanup();
+  invalidateSlateDraft();renderCalendar();refreshDashboard();closeModal('modal-calendar-cleanup');_cleanupBatch=null;
   showUndoToast('Removed '+plan.removed+' duplicate entr'+(plan.removed===1?'y':'ies'),function(){
     var safe=plan.groups.every(function(g){var current=tourneys.find(function(t){return t.id===g.merged.id;});return current&&JSON.stringify(current)===mergedState.get(g.merged.id)&&g.originals.every(function(t){return t.id===g.merged.id||!tourneys.some(function(x){return x.id===t.id;});});});
     if(!safe){alert('A cleaned-up event changed. Undo is unavailable so those edits stay safe.');return;}
