@@ -131,6 +131,8 @@ async function audit(viewport) {
   await scan('slate whole-plan budget', () => { switchGroup('plan','calendar');renderSlateLocationFilter();document.getElementById('slate-location').value='okada';document.getElementById('slate-budget').value=18500;document.getElementById('slate-limits').open=true;renderSlateOptimizer(); });
   await scan('personal planning and pick explanations', () => { document.getElementById('slate-personalize').open=true;document.querySelectorAll('.slate-why').forEach(function(el){el.open=true;}); });
   await scan('calendar merge preview', () => { var a=tourneys[0];tourneys.push(Object.assign({},a,{id:9999,name:a.name+' ',planning:true,notes:'Extra source detail'}));openCalendarCleanup();previewCalendarMerge(a.id,9999); });
+  await scan('calendar batch actions and group preview', () => { openCalendarCleanup();document.querySelector('#cleanup-body .cleanup-pairs').open=true; });
+  await scan('calendar batch confirmation', () => { previewCalendarBatch();document.querySelector('#cleanup-body .cleanup-pairs').open=true; });
   await scan('practice drill and progress', () => { closeModal('modal-calendar-cleanup');openPracticeFromHand(hands[0].id);savePracticeDraft(); });
   await scan('blind clock and BB', () => { replaceActiveSessionDraft({date:todayLocal(),name:'Live controls'});setLiveClockField('bigBlind',400);setLiveClockField('chips',20000);switchGroup('play','sessions');renderActiveSessionSurface(); });
   await scan('re-entry guard and budget review', () => { replaceActiveSessionDraft({date:todayLocal(),name:'Guard controls',buyin:3000,reentryGuard:{cap:4000,protect:1500}});switchGroup('play','sessions');updateBulletCount(1);document.querySelector('#play-active-session-wrap .reentry-settings').open=true; });

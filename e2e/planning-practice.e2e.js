@@ -30,6 +30,7 @@ const assert=require('node:assert/strict');const {boot,out}=require('./lib.js');
       ];syncGlobalAliases();renderCalendar();});
       await page.getByRole('button',{name:'REVIEW DUPLICATES',exact:true}).click();
       assert.match(await page.locator('#cleanup-body').innerText(),/1 likely duplicate pair/);
+      await page.locator('.cleanup-pairs > summary').click();
       await page.getByRole('button',{name:'PREVIEW MERGE',exact:true}).click();
       await page.selectOption('#cleanup-keep','11');
       assert.match(await page.locator('#cleanup-body').innerText(),/First source\nSecond source/);

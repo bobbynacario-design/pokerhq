@@ -35,6 +35,25 @@
     if(keep.url&&other.url&&keep.url!==other.url)result.notes=(result.notes?result.notes+'\n':'')+'Additional source: '+other.url;
     return result;
   }
-  var api={budget:budget,commitments:commitments,duplicates:duplicates,likelyDuplicate:likelyDuplicate,merge:merge};
+  function cleanup(events,parse,preferredIds){
+    events=events||[];preferredIds=preferredIds||[];
+    var counts=new Map(),groups=[];
+    events.forEach(function(t){if(t&&t.id!=null)counts.set(t.id,(counts.get(t.id)||0)+1);});
+    function priority(t){var i=preferredIds.indexOf(t.id);return i<0?preferredIds.length:i;}
+    events.filter(function(t){return t&&t.id!=null&&counts.get(t.id)===1;}).slice().sort(function(a,b){
+      return priority(a)-priority(b)||Number(!!b.planning)-Number(!!a.planning);
+    }).forEach(function(t){
+      // Similarity is not transitive. A missing start time must not bridge
+      // two distinct flights, and a wording variant must match every copy.
+      var group=groups.find(function(g){return likelyDuplicate(g.merged,t,parse)&&g.originals.every(function(x){return likelyDuplicate(x,t,parse);});});
+      if(group){group.originals.push(t);group.merged=merge(group.merged,t);}
+      else groups.push({originals:[t],merged:Object.assign({},t)});
+    });
+    groups=groups.filter(function(g){return g.originals.length>1;});
+    var removed=new Set(),kept=new Map(),remap=[];
+    groups.forEach(function(g){kept.set(g.merged.id,g.merged);g.originals.forEach(function(t){if(t.id!==g.merged.id){removed.add(t.id);remap.push({from:t.id,to:g.merged.id});}});});
+    return {groups:groups,removed:removed.size,remap:remap,events:events.filter(function(t){return !t||!removed.has(t.id);}).map(function(t){return t&&kept.has(t.id)?kept.get(t.id):t;})};
+  }
+  var api={budget:budget,commitments:commitments,duplicates:duplicates,likelyDuplicate:likelyDuplicate,merge:merge,cleanup:cleanup};
   if(typeof module!=='undefined')module.exports=api;if(root)root.PokerHQPlanning=api;
 })(typeof window!=='undefined'?window:null);

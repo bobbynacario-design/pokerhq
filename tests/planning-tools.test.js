@@ -22,6 +22,41 @@ test('merge retains chosen id, pin, complementary metadata, both notes and sourc
   assert.equal(r.id,1);assert.equal(r.planning,true);assert.equal(r.time,'12:00');assert.match(r.notes,/First\nSecond/);assert.match(r.notes,/https:\/\/two/);
   assert.match(P.merge({...a,gtd:'1M'},{id:2,gtd:'2M'}).notes,/Other entry — gtd: 2M/);
 });
+test('batch cleanup removes extra copies once, retains pins and details and does not mutate input',()=>{
+  const events=[{...a,planning:false,notes:'First',source:'One',url:'https://one'},
+    {...a,id:2,notes:'Pinned note',source:'Two',time:'12:00',gtd:'1M'},
+    {...a,id:3,planning:false,notes:'Third',url:'https://three'},
+    {...a,id:4,date:'2026-10-11'}];
+  const before=JSON.stringify(events),r=P.cleanup(events);
+  assert.equal(P.duplicates(events).length,3);assert.equal(r.removed,2);assert.equal(r.groups.length,1);
+  assert.deepEqual(r.events.map(t=>t.id),[2,4]);assert.equal(r.events[0].planning,true);
+  for(const note of ['First','Pinned note','Third','https://three'])assert.ok(r.events[0].notes.includes(note),note);
+  assert.equal(r.events[0].url,'https://one');
+  assert.equal(r.events[0].time,'12:00');assert.equal(r.events[0].gtd,'1M');assert.match(r.events[0].source,/One/);
+  assert.deepEqual(r.remap,[{from:1,to:2},{from:3,to:2}]);assert.equal(JSON.stringify(events),before);
+  assert.equal(P.cleanup(r.events).removed,0);
+});
+test('batch keeps linked entries first and preserves separate dates, venues, prices and flights',()=>{
+  const events=[a,{...a,id:2,planning:false},{...a,id:3,date:'2026-10-11'},
+    {...a,id:4,buyin:6000},{...a,id:5,venue:'Metro Card Club'},
+    {...a,id:6,name:'Main Event Flight A'},{...a,id:7,name:'Main Event Flight B'}];
+  const r=P.cleanup(events,null,[2]);assert.equal(r.removed,1);assert.equal(r.groups[0].merged.id,2);
+  assert.equal(r.groups[0].merged.planning,true);assert.deepEqual(r.events.map(t=>t.id),[2,3,4,5,6,7]);
+});
+test('batch never bridges incompatible start times or non-transitive name matches',()=>{
+  const r=P.cleanup([a,{...a,id:2,time:'12:00'},{...a,id:3,time:'18:00'}]);
+  assert.equal(r.removed,1);assert.deepEqual(r.events.map(t=>t.time),['12:00','18:00']);
+  const names=['Main Event Poker Classic','Main Event Poker Special','Main Event Poker Special Night'];
+  const events=names.map((name,i)=>({...a,id:i+1,name}));
+  assert.equal(P.duplicates(events).length,2);assert.equal(P.cleanup(events).events.length,2);
+});
+test('batch handles many identical copies and leaves ambiguous or missing ids intact',()=>{
+  const copies=Array.from({length:40},(_,i)=>({...a,id:i+1}));
+  const r=P.cleanup(copies);assert.equal(r.removed,39);assert.equal(r.groups[0].originals.length,40);
+  assert.equal(P.cleanup([]).removed,0);
+  const ambiguous=[a,{...a,notes:'Same id'},{...a,id:null},{...a,id:2}];
+  assert.equal(P.cleanup(ambiguous).removed,0);
+});
 test('level clock counts wall time, pauses without drift, keeps BB and break due across a reload',()=>{
   const c={running:true,startedAt:1000,remaining:60000,played:0,bigBlind:400,chips:20000,nextBreak:60000};
   assert.deepEqual(C.snapshot(c,62000),{remaining:0,played:61000,levelDue:true,breakDue:true,bb:50});

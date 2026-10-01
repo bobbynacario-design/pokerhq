@@ -72,8 +72,10 @@ stay in memory; leaving the demo restores cached real data, drill progress and a
   buy-in needs to be filled before applying; overruns block new pinning.
 - **Calendar cleanup → Review duplicates** finds conservative name / venue variants on the
   same dates. Different flights, formats, buy-ins and known start times stay separate.
-  Preview each pair, choose which name to keep, and merge explicitly. Stars, complementary
-  fields, notes and sources survive; Undo restores both entries.
+  **Remove all duplicates** previews the extra-copy count, then cleans up every matching
+  group in one batch. It keeps an active/session-linked or pinned entry first and combines
+  stars, complementary fields, notes and sources. Session links follow the kept entry;
+  Undo restores the whole batch for 30 seconds. Individual pair review remains available.
 - Add `?demo=1` to the app URL for a direct, sign-in-free sample-data tour: plan → capture
   a hand → review a session. **Copy demo link** shares that URL; **Tour** restarts the guide.
   Leaving demo removes the URL flag and restores real data. Demo actions remain in memory.
