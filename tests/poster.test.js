@@ -177,7 +177,7 @@ test("events already on the calendar are marked, and start unticked", () => {
   assert.equal(drafts[3].include, false);
   assert.deepEqual(drafts.map((d) => d.index), [0, 1, 2, 3]);
   const s = P.summary(drafts);
-  assert.deepEqual(s, { found: 4, chosen: 1, blocked: 1, duplicates: 2, withWarnings: 0, canAdd: true });
+  assert.deepEqual(s, { found: 4, chosen: 1, blocked: 1, duplicates: 2, updates: 0, withWarnings: 0, canAdd: true });
 });
 
 test("the summary knows when there is nothing to add, and when a ticked event is not ready", () => {
@@ -355,4 +355,82 @@ test("WIRING the Add/Edit Tournament form has a Last Day box that the calendar r
   assert.match(cal, /getElementById\('t-enddate'\)/);
   assert.match(cal, /function tourneyEndDateInputValue/);
   assert.match(cal, /ev\.endDate/, "the importer keeps a poster's last day");
+});
+
+// ---- reading the dates smartly: a calendar for weekday names, and a check against what the poster printed ----
+test("the prompt carries a 12-week calendar so weekday names become the right dates, and the multi-day rules", () => {
+  const p = P.buildPrompt("2026-10-02", "");
+  assert.match(p, /CALENDAR/);
+  assert.ok(p.includes("Sun 2026-09-27, Mon 2026-09-28, Tue 2026-09-29, Wed 2026-09-30, Thu 2026-10-01, Fri 2026-10-02, Sat 2026-10-03"), "this week, Sunday first");
+  assert.ok(p.includes("Sun 2026-12-13"), "twelve weeks ahead");
+  assert.match(p, /ONE event, not one per day/);
+  assert.match(p, /Never leave endDate empty when the poster shows the event running to a later day/);
+  assert.match(p, /printedDates/);
+  assert.equal(P.calendarText("2026-10-02", 12).split("\n").length, 12);
+  assert.ok(P.SCHEMA.properties.events.items.required.includes("printedDates"), "a required field (structured output wants every field required)");
+});
+
+test("weekday names and day ranges are read from the printed text", () => {
+  assert.deepEqual(P.weekdaysIn("Thu–Sun, Oct 1–4"), [4, 0]);
+  assert.deepEqual(P.weekdaysIn("Thursday until Sunday"), [4, 0]);
+  assert.deepEqual(P.weekdaysIn("Tues & Thurs"), [2, 4]);
+  assert.deepEqual(P.weekdaysIn("Money bounty, Saturnalia"), [], "words that only start like a weekday are not weekdays");
+  assert.equal(P.lastDayFromRange("Oct 1–4", "2026-10-01"), "2026-10-04");
+  assert.equal(P.lastDayFromRange("1-4 October", "2026-10-01"), "2026-10-04");
+  assert.equal(P.lastDayFromRange("Oct 30 – Nov 2", "2026-10-30"), "2026-11-02");
+  assert.equal(P.lastDayFromRange("Dec 30 to Jan 2", "2026-12-30"), "2027-01-02", "over New Year");
+  assert.equal(P.lastDayFromRange("Oct 1", "2026-10-01"), "");
+});
+
+const metro = (over) => raw(Object.assign({ name: "Metro 1M", venue: "Metro Card Club", date: "2026-10-01", endDate: "", printedDates: "" }, over));
+
+test("a run printed as 'Thu–Sun' or 'until Sunday' gets its last day even when Claude left it out, with a warning that shows the working", () => {
+  ["Thu–Sun", "Thursday until Sunday", "Thu Oct 1 – Sun Oct 4", "Oct 1–4"].forEach((printed) => {
+    const d = P.normalizeEvent(metro({ printedDates: printed }), ctx());
+    assert.equal(d.endDate, "2026-10-04", printed);
+    assert.equal(P.storedDate(d), "2026-10-01 to 2026-10-04");
+    const w = d.warnings.find((x) => x.field === "endDate");
+    assert.ok(w && w.text.includes(printed) && /Sunday 2026-10-04/.test(w.text), printed + ": " + JSON.stringify(d.warnings));
+    assert.equal(d.ready, true);
+  });
+});
+
+test("a last day Claude did give is kept, and nothing is worked out when the poster shows one day", () => {
+  const given = P.normalizeEvent(metro({ endDate: "2026-10-04", printedDates: "Thu–Sun, Oct 1–4" }), ctx());
+  assert.equal(given.endDate, "2026-10-04");
+  assert.deepEqual(given.warnings, []);
+  assert.equal(P.normalizeEvent(metro({ printedDates: "Thursday" }), ctx()).endDate, "", "one weekday, no 'until': a one-day event");
+  assert.equal(P.normalizeEvent(metro({ printedDates: "" }), ctx()).endDate, "");
+});
+
+test("a printed weekday that does not fit the date fixes the year when another year fits; otherwise it warns", () => {
+  const d = P.normalizeEvent(metro({ date: "2025-10-01", printedDates: "Thu Oct 1 – Sun Oct 4" }), ctx());
+  assert.deepEqual([d.date, d.endDate], ["2026-10-01", "2026-10-04"], "2026-10-01 is a Thursday; 2025-10-01 was a Wednesday");
+  assert.ok(d.warnings.some((w) => /which fits 2026-10-01 \(not 2025-10-01\), so the year was changed/.test(w.text)));
+  assert.ok(!d.warnings.some((w) => /more than a month ago/.test(w.text)));
+  const off = P.normalizeEvent(metro({ date: "2026-10-02", printedDates: "Thu Oct 1" }), ctx());
+  assert.equal(off.date, "2026-10-02", "a date that is simply a day off is not guessed at");
+  assert.ok(off.warnings.some((w) => /says "Thu Oct 1" but 2026-10-02 is a Friday/.test(w.text)));
+});
+
+test("an event already on the calendar as one day: the multi-day reading updates it instead of adding a second entry", () => {
+  const fp2 = (t) => { const m = String(t.date).match(/^(\d{4}-\d{2}-\d{2})(?: to (\d{4}-\d{2}-\d{2}))?/); return [m ? m[1] + ".." + (m[2] || m[1]) : t.date, String(t.name).toLowerCase().replace(/[^a-z0-9]+/g, ""), String(t.venue).toLowerCase().replace(/[^a-z0-9]+/g, "")].join("|"); };
+  const existing = [{ id: 31, date: "2026-10-01", name: "Metro 1M", venue: "Metro Card Club" }];
+  const [d] = P.buildDrafts([metro({ printedDates: "Thu–Sun" })], ctx({ existing, fingerprint: fp2 }));
+  assert.equal(d.duplicate, false);
+  assert.deepEqual(d.updates, { id: 31, name: "Metro 1M", date: "2026-10-01" });
+  assert.equal(d.include, true, "ticked: the poster knows more than the saved entry");
+  assert.equal(P.summary([d]).updates, 1);
+  // once it is a range on the calendar, scanning again is a plain duplicate
+  const again = P.buildDrafts([metro({ printedDates: "Thu–Sun" })], ctx({ existing: [{ id: 31, date: "2026-10-01 to 2026-10-04", name: "Metro 1M", venue: "Metro Card Club" }], fingerprint: fp2 }));
+  assert.equal(again[0].duplicate, true);
+  assert.equal(again[0].updates, null);
+  // a one-day reading of a one-day entry is a duplicate, not an update
+  const same = P.buildDrafts([metro({ printedDates: "" })], ctx({ existing, fingerprint: fp2 }));
+  assert.deepEqual([same[0].duplicate, same[0].updates], [true, null]);
+});
+
+test("an event that started before today but is still running is not called old", () => {
+  const d = P.normalizeEvent(metro({ date: "2026-08-20", endDate: "2026-10-04" }), ctx());
+  assert.ok(!d.warnings.some((w) => /more than a month ago/.test(w.text)));
 });

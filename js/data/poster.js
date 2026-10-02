@@ -48,6 +48,55 @@
     return Math.round((Date.UTC(pb[0], pb[1] - 1, pb[2]) - Date.UTC(pa[0], pa[1] - 1, pa[2])) / 86400000);
   }
 
+  function pad2(n) { return (n < 10 ? "0" : "") + n; }
+  function utcOf(date) { var p = date.split("-").map(Number); return new Date(Date.UTC(p[0], p[1] - 1, p[2])); }
+  function ymdOf(dt) { return dt.getUTCFullYear() + "-" + pad2(dt.getUTCMonth() + 1) + "-" + pad2(dt.getUTCDate()); }
+  function addDays(date, n) { var dt = utcOf(date); dt.setUTCDate(dt.getUTCDate() + n); return ymdOf(dt); }
+  function weekdayOf(date) { return utcOf(date).getUTCDay(); }   // 0 = Sunday
+  var WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  var WEEKDAY_KEYS = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
+  var MONTH_KEYS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
+
+  // The weekdays named in a piece of poster text, in order ("Thu–Sun" → [4, 0]).
+  function weekdaysIn(text) {
+    var out = [];
+    String(text || "").replace(/\b(mon(?:day)?|tue(?:s(?:day)?)?|wed(?:nesday)?|thu(?:r(?:s(?:day)?)?)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b/gi, function (m) {
+      out.push(WEEKDAY_KEYS[m.slice(0, 3).toLowerCase()]);
+      return m;
+    });
+    return out;
+  }
+
+  // The last day printed as a day range: "Oct 1–4", "1–4 Oct", "Oct 30 – Nov 2". start: the event's first day, so the
+  // year and month can be carried over. Returns YYYY-MM-DD or "".
+  function lastDayFromRange(text, start) {
+    var t = String(text || "");
+    var y = Number(start.slice(0, 4)), m0 = Number(start.slice(5, 7));
+    var mon = function (w) { return MONTH_KEYS[String(w).slice(0, 3).toLowerCase()] || 0; };
+    var pick = function (month, day) {
+      var cand = (month < m0 ? y + 1 : y) + "-" + pad2(month) + "-" + pad2(day);
+      return isDate(cand) && cand > start && daysBetween(start, cand) <= 31 ? cand : "";
+    };
+    var m = t.match(/\b([A-Za-z]{3,9})\.?\s+(\d{1,2})(?:st|nd|rd|th)?\s*(?:[-–—]|to|until|till|thru|through)\s*(?:([A-Za-z]{3,9})\.?\s+)?(\d{1,2})(?:st|nd|rd|th)?\b/i);
+    if (m && mon(m[1])) return pick(m[3] && mon(m[3]) ? mon(m[3]) : mon(m[1]), Number(m[4]));
+    m = t.match(/\b(\d{1,2})(?:st|nd|rd|th)?\s*(?:([A-Za-z]{3,9})\.?\s*)?(?:[-–—]|to|until|till|thru|through)\s*(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]{3,9})\b/i);
+    if (m && mon(m[4])) return pick(mon(m[4]), Number(m[3]));
+    return "";
+  }
+
+  // A day-by-day calendar for the prompt, so weekday names ("Thu–Sun", "until Sunday") turn into the right dates.
+  function calendarText(today, weeks) {
+    if (!isDate(today)) return "";
+    var start = addDays(today, -weekdayOf(today));   // the Sunday of this week
+    var lines = [];
+    for (var w = 0; w < (weeks || 12); w++) {
+      var days = [];
+      for (var i = 0; i < 7; i++) { var day = addDays(start, w * 7 + i); days.push(WEEKDAY_NAMES[i].slice(0, 3) + " " + day); }
+      lines.push(days.join(", "));
+    }
+    return lines.join("\n");
+  }
+
   // ── the request ──
   // The answer schema: every property required and nothing extra, which is what structured output wants.
   var SCHEMA = {
@@ -61,6 +110,7 @@
             name: { type: "string" },
             date: { type: "string" },
             endDate: { type: "string" },
+            printedDates: { type: "string" },
             time: { type: "string" },
             venue: { type: "string" },
             buyin: { type: "number" },
@@ -71,7 +121,7 @@
             notes: { type: "string" },
             uncertain: { type: "array", items: { type: "string", enum: FIELDS } }
           },
-          required: ["name", "date", "endDate", "time", "venue", "buyin", "currency", "gtd", "structure", "category", "notes", "uncertain"],
+          required: ["name", "date", "endDate", "printedDates", "time", "venue", "buyin", "currency", "gtd", "structure", "category", "notes", "uncertain"],
           additionalProperties: false
         }
       },
@@ -90,8 +140,14 @@
       "never invent an event, date, time, buy-in or guarantee. If a value is not visible, leave it empty (or 0 for buy-in) and add the field name to \"uncertain\". " +
       "Also add a field to \"uncertain\" when the poster is blurry, cropped, ambiguous or you had to guess it.\n\n" +
       "RULES:\n" +
-      "• date: one calendar date in strict YYYY-MM-DD form. For a multi-day event use its first day (Day 1A) and put its last day in endDate (else endDate is an empty string). " +
-      "When the poster gives no year, use the next occurrence on or after today (" + today + ") and add \"date\" to \"uncertain\". Never output a weekday name, \"TBD\" or a range in date.\n" +
+      "• date: one calendar date in strict YYYY-MM-DD form. Never output a weekday name, \"TBD\" or a range in date. " +
+      "When the poster gives no year, use the next occurrence on or after today (" + today + ") and add \"date\" to \"uncertain\".\n" +
+      "• A tournament that runs over several days is ONE event, not one per day: its Day 1 flights (1A, 1B, 1C…), Day 2 and Final Day, " +
+      "or a run printed as \"Oct 1–4\", \"Thu–Sun\" or \"until Sunday\". date = its first day and endDate = its last day " +
+      "(endDate is an empty string only for a one-day event). Never leave endDate empty when the poster shows the event running to a later day.\n" +
+      "• Turn weekday names into dates with the CALENDAR below: \"Thu–Sun\" starting this week is that Thursday to the Sunday after it. " +
+      "If a printed weekday and a printed date disagree, trust the date and add \"date\" to \"uncertain\".\n" +
+      "• printedDates: the event's days exactly as printed (e.g. \"Thu–Sun, Oct 1–4\", \"Day 1A Oct 1 · Final Oct 4\", \"until Sunday\"), maximum 60 characters; an empty string if no day is printed.\n" +
       "• time: 24-hour HH:MM start time (2PM is 14:00). Empty string if none is printed.\n" +
       "• buyin: a plain number in the currency printed on the poster, with no symbol or thousands separators. \"currency\" is its 3-letter code (PHP for pesos or ₱, USD for $, TWD for NT$, and so on). Use PHP if the poster shows no currency. Fees printed separately go in notes.\n" +
       "• gtd: the guarantee exactly as printed (e.g. \"₱1,000,000\", \"$50K\"), or an empty string.\n" +
@@ -100,6 +156,7 @@
       "• structure: one of " + STRUCTURES.join(", ") + ". Use Regular when nothing more specific is printed.\n" +
       "• notes: brief useful details from the poster (late registration, re-entries, rake, contact), maximum 100 characters.\n" +
       "• Ignore anything that is not a scheduled tournament (cash games, promotions, hotel offers, sponsors) and say in posterNotes, in one short sentence, what you ignored or could not read.\n" +
+      "\nCALENDAR (each line is one week, Sunday to Saturday):\n" + calendarText(today, 12) + "\n" +
       (hint ? "\nExtra context from the player: " + str(hint, 300) + "\n" : "") +
       "\nAnswer with JSON matching the schema and nothing else.";
   }
@@ -205,6 +262,51 @@
   // ── one event as an editable draft ──
   // ctx: {today, rateFor(code) → number|null}. Blocking issues stop an event being added until fixed;
   // warnings are shown but don't. `uncertain` are the fields the model was not sure of.
+  // Reads the dates back against what the poster printed (printedDates) and repairs what it safely can, saying so:
+  //  - the weekday printed does not fit the date (e.g. "Thu Oct 1" read as 2025-10-01, a Wednesday): a year in which it
+  //    does fit, close to today, is taken instead; otherwise a warning;
+  //  - the last day is missing but the poster shows a run ("Oct 1–4", "Thu–Sun", "until Sunday"): it is worked out.
+  function checkAgainstPrinted(d, c) {
+    var printed = d.printedDates;
+    if (!printed || !d.date) return;
+    var today = isDate(c.today) ? c.today : "";
+    var days = weekdaysIn(printed);
+    var shiftEnd = function (years) {
+      if (!d.endDate) return;
+      var e = (Number(d.endDate.slice(0, 4)) + years) + d.endDate.slice(4);
+      d.endDate = isDate(e) ? e : "";
+    };
+    if (days.length && days.indexOf(weekdayOf(d.date)) === -1) {
+      var fixed = "";
+      [1, -1, 2, -2].some(function (k) {
+        var cand = (Number(d.date.slice(0, 4)) + k) + d.date.slice(4);
+        if (!isDate(cand) || days.indexOf(weekdayOf(cand)) === -1) return false;
+        if (today && (daysBetween(today, cand) < -45 || daysBetween(today, cand) > 500)) return false;
+        fixed = cand;
+        return true;
+      });
+      if (fixed) {
+        var was = d.date;
+        shiftEnd(Number(fixed.slice(0, 4)) - Number(was.slice(0, 4)));
+        d.date = fixed;
+        d.autoFixes.push({ field: "date", text: "The poster says \"" + printed + "\", which fits " + fixed + " (not " + was + "), so the year was changed. Check it." });
+      } else {
+        d.autoFixes.push({ field: "date", text: "The poster says \"" + printed + "\" but " + d.date + " is a " + WEEKDAY_NAMES[weekdayOf(d.date)] + ". Check the date." });
+      }
+    }
+    if (!d.endDate || d.endDate <= d.date) {
+      var end = lastDayFromRange(printed, d.date);
+      if (!end && days.length && (days.length > 1 || /\b(until|till|thru|through)\b/i.test(printed))) {
+        var to = days[days.length - 1], from = weekdayOf(d.date);
+        if (to !== from) end = addDays(d.date, (to - from + 7) % 7);
+      }
+      if (end) {
+        d.endDate = end;
+        d.autoFixes.push({ field: "endDate", text: "Last day worked out from \"" + printed + "\": " + WEEKDAY_NAMES[weekdayOf(end)] + " " + end + ". Check it." });
+      }
+    }
+  }
+
   function normalizeEvent(raw, ctx) {
     var c = ctx || {};
     var r = raw && typeof raw === "object" ? raw : {};
@@ -223,8 +325,11 @@
       structure: STRUCTURES.indexOf(r.structure) !== -1 ? r.structure : (String(r.category) === "satellite" ? "Satellite / Qualifier" : "Regular"),
       category: CATEGORIES.indexOf(r.category) !== -1 ? r.category : "side",
       notes: str(r.notes, 160),
-      uncertain: uncertain
+      printedDates: str(r.printedDates, 80),
+      uncertain: uncertain,
+      autoFixes: []
     };
+    checkAgainstPrinted(d, c);
     // no year printed (Claude flagged the date) but the guess is already past: take the next one coming up
     if (d.date && isDate(c.today) && uncertain.indexOf("date") !== -1 && d.date < c.today) {
       var upcoming = nextOccurrence(d.date, c.today);
@@ -250,7 +355,9 @@
     if (!d.name) blocking.push({ field: "name", text: "Give it a name." });
     if (!d.date) blocking.push({ field: "date", text: "Pick the date. It wasn't clear on the poster." });
     if (d.currency !== "PHP" && d.buyin > 0 && !(num(d.rate) > 0)) blocking.push({ field: "rate", text: "Enter the exchange rate for " + d.currency + " to count the buy-in in pesos." });
-    if (d.date && isDate(today) && daysBetween(d.date, today) > 30) warnings.push({ field: "date", text: "This date is more than a month ago. Check the year." });
+    var lastDay = validEnd(d) || d.date;
+    if (lastDay && isDate(today) && daysBetween(lastDay, today) > 30) warnings.push({ field: "date", text: "This date is more than a month ago. Check the year." });
+    arr(d.autoFixes).forEach(function (w) { warnings.push(w); });
     if (d.endDate && d.date && !validEnd(d)) warnings.push({ field: "endDate", text: "The last day isn't after the first day, so this will be added as a one-day event." });
     else if (validEnd(d) && daysBetween(d.date, d.endDate) > 31) warnings.push({ field: "endDate", text: "This runs for more than a month. Check the last day." });
     if (!(d.buyin > 0)) warnings.push({ field: "buyin", text: "No buy-in was read. It will be added as free / unknown." });
@@ -258,7 +365,7 @@
     var labels = { name: "name", date: "date", endDate: "last day", time: "start time", venue: "venue", buyin: "buy-in", gtd: "guarantee", structure: "format", category: "type" };
     flagged.forEach(function (f) {
       if (f === "date" && d.date && d.movedFrom) warnings.push({ field: "date", text: "No year was printed, so Claude's date (" + d.movedFrom + ") was moved to the next one coming up. Check it." });
-      else if (f === "date" && d.date && !blocking.some(function (b) { return b.field === "date"; })) warnings.push({ field: "date", text: "Claude wasn't sure of the date (no year printed?). Check it." });
+      else if (f === "date" && d.date && !arr(d.autoFixes).some(function (w) { return w.field === "date"; }) && !blocking.some(function (b) { return b.field === "date"; })) warnings.push({ field: "date", text: "Claude wasn't sure of the date (no year printed?). Check it." });
       else if (f !== "date") warnings.push({ field: f, text: "Claude wasn't sure of the " + labels[f] + ". Check it." });
     });
     d.blocking = blocking;
@@ -287,6 +394,10 @@
       var hit = key && seen[key];
       d.duplicate = !!hit;
       d.duplicateOf = hit ? { id: hit.id, name: hit.name, date: hit.date } : null;
+      // the same event already on the calendar as one day (same first day, name and venue): this reading has its
+      // last day, so adding it updates that entry instead of making a second one
+      var oneDay = !hit && validEnd(d) ? seen[fingerprint({ date: d.date, name: d.name, venue: d.venue })] : null;
+      d.updates = oneDay && oneDay.id !== "poster" ? { id: oneDay.id, name: oneDay.name, date: oneDay.date } : null;
       // the same event twice on one poster counts once
       if (key && !hit) seen[key] = { id: "poster", name: d.name, date: d.date };
     });
@@ -339,6 +450,8 @@
     };
   }
 
+  function chosenUpdates(list) { return arr(list).filter(function (d) { return d.include && d.updates; }); }
+
   // What the button says, and whether anything can be added yet.
   function summary(drafts) {
     var list = arr(drafts);
@@ -348,6 +461,7 @@
       chosen: chosen.length,
       blocked: list.filter(function (d) { return !d.ready; }).length,
       duplicates: list.filter(function (d) { return d.duplicate; }).length,
+      updates: chosenUpdates(list).length,
       withWarnings: list.filter(function (d) { return d.ready && d.warnings.length; }).length,
       canAdd: chosen.length > 0 && chosen.every(function (d) { return d.ready; })
     };
@@ -386,6 +500,10 @@
     toImportEvent: toImportEvent,
     storedDate: storedDate,
     validEnd: validEnd,
+    weekdaysIn: weekdaysIn,
+    lastDayFromRange: lastDayFromRange,
+    calendarText: calendarText,
+    checkAgainstPrinted: checkAgainstPrinted,
     summary: summary,
     fitSize: fitSize,
     dayLabel: dayLabel

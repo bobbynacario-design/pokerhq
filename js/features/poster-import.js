@@ -180,12 +180,18 @@ function posterPesoText(d) {
   return pesos ? '= ' + window.PokerHQTrueRoi.formatPeso(pesos) : '';
 }
 
+function posterBadgeHtml(d) {
+  if (d.duplicate) return '<span class="poster-badge dup">Already on your calendar' + (d.duplicateOf && d.duplicateOf.name ? ': ' + esc(d.duplicateOf.name) : '') + '</span>';
+  if (d.updates) return '<span class="poster-badge upd">Updates the one-day entry already on your calendar</span>';
+  return '';
+}
+
 function posterCardHtml(d) {
   var P = posterLib();
   var i = d.index;
   var currencies = P.CURRENCY_CODES.map(function(c) { return '<option value="' + c + '"' + (c === d.currency ? ' selected' : '') + '>' + c + '</option>'; }).join('');
   var foreign = d.currency !== 'PHP';
-  var dupBadge = d.duplicate ? '<span class="poster-badge dup">Already on your calendar' + (d.duplicateOf && d.duplicateOf.name ? ': ' + esc(d.duplicateOf.name) : '') + '</span>' : '';
+  var dupBadge = '<span class="poster-badge-slot">' + posterBadgeHtml(d) + '</span>';
   return '<article class="poster-card' + (d.include ? ' on' : '') + (d.ready ? '' : ' blocked') + (d.duplicate ? ' dup' : '') + '" data-i="' + i + '">' +
     '<div class="poster-card-top"><label class="check-row poster-include"><input type="checkbox" ' + (d.include ? 'checked ' : '') + (d.ready ? '' : 'disabled ') + 'onchange="posterToggle(' + i + ', this.checked)" aria-label="Add this event"> <span>' + (d.ready ? 'Add this event' : 'Fix the marked fields to add it') + '</span></label>' + dupBadge + '</div>' +
     '<div class="poster-grid">' +
@@ -202,7 +208,8 @@ function posterCardHtml(d) {
       '<label data-field="structure" class="poster-f' + posterFieldClass(d, 'structure') + '"><span>Format</span><select class="form-input" onchange="posterEdit(' + i + ', \'structure\', this.value)">' + posterOptions(P.STRUCTURES, d.structure) + '</select></label>' +
       '<label data-field="category" class="poster-f' + posterFieldClass(d, 'category') + '"><span>Type</span><select class="form-input" onchange="posterEdit(' + i + ', \'category\', this.value)">' + posterOptions(P.CATEGORIES, d.category) + '</select></label>' +
       '<label class="poster-f wide"><span>Notes</span><input class="form-input" type="text" maxlength="160" value="' + esc(d.notes) + '" oninput="posterEdit(' + i + ', \'notes\', this.value)"></label>' +
-    '</div><div class="poster-issues">' + posterIssuesHtml(d) + '</div></article>';
+    '</div>' + (d.printedDates ? '<div class="poster-says">Poster says: <q>' + esc(d.printedDates) + '</q></div>' : '') +
+    '<div class="poster-issues">' + posterIssuesHtml(d) + '</div></article>';
 }
 
 function renderPosterSummary() {
@@ -212,13 +219,18 @@ function renderPosterSummary() {
   var bits = [];
   if (s.blocked) bits.push(s.blocked + ' need' + (s.blocked === 1 ? 's' : '') + ' a fix before ' + (s.blocked === 1 ? 'it' : 'they') + ' can be added');
   if (s.duplicates) bits.push(s.duplicates + ' already on your calendar');
+  if (s.updates) bits.push(s.updates + ' will update ' + (s.updates === 1 ? 'an entry' : 'entries') + ' you already have');
   if (s.withWarnings) bits.push(s.withWarnings + ' to double-check');
   posterEl('poster-summary').textContent = line + (bits.length ? ' ' + bits.join(', ') + '.' : ' All look ready.');
   posterEl('poster-notes').textContent = _poster.notes || '';
   posterEl('poster-notes').style.display = _poster.notes ? '' : 'none';
   var btn = posterEl('poster-add-btn');
   btn.disabled = !s.canAdd;
-  btn.textContent = s.chosen ? 'ADD ' + s.chosen + ' TO CALENDAR ↗' : 'NOTHING TICKED';
+  var adds = s.chosen - s.updates;
+  btn.textContent = !s.chosen ? 'NOTHING TICKED'
+    : !s.updates ? 'ADD ' + s.chosen + ' TO CALENDAR ↗'
+    : !adds ? 'UPDATE ' + s.updates + ' ON CALENDAR ↗'
+    : 'ADD ' + adds + ' · UPDATE ' + s.updates + ' ↗';
 }
 
 function renderPosterDrafts() {
@@ -251,9 +263,10 @@ function posterEdit(i, field, value, redraw) {
     d.rate = value === 'PHP' ? null : (d.rateMemory[value] || posterDefaultRate(value));
   }
   else if (field === 'time') d.time = P.normalizeTime(value);
-  else if (field === 'date') { d.date = value; d.movedFrom = null; }
+  else if (field === 'date') { d.date = value; d.movedFrom = null; d.autoFixes = (d.autoFixes || []).filter(function(w) { return w.field !== 'date'; }); }
+  else if (field === 'endDate') { d.endDate = value; d.autoFixes = (d.autoFixes || []).filter(function(w) { return w.field !== 'endDate'; }); }
   else d[field] = value;
-  if (field === 'date' || field === 'name' || field === 'venue') {
+  if (field === 'date' || field === 'endDate' || field === 'name' || field === 'venue') {
     var wasDup = d.duplicate;
     P.markDuplicates(_poster.drafts, window.tourneys || [], posterDraftContext().fingerprint);
     if (d.duplicate && !wasDup) d.include = false;
@@ -267,6 +280,7 @@ function posterEdit(i, field, value, redraw) {
   if (redraw || !card) { renderPosterDrafts(); return; }
   card.classList.toggle('blocked', !d.ready);
   card.classList.toggle('dup', d.duplicate);
+  card.querySelector('.poster-badge-slot').innerHTML = posterBadgeHtml(d);
   card.querySelector('.poster-issues').innerHTML = posterIssuesHtml(d);
   card.querySelector('.poster-peso').textContent = posterPesoText(d);
   var box = card.querySelector('.poster-include input');
@@ -288,14 +302,31 @@ function addPosterEvents() {
   var s = P.summary(_poster.drafts);
   if (!s.canAdd) return;
   var chosen = _poster.drafts.filter(function(d) { return d.include; });
-  var added = importCalendarUpdateEvents(chosen.map(P.toImportEvent));
-  var skipped = chosen.length - added.length;
+  // an event already saved as one day gets its last day; the entry is changed in place, not added again
+  var before = [], updated = [];
+  chosen.filter(function(d) { return d.updates; }).forEach(function(d) {
+    var t = (window.tourneys || []).find(function(x) { return x.id === d.updates.id; });
+    if (!t) { d.updates = null; return; }
+    before.push({ id: t.id, date: t.date, time: t.time });
+    t.date = P.storedDate(d);
+    if (!t.time && /^\d{2}:\d{2}$/.test(d.time || '')) t.time = d.time;
+    updated.push(t);
+  });
+  var fresh = chosen.filter(function(d) { return !d.updates; });
+  var added = fresh.length ? importCalendarUpdateEvents(fresh.map(P.toImportEvent)) : [];
+  if (updated.length) {
+    tourneys = window.tourneys;
+    tourneys.sort(function(a, b) { return (a.date || '').localeCompare(b.date || ''); });
+    save('tourneys', tourneys);
+  }
+  var skipped = fresh.length - added.length;
+  var touched = added.concat(updated);
   closePosterImport();
-  if (added.length) {
+  if (touched.length) {
     // Show the month of the first event you can still catch: an event that is running today counts as today, one that
     // starts later as its first day. Only if everything is already over, the latest of those.
     var todayMid = new Date(); todayMid.setHours(0, 0, 0, 0);
-    var spans = added.map(function(t) { var r = parseTourneyDateRange(t); return r && r.start ? { start: r.start, end: r.end || r.start } : null; }).filter(Boolean);
+    var spans = touched.map(function(t) { var r = parseTourneyDateRange(t); return r && r.start ? { start: r.start, end: r.end || r.start } : null; }).filter(Boolean);
     var live = spans.filter(function(r) { return r.end >= todayMid; }).map(function(r) { return r.start < todayMid ? todayMid : r.start; });
     var shownDate = live.length
       ? live.reduce(function(a, b) { return b < a ? b : a; })
@@ -305,16 +336,25 @@ function addPosterEvents() {
   }
   var ids = added.map(function(t) { return t.id; });
   var shown = '';
-  if (added.length && typeof calYear !== 'undefined') {
+  if (touched.length && typeof calYear !== 'undefined') {
     var now = new Date();
     if (calYear !== now.getFullYear() || calMonth !== now.getMonth()) {
       shown = ' · showing ' + ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][calMonth] + ' ' + calYear;
     }
   }
-  var label = added.length ? 'Added ' + added.length + ' event' + (added.length === 1 ? '' : 's') + ' from the poster' + (skipped ? ' (' + skipped + ' already there)' : '') + shown : 'Nothing added: ' + (skipped === 1 ? 'that event is' : 'those events are') + ' already on your calendar';
+  var parts = [];
+  if (added.length) parts.push('Added ' + added.length + ' event' + (added.length === 1 ? '' : 's'));
+  if (updated.length) parts.push((added.length ? 'updated ' : 'Updated ') + updated.length + ' already on your calendar');
+  var label = touched.length
+    ? parts.join(' and ') + ' from the poster' + (skipped ? ' (' + skipped + ' already there)' : '') + shown
+    : 'Nothing added: ' + (skipped === 1 ? 'that event is' : 'those events are') + ' already on your calendar';
   if (typeof showUndoToast === 'function') {
     showUndoToast(label, function() {
       window.tourneys = (window.tourneys || []).filter(function(t) { return ids.indexOf(t.id) === -1; });
+      before.forEach(function(b) {
+        var t = window.tourneys.find(function(x) { return x.id === b.id; });
+        if (t) { t.date = b.date; t.time = b.time; }
+      });
       tourneys = window.tourneys;
       save('tourneys', tourneys);
       renderCalendar();

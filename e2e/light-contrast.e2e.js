@@ -160,7 +160,8 @@ async function audit(viewport) {
     const t = todayLocal(); const add = (n) => { const d = new Date(t + "T12:00:00"); d.setDate(d.getDate() + n); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
     tourneys.push({ id: 424243, date: add(13), name: "Weekend Special", venue: "Metro Card Club", buyin: 3300, status: "target", type: "side" }); syncGlobalAliases();
     const ev = (o) => Object.assign({ name: "Event", date: add(10), endDate: "", time: "14:00", venue: "Okada Manila", buyin: 5500, currency: "PHP", gtd: "", structure: "Regular", category: "side", notes: "", uncertain: [] }, o);
-    _poster.drafts = PokerHQPoster.buildDrafts([ev({ name: "Poster Main Event", gtd: "₱1,000,000", uncertain: ["time"] }), ev({ name: "APT High Roller", currency: "USD", buyin: 500, date: add(12) }), ev({ name: "Mystery Event", date: "", uncertain: ["date"] }), ev({ name: "Weekend Special", date: add(13), venue: "Metro Card Club", buyin: 3300 }), ev({ name: "Old Finale", date: add(-60) })], posterDraftContext());
+    tourneys.push({ id: 424245, date: add(15), name: "Metro 1M", venue: "Metro Card Club", buyin: 5500, status: "target", type: "main" }); syncGlobalAliases();
+    _poster.drafts = PokerHQPoster.buildDrafts([ev({ name: "Metro 1M", venue: "Metro Card Club", date: add(15), printedDates: "Thu–Sun, last day Sunday" }), ev({ name: "Poster Main Event", gtd: "₱1,000,000", uncertain: ["time"] }), ev({ name: "APT High Roller", currency: "USD", buyin: 500, date: add(12) }), ev({ name: "Mystery Event", date: "", uncertain: ["date"] }), ev({ name: "Weekend Special", date: add(13), venue: "Metro Card Club", buyin: 3300 }), ev({ name: "Old Finale", date: add(-60) })], posterDraftContext());
     _poster.notes = "Ignored the cash game list.";
     posterShowStage("confirm"); renderPosterDrafts();
   });

@@ -13,8 +13,8 @@
 <title>PokerHQ — Tournament Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script type="module" src="./js/app.js?v=20261002c"></script>
-<link rel="stylesheet" href="./styles/app.css?v=20261002c">
+<script type="module" src="./js/app.js?v=20261002d"></script>
+<link rel="stylesheet" href="./styles/app.css?v=20261002d">
 </head>
 <body>
 <!-- LOGIN GATE — shown until Firebase auth resolves a signed-in user -->
@@ -1313,7 +1313,8 @@
   <ol class="action-list">
     <li><span class="al-num">1</span><div>Each event is a card you can edit: name, date, last day (for an event that runs several days), start time, venue, buy-in, guarantee, format and type. Untick the ones you don't want.</div></li>
     <li><span class="al-num">2</span><div>Cards outlined in orange are things Claude wasn't sure about. Cards marked red can't be added yet: they need a date, or an exchange rate when the price is in another currency (the peso amount shows underneath as you type).</div></li>
-    <li><span class="al-num">3</span><div>An event already on your calendar is unticked and marked <em>Already on your calendar</em>. Tap <strong>ADD n TO CALENDAR</strong>; <strong>UNDO</strong> removes exactly what was added.</div></li>
+    <li><span class="al-num">3</span><div>Each card shows what the poster says about the dates (e.g. <em>Poster says: "Thu–Sun"</em>). If Claude missed the last day or the year, PokerHQ works it out from that and tells you what it changed. If you already added the event as a single day, scanning the poster again <strong>updates</strong> that entry instead of adding a second one.</div></li>
+    <li><span class="al-num">4</span><div>An event already on your calendar is unticked and marked <em>Already on your calendar</em>. Tap <strong>ADD n TO CALENDAR</strong>; <strong>UNDO</strong> removes exactly what was added.</div></li>
   </ol>
   <p class="help-note">If a poster shows no year, PokerHQ uses the next date coming up. The month grid shows only the month you're looking at, so after adding, check the title above it; the list view shows a year on any event that isn't from this year.</p>
   <p class="help-note">The photo is sent to Claude to be read and is not kept by PokerHQ. It works with the Anthropic key or the keyless setup, like the other Claude features.</p>
@@ -2122,52 +2123,52 @@
 
 <div class="modal-overlay" id="modal-calendar-cleanup"><div class="modal" style="max-width:720px"><div class="modal-title">Review calendar duplicates</div><div id="cleanup-body"></div><div class="modal-actions"><button class="sec-action" onclick="closeModal('modal-calendar-cleanup')">CLOSE</button></div></div></div>
 <div class="modal-overlay" id="modal-practice"><div class="modal"><div class="modal-title">Create a practice drill</div><div class="form-group"><label class="form-label" for="practice-title">Drill title</label><input class="form-input" id="practice-title" maxlength="160"></div><div class="form-group"><label class="form-label" for="practice-prompt">What will you practice?</label><textarea class="form-input" id="practice-prompt" rows="6"></textarea></div><p id="practice-error" role="alert"></p><div class="modal-actions"><button class="sec-action" onclick="closeModal('modal-practice')">CANCEL</button><button class="sec-action primary" onclick="savePracticeDraft()">SAVE PRACTICE DRILL</button></div></div></div>
-<script src="./js/data/util.js?v=20261002c"></script>
-<script src="./js/data/backup-format.js?v=20261002c"></script>
-<script src="./js/data/privacy.js?v=20261002c"></script>
-<script src="./js/data/markers.js?v=20261002c"></script>
-<script src="./js/data/inbox.js?v=20261002c"></script>
-<script src="./js/data/journey.js?v=20261002c"></script>
-<script src="./js/data/slate.js?v=20261002c"></script>
-<script src="./js/data/trueroi.js?v=20261002c"></script>
-<script src="./js/data/poster.js?v=20261002c"></script>
-<script src="./js/data/merge.js?v=20261002c"></script>
-<script src="./js/data/config-runtime.js?v=20261002c"></script>
-<script src="./js/data/ai-proxy.js?v=20261002c"></script>
-<script src="./js/features/active-session.js?v=20261002c"></script>
-<script src="./js/features/demo-mode.js?v=20261002c"></script>
-<script src="./js/data/pushfold.js?v=20261002c"></script>
-<script src="./js/data/stats.js?v=20261002c"></script>
-<script src="./js/data/drills.js?v=20261002c"></script>
-<script src="./js/data/planning.js?v=20261002c"></script>
-<script src="./js/data/live-clock.js?v=20261002c"></script>
-<script src="./js/data/player-planning.js?v=20261002c"></script>
-<script src="./js/features/reentry-guard.js?v=20261002c"></script>
-<script src="./js/features/calendar-cleanup.js?v=20261002c"></script>
-<script src="./js/features/live-clock.js?v=20261002c"></script>
-<script src="./js/features/practice-drills.js?v=20261002c"></script>
-<script src="./js/features/demo-tour.js?v=20261002c"></script>
-<script src="./js/data/icm.js?v=20261002c"></script>
-<script src="./js/features/calculator.js?v=20261002c"></script>
-<script src="./js/features/staking.js?v=20261002c"></script>
-<script src="./js/features/package-report.js?v=20261002c"></script>
-<script src="./js/features/review.js?v=20261002c"></script>
-<script src="./js/features/calendar.js?v=20261002c"></script>
-<script src="./js/features/slate-optimizer.js?v=20261002c"></script>
-<script src="./js/features/study-loop.js?v=20261002c"></script>
-<script src="./js/features/strategy.js?v=20261002c"></script>
-<script src="./js/features/hands.js?v=20261002c"></script>
-<script src="./js/features/live-markers.js?v=20261002c"></script>
-<script src="./js/features/review-inbox.js?v=20261002c"></script>
-<script src="./js/features/trips.js?v=20261002c"></script>
-<script src="./js/features/poster-import.js?v=20261002c"></script>
-<script src="./js/features/treasury.js?v=20261002c"></script>
-<script src="./js/features/bankroll-chart.js?v=20261002c"></script>
-<script src="./js/features/library.js?v=20261002c"></script>
-<script src="./js/features/push.js?v=20261002c"></script>
-<script src="./js/features/onboarding.js?v=20261002c"></script>
-<script src="./js/features/daily-drill.js?v=20261002c"></script>
-<script src="./js/features/today-glance.js?v=20261002c"></script>
+<script src="./js/data/util.js?v=20261002d"></script>
+<script src="./js/data/backup-format.js?v=20261002d"></script>
+<script src="./js/data/privacy.js?v=20261002d"></script>
+<script src="./js/data/markers.js?v=20261002d"></script>
+<script src="./js/data/inbox.js?v=20261002d"></script>
+<script src="./js/data/journey.js?v=20261002d"></script>
+<script src="./js/data/slate.js?v=20261002d"></script>
+<script src="./js/data/trueroi.js?v=20261002d"></script>
+<script src="./js/data/poster.js?v=20261002d"></script>
+<script src="./js/data/merge.js?v=20261002d"></script>
+<script src="./js/data/config-runtime.js?v=20261002d"></script>
+<script src="./js/data/ai-proxy.js?v=20261002d"></script>
+<script src="./js/features/active-session.js?v=20261002d"></script>
+<script src="./js/features/demo-mode.js?v=20261002d"></script>
+<script src="./js/data/pushfold.js?v=20261002d"></script>
+<script src="./js/data/stats.js?v=20261002d"></script>
+<script src="./js/data/drills.js?v=20261002d"></script>
+<script src="./js/data/planning.js?v=20261002d"></script>
+<script src="./js/data/live-clock.js?v=20261002d"></script>
+<script src="./js/data/player-planning.js?v=20261002d"></script>
+<script src="./js/features/reentry-guard.js?v=20261002d"></script>
+<script src="./js/features/calendar-cleanup.js?v=20261002d"></script>
+<script src="./js/features/live-clock.js?v=20261002d"></script>
+<script src="./js/features/practice-drills.js?v=20261002d"></script>
+<script src="./js/features/demo-tour.js?v=20261002d"></script>
+<script src="./js/data/icm.js?v=20261002d"></script>
+<script src="./js/features/calculator.js?v=20261002d"></script>
+<script src="./js/features/staking.js?v=20261002d"></script>
+<script src="./js/features/package-report.js?v=20261002d"></script>
+<script src="./js/features/review.js?v=20261002d"></script>
+<script src="./js/features/calendar.js?v=20261002d"></script>
+<script src="./js/features/slate-optimizer.js?v=20261002d"></script>
+<script src="./js/features/study-loop.js?v=20261002d"></script>
+<script src="./js/features/strategy.js?v=20261002d"></script>
+<script src="./js/features/hands.js?v=20261002d"></script>
+<script src="./js/features/live-markers.js?v=20261002d"></script>
+<script src="./js/features/review-inbox.js?v=20261002d"></script>
+<script src="./js/features/trips.js?v=20261002d"></script>
+<script src="./js/features/poster-import.js?v=20261002d"></script>
+<script src="./js/features/treasury.js?v=20261002d"></script>
+<script src="./js/features/bankroll-chart.js?v=20261002d"></script>
+<script src="./js/features/library.js?v=20261002d"></script>
+<script src="./js/features/push.js?v=20261002d"></script>
+<script src="./js/features/onboarding.js?v=20261002d"></script>
+<script src="./js/features/daily-drill.js?v=20261002d"></script>
+<script src="./js/features/today-glance.js?v=20261002d"></script>
 <script>
 // ── PWA INSTALL — captures the browser install prompt like Enclave ──
 var _deferredInstallPrompt = null;
