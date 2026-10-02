@@ -6,7 +6,7 @@ const assert = require("assert").strict;
 const { boot, freezeMotion } = require("./lib.js");
 
 (async () => {
-  const { page, realErrors, close } = await boot({ viewport: { width: 1280, height: 1000 } });
+  const { page, realErrors, dialogs, close } = await boot({ viewport: { width: 1280, height: 1000 } });
   const ok = (m) => console.log("ok  " + m);
   await freezeMotion(page);
   const settle = (ms = 150) => page.waitForTimeout(ms);
@@ -223,6 +223,69 @@ const { boot, freezeMotion } = require("./lib.js");
   ok("a printed past year is kept, but the list shows the year and the toast says which month the calendar moved to");
   await page.evaluate((fx) => { window.__aiFixture = fx; }, fixture);   // the later sections read the original seven events
 
+  // 8c. an event that runs several days (a "Metro 1M" that is already under way and ends on Sunday) is drawn across
+  // every one of its days on the month grid, and the last day can be fixed afterwards on the Add/Edit form
+  const span = await page.evaluate(() => {
+    const add = (n) => { const d = new Date(todayLocal() + "T12:00:00"); d.setDate(d.getDate() + n); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+    return { start: add(-1), end: add(2) };
+  });
+  // how many of those 4 days the month grid on screen can show (the grid is 6 weeks from the Sunday before the 1st)
+  const visibleDays = () => page.evaluate(({ start, end }) => {
+    const first = new Date(calYear, calMonth, 1 - new Date(calYear, calMonth, 1).getDay()); first.setHours(0, 0, 0, 0);
+    const last = new Date(first); last.setDate(last.getDate() + 41);
+    let n = 0; for (let d = new Date(start + "T00:00:00"); d <= new Date(end + "T00:00:00"); d.setDate(d.getDate() + 1)) if (d >= first && d <= last) n++;
+    return n;
+  }, span);
+  const barsOf = (name) => page.$$eval("#cal-days-grid .cal-event-bar", (b, n) => b.filter((x) => x.textContent.replace("↳", "").trim() === n).map((x) => x.className.replace(/\s+/g, " ")), name);
+  const metro = { name: "Metro 1M Guaranteed", date: span.start, endDate: span.end, time: "13:00", venue: "Metro Card Club", buyin: 5500, currency: "PHP", gtd: "₱1,000,000", structure: "Regular", category: "main", notes: "", uncertain: [] };
+  await readOne(metro);
+  assert.equal(await page.inputValue('[data-field="endDate"] input'), span.end, "the poster's last day is on the card, where it can be checked");
+  await page.click("#poster-add-btn");
+  await settle(200);
+  const stored = await page.evaluate(() => tourneys.find((t) => t.name === "Metro 1M Guaranteed"));
+  assert.equal(stored.date, span.start + " to " + span.end, "saved as a range, not just its first day");
+  const bars = await barsOf("Metro 1M Guaranteed");
+  assert.equal(bars.length, await visibleDays(), "one bar for every day it runs that the grid shows: " + bars.length);
+  assert.ok(bars.length >= 2, "more than just its first day");
+  assert.ok(bars.every((c) => /\b(start|mid|end|solo)\b/.test(c)));
+  assert.doesNotMatch(await text("#undo-toast-label"), /showing/, "it is running now, so the calendar stays on this month");
+  const ics = await page.evaluate(() => { const r = parseTourneyDateRange(tourneys.find((t) => t.name === "Metro 1M Guaranteed")); return [toDateInputValue(r.start), toDateInputValue(r.end)]; });
+  assert.deepEqual(ics, [span.start, span.end], "the rest of the app (calendar file, today's glance, alerts) reads the same start and end");
+  ok("a multi-day poster event is saved as a range and drawn across every day it runs");
+
+  // the same event added by an older version of the poster import: one day only. The Add/Edit form can now give it its last day.
+  await page.evaluate(({ start }) => { tourneys.push({ id: 515151, date: start, day: "1", month: "OCT", name: "One-day Metro", venue: "Metro Card Club", buyin: 5500, status: "target", type: "main" }); syncGlobalAliases(); renderCalendar(); }, span);
+  assert.equal((await barsOf("One-day Metro")).length > 0, true);
+  const before1 = (await barsOf("One-day Metro")).length;
+  await page.evaluate(() => editTourney(515151));
+  assert.equal(await page.inputValue("#t-enddate"), "", "a one-day event shows no last day");
+  await page.fill("#t-enddate", span.start);
+  const dialogsBefore = dialogs.length;
+  await page.evaluate(() => addTourney());
+  await settle(150);
+  assert.match((dialogs[dialogsBefore] || {}).message || "", /last day has to be after the first day/);
+  assert.equal(await page.evaluate(() => document.getElementById("modal-tourney").classList.contains("open")), true, "a last day that is not after the first is refused and the form stays open");
+  await page.fill("#t-enddate", span.end);
+  await page.evaluate(() => addTourney());
+  await settle(150);
+  assert.equal(await page.evaluate(() => tourneys.find((t) => t.id === 515151).date), span.start + " to " + span.end);
+  assert.equal((await barsOf("One-day Metro")).length, await visibleDays(), "now it is drawn across its days");
+  assert.ok((await barsOf("One-day Metro")).length > before1 || before1 === (await visibleDays()));
+  await page.evaluate(() => editTourney(515151));
+  assert.equal(await page.inputValue("#t-enddate"), span.end, "the last day comes back when it is edited again");
+  await page.fill("#t-enddate", "");
+  await page.evaluate(() => addTourney());
+  assert.equal((await barsOf("One-day Metro")).length, 1, "clearing the last day makes it a one-day event again");
+  // adding a new event by hand with a last day
+  await page.evaluate(() => openNewTourneyModal());
+  await page.fill("#t-date", span.start); await page.fill("#t-enddate", span.end); await page.fill("#t-name", "Hand-made series");
+  await page.evaluate(() => addTourney());
+  assert.equal(await page.evaluate(() => tourneys.find((t) => t.name === "Hand-made series").date), span.start + " to " + span.end);
+  assert.equal((await barsOf("Hand-made series")).length, await visibleDays());
+  ok("the Add/Edit Tournament form takes a Last Day: it validates it, draws the range, shows it again on edit, and clearing it makes a one-day event");
+  await page.evaluate(() => { tourneys = tourneys.filter((t) => !["Metro 1M Guaranteed", "One-day Metro", "Hand-made series"].includes(t.name)); window.tourneys = tourneys; syncGlobalAliases(); renderCalendar(); });
+  await page.evaluate((fx) => { window.__aiFixture = fx; }, fixture);
+
   // 9. things that go wrong say so plainly and leave you where you were
   const tryRead = async (mode) => {
     await page.evaluate((m) => { window.__aiMode = m; }, mode);
@@ -251,7 +314,7 @@ const { boot, freezeMotion } = require("./lib.js");
   await page.click("#poster-read-btn");
   await page.waitForSelector("#poster-stage-pick", { state: "visible" });
   assert.match(await text("#poster-error"), /Could not open that picture/);
-  assert.equal(await page.evaluate(() => window.__sent.length), 1 + 2 + 5, "nothing was sent for a picture that could not be opened");
+  assert.equal(await page.evaluate(() => window.__sent.length), 1 + 2 + 1 + 5, "nothing was sent for a picture that could not be opened");
   await page.evaluate(() => closePosterImport());
   ok("a picture that can't be opened is reported and nothing is sent");
 

@@ -17,7 +17,7 @@
   var MAX_IMAGE_BYTES = 4 * 1024 * 1024;   // keeps the request well inside the 10 MB callable limit after base64
   var STRUCTURES = ["Freezeout", "Re-entry", "Turbo", "Deep Stack", "Bounty / PKO", "Satellite / Qualifier", "Regular"];
   var CATEGORIES = ["side", "main", "satellite"];
-  var FIELDS = ["name", "date", "time", "venue", "buyin", "gtd", "structure", "category"];   // what the model may say it is unsure of
+  var FIELDS = ["name", "date", "endDate", "time", "venue", "buyin", "gtd", "structure", "category"];   // what the model may say it is unsure of
 
   var CURRENCY_CODES = ["PHP", "USD", "TWD", "THB", "VND", "SGD", "MYR", "HKD", "MOP", "KRW", "JPY", "EUR", "GBP", "AUD", "IDR", "CNY"];
 
@@ -251,9 +251,11 @@
     if (!d.date) blocking.push({ field: "date", text: "Pick the date. It wasn't clear on the poster." });
     if (d.currency !== "PHP" && d.buyin > 0 && !(num(d.rate) > 0)) blocking.push({ field: "rate", text: "Enter the exchange rate for " + d.currency + " to count the buy-in in pesos." });
     if (d.date && isDate(today) && daysBetween(d.date, today) > 30) warnings.push({ field: "date", text: "This date is more than a month ago. Check the year." });
+    if (d.endDate && d.date && !validEnd(d)) warnings.push({ field: "endDate", text: "The last day isn't after the first day, so this will be added as a one-day event." });
+    else if (validEnd(d) && daysBetween(d.date, d.endDate) > 31) warnings.push({ field: "endDate", text: "This runs for more than a month. Check the last day." });
     if (!(d.buyin > 0)) warnings.push({ field: "buyin", text: "No buy-in was read. It will be added as free / unknown." });
     var flagged = arr(d.uncertain);
-    var labels = { name: "name", date: "date", time: "start time", venue: "venue", buyin: "buy-in", gtd: "guarantee", structure: "format", category: "type" };
+    var labels = { name: "name", date: "date", endDate: "last day", time: "start time", venue: "venue", buyin: "buy-in", gtd: "guarantee", structure: "format", category: "type" };
     flagged.forEach(function (f) {
       if (f === "date" && d.date && d.movedFrom) warnings.push({ field: "date", text: "No year was printed, so Claude's date (" + d.movedFrom + ") was moved to the next one coming up. Check it." });
       else if (f === "date" && d.date && !blocking.some(function (b) { return b.field === "date"; })) warnings.push({ field: "date", text: "Claude wasn't sure of the date (no year printed?). Check it." });
@@ -265,13 +267,23 @@
     return d;
   }
 
+  // The last day, when it is a real later day than the first; otherwise "" (a one-day event).
+  function validEnd(d) {
+    return d.date && d.endDate && isDate(d.endDate) && d.endDate > d.date ? d.endDate : "";
+  }
+  // How the calendar keeps the date: "YYYY-MM-DD", or "YYYY-MM-DD to YYYY-MM-DD" for an event that runs several days.
+  function storedDate(d) {
+    var end = validEnd(d);
+    return end ? d.date + " to " + end : d.date;
+  }
+
   // Marks drafts that are already on the calendar. fingerprint(x) is the calendar's own identity
   // (date + name + venue, js/features/strategy.js) so this agrees with what the importer would skip.
   function markDuplicates(drafts, existing, fingerprint) {
     var seen = {};
     arr(existing).forEach(function (t) { if (t) seen[fingerprint(t)] = t; });
     drafts.forEach(function (d) {
-      var key = d.date ? fingerprint({ date: d.date, name: d.name, venue: d.venue }) : null;
+      var key = d.date ? fingerprint({ date: storedDate(d), name: d.name, venue: d.venue }) : null;
       var hit = key && seen[key];
       d.duplicate = !!hit;
       d.duplicateOf = hit ? { id: hit.id, name: hit.name, date: hit.date } : null;
@@ -308,10 +320,11 @@
 
   // The event in the shape the calendar importer (importCalendarUpdateEvents) takes.
   function toImportEvent(d) {
-    var notes = [d.notes, d.endDate ? "Runs to " + d.endDate : "", priceText(d)].filter(Boolean).join(" · ");
+    var notes = [d.notes, priceText(d)].filter(Boolean).join(" · ");
     var sat = d.category === "satellite";
     return {
       date: d.date,
+      endDate: validEnd(d),
       time: d.time || "",
       name: d.name,
       venue: d.venue,
@@ -371,6 +384,8 @@
     buyinInPesos: buyinInPesos,
     priceText: priceText,
     toImportEvent: toImportEvent,
+    storedDate: storedDate,
+    validEnd: validEnd,
     summary: summary,
     fitSize: fitSize,
     dayLabel: dayLabel

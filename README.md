@@ -115,6 +115,10 @@ player ticks reaches the calendar.
   rate. **Warnings** (still addable): a date more than 30 days ago, no buy-in, and fields Claude marked as unsure
   (outlined in orange). Duplicates (same date + name + venue as an existing event, the calendar's own fingerprint) come
   unticked and badged.
+- **Several days.** An event that runs on (a Day 1 with a last day on the poster) has a **Last day** box on its card and is
+  saved as a range, `YYYY-MM-DD to YYYY-MM-DD`, in `date` (the format `parseTourneyDateRange` already read, so the month
+  grid draws one bar across every day, and the calendar file, HOME glance and phone alerts all use it). The Add / Edit
+  Tournament form has the same optional **Last Day** box; leaving it empty keeps a one-day event.
 - **Years.** When a poster prints no year and Claude's guess is already past, the date is moved to the next one coming up
   (with a warning naming the original). A year that *is* printed is never changed, so an old poster stays old. The
   calendar's list view shows the year on any event that is not from this year, and the "Added…" toast says which month the
