@@ -14,6 +14,13 @@ function toDateInputValue(d) {
   return d.getFullYear() + '-' + (m.length < 2 ? '0' + m : m) + '-' + (day.length < 2 ? '0' + day : day);
 }
 
+// The last day of an event that runs several days, as a yyyy-mm-dd input value ('' for a one-day event).
+function tourneyEndDateInputValue(tourney) {
+  var range = parseTourneyDateRange(tourney);
+  if (range && range.start && range.end && range.end.getTime() > range.start.getTime()) return toDateInputValue(range.end);
+  return '';
+}
+
 function tourneyStartDateInputValue(tourney) {
   var range = parseTourneyDateRange(tourney);
   if (range && range.start) return toDateInputValue(range.start);
@@ -25,7 +32,7 @@ function tourneyStartDateInputValue(tourney) {
 function openNewTourneyModal() {
   _editingTourneyId = null;
   setTourneyModalTitle('Add Tournament');
-  ['t-date', 't-time', 't-name', 't-venue', 't-buyin', 't-gtd', 't-notes'].forEach(function(id) {
+  ['t-date', 't-enddate', 't-time', 't-name', 't-venue', 't-buyin', 't-gtd', 't-notes'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -36,6 +43,7 @@ function editTourney(id) {
   var tourney = tourneys.find(function(x) { return x.id === id; });
   if (!tourney) return;
   document.getElementById('t-date').value = tourneyStartDateInputValue(tourney);
+  document.getElementById('t-enddate').value = tourneyEndDateInputValue(tourney);
   document.getElementById('t-time').value = tourney.time || '';
   document.getElementById('t-name').value = tourney.name || '';
   document.getElementById('t-venue').value = tourney.venue || '';
@@ -92,16 +100,27 @@ window.getUpcomingPlannedTourneys = getUpcomingPlannedTourneys;
 function addTourney() {
   var buyin = parseFloat(document.getElementById('t-buyin').value) || 0;
   var status = gradeBuyin(buyin);
+  var startInput = document.getElementById('t-date').value;
+  var endInput = document.getElementById('t-enddate').value;
+  if (endInput && startInput && endInput <= startInput) {
+    alert('The last day has to be after the first day. Leave it empty for a one-day event.');
+    return;
+  }
+  if (endInput && !startInput) endInput = '';
   if (_editingTourneyId) {
     var existing = tourneys.find(function(x) { return x.id === _editingTourneyId; });
     if (!existing) { _editingTourneyId = null; return; }
-    var inputDate = document.getElementById('t-date').value;
+    var inputDate = startInput;
     var originalStart = tourneyStartDateInputValue(existing);
-    if (inputDate && inputDate !== originalStart) {
-      // Date actually changed: store a readable single date and refresh list-view fields
+    var datesChanged = (inputDate && inputDate !== originalStart) || endInput !== tourneyEndDateInputValue(existing);
+    if (datesChanged && inputDate) {
+      // Date actually changed: refresh the list-view fields; a single day is stored readably,
+      // a several-day event as a range the month grid draws across its days.
       var parts = inputDate.split('-');
       var newDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-      existing.date = MONTH_LONG_NAMES[newDate.getMonth()] + ' ' + newDate.getDate() + ', ' + newDate.getFullYear();
+      existing.date = endInput
+        ? inputDate + ' to ' + endInput
+        : MONTH_LONG_NAMES[newDate.getMonth()] + ' ' + newDate.getDate() + ', ' + newDate.getFullYear();
       existing.day = String(newDate.getDate());
       existing.month = MONTH_SHORT_UPPER[newDate.getMonth()];
     }
@@ -125,7 +144,7 @@ function addTourney() {
 
   var t = {
     id: Date.now(),
-    date: document.getElementById('t-date').value,
+    date: endInput ? startInput + ' to ' + endInput : startInput,
     time: document.getElementById('t-time').value || '',
     name: document.getElementById('t-name').value || 'Tournament',
     venue: document.getElementById('t-venue').value || '',
@@ -466,6 +485,9 @@ function importCalendarUpdateEvents(events) {
     var startD = (dObj && dObj.start && !isNaN(dObj.start.getTime())) ? dObj.start : null;
     function _p(n) { return n < 10 ? '0' + n : '' + n; }
     var isoDate = startD ? (startD.getFullYear() + '-' + _p(startD.getMonth() + 1) + '-' + _p(startD.getDate())) : (ev.date || '');
+    // an event that runs several days (a poster's last day) is kept as a range, which the month grid draws as one bar
+    // across the days and the calendar file, alerts and "today" read as start to end
+    if (startD && /^\d{4}-\d{2}-\d{2}$/.test(ev.endDate || '') && ev.endDate > isoDate) isoDate = isoDate + ' to ' + ev.endDate;
     var t = {
       id: Date.now() + Math.random(),
       date: isoDate,
@@ -1145,7 +1167,10 @@ function renderCalendarList() {
       var sl = { target: 'TARGET', stretch: 'STRETCH', skip: 'SKIP' }[liveStatus] || 'SKIP';
 
       html += '<div class="' + rowCls + '" id="event-row-' + t.id + '">';
-      html += '<div class="event-date-box"><div class="event-date-day">' + esc(day) + '</div><div class="event-date-mon">' + esc(mon) + '</div></div>';
+      // the box shows day and month only, so an event from another year would look like one of this year's: say the year
+      var yearM = String(t.date || '').match(/^(\d{4})-\d{2}-\d{2}/);
+      var yearTag = yearM && Number(yearM[1]) !== new Date().getFullYear() ? '<div class="event-date-year">' + yearM[1] + '</div>' : '';
+      html += '<div class="event-date-box"><div class="event-date-day">' + esc(day) + '</div><div class="event-date-mon">' + esc(mon) + '</div>' + yearTag + '</div>';
       html += '<div class="event-info">';
       html += '<div class="event-name">' + esc(t.name) + '</div>';
       html += '<div class="event-meta">';

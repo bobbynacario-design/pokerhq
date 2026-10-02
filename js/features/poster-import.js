@@ -160,7 +160,8 @@ function posterOptions(list, current) {
 }
 
 function posterIsFlagged(d, field) {
-  return d.uncertain.indexOf(field) !== -1 || d.blocking.some(function(b) { return b.field === field; });
+  return d.uncertain.indexOf(field) !== -1 || d.blocking.some(function(b) { return b.field === field; }) ||
+    (field === 'endDate' && d.warnings.some(function(w) { return w.field === 'endDate'; }));
 }
 
 function posterFieldClass(d, field) {
@@ -190,8 +191,9 @@ function posterCardHtml(d) {
     '<div class="poster-grid">' +
       '<label data-field="name" class="poster-f wide' + posterFieldClass(d, 'name') + '"><span>Name</span><input class="form-input" type="text" maxlength="100" value="' + esc(d.name) + '" oninput="posterEdit(' + i + ', \'name\', this.value)"></label>' +
       '<label data-field="date" class="poster-f' + posterFieldClass(d, 'date') + '"><span>Date</span><input class="form-input" type="date" value="' + esc(d.date) + '" oninput="posterEdit(' + i + ', \'date\', this.value)"></label>' +
-      '<label data-field="time" class="poster-f' + posterFieldClass(d, 'time') + '"><span>Start time</span><input class="form-input" type="time" value="' + esc(d.time) + '" oninput="posterEdit(' + i + ', \'time\', this.value)"></label>' +
+      '<label data-field="endDate" class="poster-f' + posterFieldClass(d, 'endDate') + '"><span>Last day</span><input class="form-input" type="date" title="Only if the event runs more than one day" value="' + esc(d.endDate) + '" oninput="posterEdit(' + i + ', \'endDate\', this.value)"></label>' +
       '<label data-field="venue" class="poster-f wide' + posterFieldClass(d, 'venue') + '"><span>Venue</span><input class="form-input" type="text" maxlength="100" value="' + esc(d.venue) + '" oninput="posterEdit(' + i + ', \'venue\', this.value)"></label>' +
+      '<label data-field="time" class="poster-f' + posterFieldClass(d, 'time') + '"><span>Start time</span><input class="form-input" type="time" value="' + esc(d.time) + '" oninput="posterEdit(' + i + ', \'time\', this.value)"></label>' +
       '<label data-field="buyin" class="poster-f' + posterFieldClass(d, 'buyin') + '"><span>Buy-in</span><input class="form-input" type="number" data-money min="0" step="any" value="' + (d.buyin || '') + '" placeholder="0" oninput="posterEdit(' + i + ', \'buyin\', this.value)"></label>' +
       '<label class="poster-f"><span>Currency</span><select class="form-input" onchange="posterEdit(' + i + ', \'currency\', this.value, true)">' + currencies + '</select></label>' +
       (foreign ? '<label data-field="rate" class="poster-f' + (posterIsFlagged(d, 'rate') ? ' flagged' : '') + '"><span>Pesos per 1 ' + esc(d.currency) + '</span><input class="form-input" type="number" min="0" step="any" value="' + (d.rate || '') + '" placeholder="rate" oninput="posterEdit(' + i + ', \'rate\', this.value)"></label>' : '') +
@@ -249,6 +251,7 @@ function posterEdit(i, field, value, redraw) {
     d.rate = value === 'PHP' ? null : (d.rateMemory[value] || posterDefaultRate(value));
   }
   else if (field === 'time') d.time = P.normalizeTime(value);
+  else if (field === 'date') { d.date = value; d.movedFrom = null; }
   else d[field] = value;
   if (field === 'date' || field === 'name' || field === 'venue') {
     var wasDup = d.duplicate;
@@ -289,17 +292,26 @@ function addPosterEvents() {
   var skipped = chosen.length - added.length;
   closePosterImport();
   if (added.length) {
-    // show the first upcoming event's month; only if all of them are in the past, the latest of those
-    var byDate = added.slice().sort(function(a, b) { return (a.date || '').localeCompare(b.date || ''); });
-    var today = todayLocal();
-    var upcoming = byDate.filter(function(t) { return (t.date || '') >= today; });
-    var first = upcoming.length ? upcoming[0] : byDate[byDate.length - 1];
-    var m = String(first.date || '').match(/^(\d{4})-(\d{2})/);
-    if (m && typeof calYear !== 'undefined') { calYear = Number(m[1]); calMonth = Number(m[2]) - 1; }
+    // Show the month of the first event you can still catch: an event that is running today counts as today, one that
+    // starts later as its first day. Only if everything is already over, the latest of those.
+    var todayMid = new Date(); todayMid.setHours(0, 0, 0, 0);
+    var spans = added.map(function(t) { var r = parseTourneyDateRange(t); return r && r.start ? { start: r.start, end: r.end || r.start } : null; }).filter(Boolean);
+    var live = spans.filter(function(r) { return r.end >= todayMid; }).map(function(r) { return r.start < todayMid ? todayMid : r.start; });
+    var shownDate = live.length
+      ? live.reduce(function(a, b) { return b < a ? b : a; })
+      : (spans.length ? spans.reduce(function(a, b) { return b.start > a.start ? b : a; }).start : null);
+    if (shownDate && typeof calYear !== 'undefined') { calYear = shownDate.getFullYear(); calMonth = shownDate.getMonth(); }
     if (typeof renderCalendar === 'function') renderCalendar();
   }
   var ids = added.map(function(t) { return t.id; });
-  var label = added.length ? 'Added ' + added.length + ' event' + (added.length === 1 ? '' : 's') + ' from the poster' + (skipped ? ' (' + skipped + ' already there)' : '') : 'Nothing added: ' + (skipped === 1 ? 'that event is' : 'those events are') + ' already on your calendar';
+  var shown = '';
+  if (added.length && typeof calYear !== 'undefined') {
+    var now = new Date();
+    if (calYear !== now.getFullYear() || calMonth !== now.getMonth()) {
+      shown = ' · showing ' + ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][calMonth] + ' ' + calYear;
+    }
+  }
+  var label = added.length ? 'Added ' + added.length + ' event' + (added.length === 1 ? '' : 's') + ' from the poster' + (skipped ? ' (' + skipped + ' already there)' : '') + shown : 'Nothing added: ' + (skipped === 1 ? 'that event is' : 'those events are') + ' already on your calendar';
   if (typeof showUndoToast === 'function') {
     showUndoToast(label, function() {
       window.tourneys = (window.tourneys || []).filter(function(t) { return ids.indexOf(t.id) === -1; });

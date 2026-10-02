@@ -203,7 +203,7 @@ test("editing a draft re-checks it: giving a rate or a date clears the block", (
 
 test("converted to what the calendar importer takes: pesos, the poster's own price in the notes, the time, the source", () => {
   const php = P.toImportEvent(P.normalizeEvent(raw({ endDate: "2026-10-06" }), ctx()));
-  assert.deepEqual(php, { date: "2026-10-04", time: "14:00", name: "Sunday Main Event", venue: "Okada Manila", buyin: 5500, gtd: "₱1,000,000", structure: "Regular", category: "main", seatGuaranteed: false, notes: "Late reg 2 levels · Runs to 2026-10-06", source: "Poster photo", url: "" });
+  assert.deepEqual(php, { date: "2026-10-04", endDate: "2026-10-06", time: "14:00", name: "Sunday Main Event", venue: "Okada Manila", buyin: 5500, gtd: "₱1,000,000", structure: "Regular", category: "main", seatGuaranteed: false, notes: "Late reg 2 levels", source: "Poster photo", url: "" });
   const usd = P.normalizeEvent(raw({ currency: "USD", buyin: 500, notes: "" }), ctx({ rateFor: () => 58.4 }));
   const e = P.toImportEvent(usd);
   assert.equal(e.buyin, 29200);
@@ -280,4 +280,79 @@ test("WIRING the calendar importer keeps the start time the poster reader found 
   assert.match(cal, /\^\\d\{2\}:\\d\{2\}\$\/\.test\(ev\.time/, "importCalendarUpdateEvents copies a valid HH:MM time");
   const events = readFile("functions/events.js");
   assert.match(events, /\.time/, "the alert code reads the tournament's time field");
+});
+
+// ---- a poster without a year must not land in a past year (it would never show on this year's calendar) ----
+test("no year printed and Claude guessed a past one: the date moves to the next one coming up, with a warning that says so", () => {
+  const d = P.normalizeEvent(raw({ date: "2025-10-12", uncertain: ["date"] }), ctx());
+  assert.equal(d.date, "2026-10-12");
+  assert.equal(d.movedFrom, "2025-10-12");
+  assert.equal(d.ready, true);
+  const w = d.warnings.filter((x) => x.field === "date");
+  assert.equal(w.length, 1, "one date warning, not two");
+  assert.match(w[0].text, /2025-10-12.*moved to the next one coming up/);
+  assert.doesNotMatch(w[0].text, /more than a month ago/);
+});
+
+test("a date earlier this year with no year printed goes to next year; one still ahead is left alone", () => {
+  assert.equal(P.normalizeEvent(raw({ date: "2026-03-05", uncertain: ["date"] }), ctx()).date, "2027-03-05");
+  const ahead = P.normalizeEvent(raw({ date: "2026-10-12", uncertain: ["date"] }), ctx());
+  assert.equal(ahead.date, "2026-10-12");
+  assert.equal(ahead.movedFrom, undefined);
+  assert.equal(P.normalizeEvent(raw({ date: TODAY, uncertain: ["date"] }), ctx()).date, TODAY, "today counts as upcoming");
+});
+
+test("a multi-day event keeps its length when its year is moved, and a leap day skips to a leap year", () => {
+  const d = P.normalizeEvent(raw({ date: "2025-10-12", endDate: "2025-10-14", uncertain: ["date"] }), ctx());
+  assert.deepEqual([d.date, d.endDate], ["2026-10-12", "2026-10-14"]);
+  assert.equal(P.normalizeEvent(raw({ date: "2024-02-29", uncertain: ["date"] }), ctx()).date, "2028-02-29");
+});
+
+test("a year that IS printed is never changed: an old poster stays old, with the 'more than a month ago' warning", () => {
+  const d = P.normalizeEvent(raw({ date: "2025-10-12", uncertain: [] }), ctx());
+  assert.equal(d.date, "2025-10-12");
+  assert.equal(d.movedFrom, undefined);
+  assert.ok(d.warnings.some((w) => /more than a month ago/.test(w.text)));
+});
+
+// ---- events that run several days: kept as a range the calendar draws across its days ----
+test("a multi-day event is stored as a range, a one-day event as a plain date", () => {
+  const multi = P.normalizeEvent(raw({ date: "2026-10-04", endDate: "2026-10-07" }), ctx());
+  assert.equal(P.validEnd(multi), "2026-10-07");
+  assert.equal(P.storedDate(multi), "2026-10-04 to 2026-10-07");
+  assert.equal(P.toImportEvent(multi).endDate, "2026-10-07");
+  const one = P.normalizeEvent(raw({ date: "2026-10-04", endDate: "" }), ctx());
+  assert.equal(P.validEnd(one), "");
+  assert.equal(P.storedDate(one), "2026-10-04");
+  assert.equal(P.toImportEvent(one).endDate, "");
+});
+
+test("a last day the player types that is not after the first day is warned about and ignored", () => {
+  const d = P.normalizeEvent(raw({ date: "2026-10-04" }), ctx());
+  d.endDate = "2026-10-04";
+  P.revalidate(d, ctx());
+  assert.ok(d.warnings.some((w) => w.field === "endDate" && /isn't after the first day/.test(w.text)));
+  assert.equal(d.ready, true, "still addable, as a one-day event");
+  assert.equal(P.toImportEvent(d).endDate, "");
+  d.endDate = "2026-12-20";
+  P.revalidate(d, ctx());
+  assert.ok(d.warnings.some((w) => w.field === "endDate" && /more than a month/.test(w.text)));
+});
+
+test("a multi-day poster event is a duplicate of the same multi-day event, not of a one-day entry", () => {
+  const existing = [{ id: 1, date: "2026-10-04 to 2026-10-07", name: "Sunday Main Event", venue: "Okada Manila" }];
+  const rangeFp = (t) => [String(t.date || "").replace(/ to /, ".."), String(t.name || "").toLowerCase().replace(/[^a-z0-9]+/g, ""), String(t.venue || "").toLowerCase().replace(/[^a-z0-9]+/g, "")].join("|");
+  const same = P.buildDrafts([raw({ date: "2026-10-04", endDate: "2026-10-07" })], ctx({ existing, fingerprint: rangeFp }));
+  assert.equal(same[0].duplicate, true);
+  const oneDay = P.buildDrafts([raw({ date: "2026-10-04", endDate: "" })], ctx({ existing, fingerprint: rangeFp }));
+  assert.equal(oneDay[0].duplicate, false, "a one-day version is a different calendar entry");
+});
+
+test("WIRING the Add/Edit Tournament form has a Last Day box that the calendar reads and writes", () => {
+  const html = readFile("index.html");
+  const cal = readFile("js/features/calendar.js");
+  assert.match(html, /<input[^>]*type="date"[^>]*id="t-enddate"/);
+  assert.match(cal, /getElementById\('t-enddate'\)/);
+  assert.match(cal, /function tourneyEndDateInputValue/);
+  assert.match(cal, /ev\.endDate/, "the importer keeps a poster's last day");
 });

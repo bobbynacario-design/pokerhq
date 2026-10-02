@@ -649,6 +649,8 @@ body.light .event-date-box{background:var(--bg3)}
 .event-date-day{font-family:var(--serif);font-size:18px;color:var(--gold);line-height:1}
 .event-date-mon{font-family:var(--mono);font-size:8px;letter-spacing:.08em;color:var(--wa-35);text-transform:uppercase}
 body.light .event-date-mon{color:rgba(0,0,0,.66)}
+.event-date-year{font-family:var(--mono);font-size:8px;letter-spacing:.08em;color:var(--amber);margin-top:1px}
+body.light .event-date-year{color:#7A4F00}
 .event-info{flex:1;min-width:0}
 .event-name{font-size:13px;font-weight:500;color:var(--ink);margin-bottom:.25rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 body.light .event-name{color:#1A1A1A}
