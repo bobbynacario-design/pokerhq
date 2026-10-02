@@ -188,6 +188,16 @@ player ticks reaches the calendar.
   saved as a range, `YYYY-MM-DD to YYYY-MM-DD`, in `date` (the format `parseTourneyDateRange` already read, so the month
   grid draws one bar across every day, and the calendar file, HOME glance and phone alerts all use it). The Add / Edit
   Tournament form has the same optional **Last Day** box; leaving it empty keeps a one-day event.
+- **Reading dates smartly.** The prompt carries a 12-week day-by-day calendar (so "Thu–Sun" or "until Sunday" becomes
+  real dates) and says a run over several days (Day 1A/1B, Day 2, Final) is one event with a first and last day. Claude
+  also returns `printedDates`, the days exactly as printed, shown on the card as "Poster says: …". PokerHQ reads the
+  dates back against it (`checkAgainstPrinted`): a missing last day is worked out from "Oct 1–4", "Thu–Sun" or
+  "until Sunday"; a printed weekday that doesn't fit the date fixes the year when another year fits ("Thu Oct 1" is
+  2026, not 2025), otherwise it warns. Every repair is listed on the card as a warning to check.
+- **Re-scanning fixes an older entry.** When the event is already on the calendar as one day (same first day, name and
+  venue) and the poster shows it running longer, the card says "Updates the one-day entry already on your calendar"
+  and the button says UPDATE: that entry gets its last day (and a start time if it had none) instead of a second entry
+  being added. UNDO puts it back.
 - **Years.** When a poster prints no year and Claude's guess is already past, the date is moved to the next one coming up
   (with a warning naming the original). A year that *is* printed is never changed, so an old poster stays old. The
   calendar's list view shows the year on any event that is not from this year, and the "Added…" toast says which month the

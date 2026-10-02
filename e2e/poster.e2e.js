@@ -104,6 +104,7 @@ const { boot, freezeMotion } = require("./lib.js");
   assert.ok(prompt.text.includes("Today's date is " + dates.today));
   assert.ok(prompt.text.includes("Extra context from the player: Okada Manila, October series"));
   assert.match(prompt.text, /Answer with JSON matching the schema and nothing else/);
+  assert.ok(prompt.text.includes("CALENDAR") && prompt.text.includes(dates.today), "a day-by-day calendar goes with it, so weekday names become dates");
   ok("Claude gets one JPEG (3000x2000 shrunk to " + dims.join("x") + ", " + Math.round(decodedBytes / 1024) + " KB), today's date, the player's hint and a JSON-only instruction");
 
   // 5. the confirmation screen
@@ -286,6 +287,46 @@ const { boot, freezeMotion } = require("./lib.js");
   await page.evaluate(() => { tourneys = tourneys.filter((t) => !["Metro 1M Guaranteed", "One-day Metro", "Hand-made series"].includes(t.name)); window.tourneys = tourneys; syncGlobalAliases(); renderCalendar(); });
   await page.evaluate((fx) => { window.__aiFixture = fx; }, fixture);
 
+  // 8d. the Metro case: the event is already on the calendar as ONE day (an older import), and the reading has no last day
+  // but the poster says "Thu–Sun". The last day is worked out from the printed text, the card shows the evidence, and
+  // adding updates the existing entry instead of making a second one. UNDO puts the one-day entry back.
+  const run = await page.evaluate(() => {
+    const t = todayLocal(), add = (n) => { const d = new Date(t + "T12:00:00"); d.setDate(d.getDate() + n); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+    // a Thursday at or just before today, and the Sunday after it
+    const back = (new Date(t + "T12:00:00").getDay() - 4 + 7) % 7;
+    return { thu: add(-back), sun: add(-back + 3) };
+  });
+  await page.evaluate((r) => { tourneys.push({ id: 616161, date: r.thu, day: String(Number(r.thu.slice(8))), month: "X", name: "Metro 1M Guaranteed", venue: "Metro Card Club", buyin: 5500, status: "target", type: "main" }); syncGlobalAliases(); renderCalendar(); }, run);
+  const countBefore = await page.evaluate(() => tourneys.length);
+  await readOne({ name: "Metro 1M Guaranteed", date: run.thu, endDate: "", printedDates: "Thu–Sun", time: "13:00", venue: "Metro Card Club", buyin: 5500, currency: "PHP", gtd: "₱1,000,000", structure: "Regular", category: "main", notes: "", uncertain: [] });
+  assert.equal(await page.inputValue('[data-field="endDate"] input'), run.sun, "the last day was worked out from 'Thu–Sun'");
+  assert.match(await text(".poster-says"), /Poster says: “?"?Thu–Sun/);
+  assert.match(await text(".poster-issues"), new RegExp("Last day worked out from \"Thu–Sun\": Sunday " + run.sun));
+  assert.match(await text(".poster-badge"), /Updates the one-day entry already on your calendar/);
+  assert.equal(await page.isChecked(".poster-include input"), true);
+  assert.match(await text("#poster-summary"), /1 will update an entry you already have/);
+  assert.match(await text("#poster-add-btn"), /^UPDATE 1 ON CALENDAR/, "the button says what it will do");
+  await page.click("#poster-add-btn");
+  await settle(200);
+  const after2 = await page.evaluate(() => ({ n: tourneys.length, t: tourneys.find((x) => x.id === 616161) }));
+  assert.equal(after2.n, countBefore, "no second entry");
+  assert.equal(after2.t.date, run.thu + " to " + run.sun, "the existing entry now runs Thursday to Sunday");
+  assert.equal(after2.t.time, "13:00", "and picked up the start time it was missing");
+  assert.match(await text("#undo-toast-label"), /^Updated 1 already on your calendar from the poster/);
+  assert.equal((await barsOf("Metro 1M Guaranteed")).length, await page.evaluate(({ thu, sun }) => {
+    const first = new Date(calYear, calMonth, 1 - new Date(calYear, calMonth, 1).getDay()); first.setHours(0, 0, 0, 0);
+    const last = new Date(first); last.setDate(last.getDate() + 41);
+    let n = 0; for (let d = new Date(thu + "T00:00:00"); d <= new Date(sun + "T00:00:00"); d.setDate(d.getDate() + 1)) if (d >= first && d <= last) n++;
+    return n;
+  }, run), "drawn across Thursday to Sunday");
+  await page.click("#undo-toast .toast-btn"); await settle();
+  const undone = await page.evaluate(() => tourneys.find((x) => x.id === 616161));
+  assert.equal(undone.date, run.thu, "UNDO puts the one-day entry back as it was");
+  assert.equal(undone.time, undefined);
+  await page.evaluate(() => { tourneys = tourneys.filter((t) => t.id !== 616161); window.tourneys = tourneys; syncGlobalAliases(); renderCalendar(); });
+  await page.evaluate((fx) => { window.__aiFixture = fx; }, fixture);
+  ok("the Metro case: 'Thu–Sun' fills in the missing last day, the card shows what the poster says, and re-scanning updates the one-day entry (UNDO restores it)");
+
   // 9. things that go wrong say so plainly and leave you where you were
   const tryRead = async (mode) => {
     await page.evaluate((m) => { window.__aiMode = m; }, mode);
@@ -314,7 +355,7 @@ const { boot, freezeMotion } = require("./lib.js");
   await page.click("#poster-read-btn");
   await page.waitForSelector("#poster-stage-pick", { state: "visible" });
   assert.match(await text("#poster-error"), /Could not open that picture/);
-  assert.equal(await page.evaluate(() => window.__sent.length), 1 + 2 + 1 + 5, "nothing was sent for a picture that could not be opened");
+  assert.equal(await page.evaluate(() => window.__sent.length), 1 + 2 + 1 + 1 + 5, "nothing was sent for a picture that could not be opened");
   await page.evaluate(() => closePosterImport());
   ok("a picture that can't be opened is reported and nothing is sent");
 
