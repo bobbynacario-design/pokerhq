@@ -146,6 +146,7 @@ function buildHandReplayHtml(hand) {
   if (hand.lesson) {
     html += '<div style="background:rgba(212,175,55,.08);border:1px solid rgba(212,175,55,.18);border-radius:12px;padding:.9rem 1rem"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--gold);text-transform:uppercase;margin-bottom:.35rem">Lesson / Note</div><div style="font-size:13px;color:var(--ink);line-height:1.7">' + toMultilineHtml(hand.lesson) + '</div></div>';
   }
+  html += '<div class="surface-actions" style="margin-top:1rem"><button class="sec-action primary" onclick="openPracticeFromHand('+hand.id+')">CREATE PRACTICE DRILL</button></div>';
   if (!hand.desc && !hand.lesson) {
     html += '<div style="background:rgba(255,255,255,.03);border:1px solid var(--rim);border-radius:12px;padding:.9rem 1rem;font-family:var(--mono);font-size:11px;color:var(--wa-45)">No extra note was saved for this hand.</div>';
   }

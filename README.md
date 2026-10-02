@@ -24,8 +24,69 @@ Live app: <https://bobbynacario-design.github.io/pokerhq/> (the repo root, serve
 ## Run locally
 
 Any static file server works, for example `python -m http.server 8000` from the repo root.
-Signing in needs the owner Google account; **Load demo data** on the Home page works without
-touching real data.
+Signing in needs the owner Google account. **Explore demo — no sign-in** on the entry screen
+opens sample data with recent sessions and upcoming events relative to today. Demo actions
+stay in memory; leaving the demo restores cached real data, drill progress and active drafts.
+
+## Planning and session improvements
+
+- Calendar **Slate Optimizer** validates written and ISO dates, excludes past events by default,
+  and reserves money for re-entries before choosing buy-ins. Edit the suggested checkboxes,
+  then **Apply / Pin selected events** to star them on the calendar. Budget overruns and
+  overlapping dates block Apply. Existing plans remain; new stars have an undo action.
+  Choose a location (or explicitly compare all locations) and dates before building. The date
+  window starts at the next 30 days, with a next-7-days shortcut. **Use current bankroll** fills
+  only the budget. The first view is a shortlist, grouped by location and ordered by date;
+  **Browse events** offers searchable alternatives in pages of six. Unchecking leaves a row
+  in place, **Clear selection** unchecks all choices, and **Reset suggestions** restores the
+  original picks. Selections survive browsing, searching, and changing pages. Buy-in cap and
+  reserve settings are inside the optional limits panel.
+- Log Session records **Reached the final table?** explicitly (Yes / No / Not recorded),
+  including finishes outside the top three. Older saved final-table labels remain intact.
+  A final table without a prize counts toward final tables but never toward ITM. The field
+  survives edits, sync, JSON backups and the appended CSV column.
+- Readiness shows **Complete check-in** until all six answers are available. Skip remains
+  available; Start Session enables after the check-in is complete.
+- Home puts active play first and tucks workspace settings and detailed analysis into
+  expandable panels. Calendar email and phone-notification settings start collapsed.
+
+## More planning, demo and practice tools
+
+- **Personalize picks** uses up to 80 recent logged sessions to favour familiar venues and
+  formats, with optional preferred format, available days and hours. Costs and durations use
+  medians from at least 3 comparable sessions, with sample counts inside **Why this pick?**.
+  History influences ranking; wins and ROI do not. Existing pins stay protected. Unknown
+  durations stay available for schedule review. Preferences stay on this device and demo
+  preferences are separate. Buy-in commitments and the reserve remain explicit budget inputs.
+- **Re-entry guard** previews the next bullet against the bankroll, all upcoming pinned
+  buy-ins, an optional session cap and other protected funds. Starting from a planned event
+  avoids counting its initial entry twice. Limits or unpriced future events open an inline
+  review before adding a bullet; a changed budget requires a fresh review. Variable entry
+  costs stay recorded, decrement removes the last cost, and the session form receives the
+  re-entry total. You can edit that total before logging. Guard settings restore with the
+  active draft. Linked completed events stop reserving another buy-in for future sessions.
+
+- Slate budgets include pinned events at **every location within the chosen dates**, counting
+  selected pins once. Optional travel and hotel allowances sit beside the re-entry reserve.
+  These estimates never change the bankroll or create trip expenses. An unknown pinned
+  buy-in needs to be filled before applying; overruns block new pinning.
+- **Calendar cleanup → Review duplicates** finds conservative name / venue variants on the
+  same dates. Different flights, formats, buy-ins and known start times stay separate.
+  **Remove all duplicates** previews the extra-copy count, then cleans up every matching
+  group in one batch. It keeps an active/session-linked or pinned entry first and combines
+  stars, complementary fields, notes and sources. Session links follow the kept entry;
+  Undo restores the whole batch for 30 seconds. Individual pair review remains available.
+- Add `?demo=1` to the app URL for a direct, sign-in-free sample-data tour: plan → capture
+  a hand → review a session. **Copy demo link** shares that URL; **Tour** restarts the guide.
+  Leaving demo removes the URL flag and restores real data. Demo actions remain in memory.
+- PLAY's active session includes **Blind level, stack & breaks**. Set the room's big blind,
+  stack, level duration and break cadence. The clock can start, pause and resume; **Next level**
+  advances manually. Stack converts to BB; break reminders appear in-app while open. Clock
+  settings and paused/running state restore with the local active draft after reload.
+- **Create practice drill** on a hand replay or recurring leak opens an editable exercise.
+  Saved drills appear in IMPROVE → Strategy with source-hand links and practice-day history.
+  Today's completion toggles with Undo; removing a drill also has Undo. Progress syncs inside
+  `drillState`, survives Daily Drill actions, and is included in existing backups.
 
 ## Tests
 
@@ -50,6 +111,7 @@ browser tests below.
 - `tests/openai-proxy.test.js` — the OpenAI proxy's allowlists (`functions/openai-proxy.js`), checked against the app's real requests
 - `tests/ai-proxy-client.test.js` — client fallback: local key → direct, otherwise the proxy (`js/data/ai-proxy.js`)
 - `tests/drills.test.js` — the Daily Drill library and picker: unique ids, context steering, no repeats, streaks, saved state (`js/data/drills.js`)
+- `tests/planning-tools.test.js` — whole-plan budgeting, conservative duplicate detection and detail retention, paused/running blind clocks, and custom practice surviving Daily Drill updates.
 - `tests/backup-format.test.js` — backup file versions: newer files refused with a clear message, older ones upgraded step by step, damaged records dropped and reported (`js/data/backup-format.js`)
 - `tests/trueroi.test.js` — trip costs and true ROI: currency conversion, which trip a session belongs to, poker vs true ROI, the satellite-seat rule (never double counted), warnings, and that the pieces add up to the total (`js/data/trueroi.js`)
 - `tests/inbox.test.js` — the Review Inbox: what lands in it from each of five sources, the ordering, resolving and undoing (`js/data/inbox.js`)
@@ -70,6 +132,13 @@ npx playwright install chromium   # once
 npm run test:e2e                  # all suites, a few at a time
 node e2e/run.js signin            # only suites whose file name contains "signin"
 ```
+
+`planning-practice` covers whole-plan limits, merge previews and Undo, saved hand/leak practice,
+clock reload and keyboard behavior, and the direct demo tour at desktop and phone widths.
+`planned-events` covers the collapsed plan, six-row pagination, unpinning without losing your
+place or keyboard focus, Start next, Privacy Mode, and desktop/phone layouts.
+`player-planning` covers personal ranking and explanations, day/time preferences, re-entry
+preview and review, variable costs, Privacy Mode, reload and demo isolation on desktop/phone.
 
 Suites: `smoke` (boot, calculator, sessions, bankroll check, restore + undo), `signin` (the gate; the
 Google button is on the first screen at ten window sizes), `active-session` (start, timer, check-in,
@@ -135,15 +204,16 @@ player ticks reaches the calendar.
 ### Review Inbox
 
 REVIEW → Inbox (with a count badge, and a card on Home) lists what is waiting for a second look.
-`js/data/inbox.js` builds it from five sources, each cleared by its own flag on the record it came from:
+`js/data/inbox.js` builds it from six sources. Unresolved hands are not duplicated as lessons, and dismissed recurring leaks return after three new examples:
 
 | Source | Shows when | "Mark resolved" writes |
 | --- | --- | --- |
-| Session | logged in the last 14 days, no debrief yet | `session.debriefedAt` (also the session detail's MARK DEBRIEF DONE) |
+| Session | no debrief yet; stays visible and becomes overdue after 14 days | `session.debriefedAt` (also the session detail's MARK DEBRIEF DONE) |
 | Hand | needs details, or tagged Review later | `hand.resolvedAt` |
+| Recurring leak | the same hand tag appears 3+ times in 90 days | synced `reviewState.dismissedLeaks` |
 | Lesson | a hand's lesson is due for a re-read: 3, 10, then 30 days | `hand.lessonStep`, `hand.lessonSeenAt` |
 | Villain | notes untouched for 60+ days, at a venue you played in the last 120 days or have an event at in the next 30 | `opponent.reviewedAt` (saving the villain sets `updatedAt`) |
-| Drill | you saved it in the Daily Drill (kept on this device) | removes it from the saved list |
+| Drill | you saved it in the Daily Drill | removes it from the synced saved list |
 
 Ages are calendar days. Finishing a marker's details or editing a villain's notes clears its item by
 itself. Not in v1: recurring weaknesses, "create a drill from this".
@@ -205,6 +275,11 @@ a standard name). Events with no venue collect under "(no venue)", and the choic
 that device. It combines
 with **Planned only**; the "Playing These" card and the .ics export always include everything.
 
+**Playing These** starts collapsed, with the next event and **Start next** ready to use.
+Expand **Manage events** for six compact rows at a time, in date order, with short location
+labels, buy-ins, and quick start/remove controls. Removing a pick preserves the open list and
+page; it leaves the tournament in the calendar so you can pin it again.
+
 ## Daily Drill
 
 The left column of the HOME "Go" card holds one small poker drill a day, in the spirit of a
@@ -218,7 +293,7 @@ session favours mental-game and review, a thin bankroll (under 10 average buy-in
 bankroll drills, and no logged hands favours logging one. **Go deeper** (the 10-minute version)
 counts for more: it earns a gold diamond in the week row instead of a green dot, and
 weeks in a row with at least one deep drill build a **deep weeks** streak. Progress is kept on
-that device (localStorage `pokerhq_drill_v1`), not synced.
+locally for immediate offline use and synced as `drillState`, so progress follows the signed-in profile across devices.
 
 ## Light and dark themes
 
@@ -235,10 +310,10 @@ text colours. Write new text colours with those instead of `rgba(255,255,255,…
   deliberate overwrite, and it keeps a copy of what it replaced (undo toast +
   `↩ UNDO LAST RESTORE`). Small single values (bankroll, wallet, goals) are still
   last-write-wins; the Treasury **bankroll check** flags any drift.
-- Each synced list is one Firestore document, which is capped at 1 MiB. The Home **Data safety**
-  card warns at 70% / 90% of that limit and says so plainly if a save is ever refused as too
-  large (`js/data/util.js`, `cloudSizeWarnings`). Splitting a list across documents is the
-  long-term fix if one nears the limit.
+- Synced lists start as one Firestore document. Before a logical list reaches Firestore's 1 MiB
+  document cap, `js/data/sync.js` atomically converts it to a manifest plus conservative chunks;
+  realtime sync and weekly backups reassemble those chunks transparently. The Home **Data safety**
+  card only warns if Firestore still refuses a write after this fallback.
 - `pokerhqWeeklyBackup` (Cloud Function, Sundays 03:00 Manila) writes the owner's data to
   `pokerhq-backups/weekly/PokerHQ_Backup_YYYY-MM-DD.json` in the project's default Storage
   bucket, keeps the newest 8 distinct versions, and skips empty or unchanged data. The file is

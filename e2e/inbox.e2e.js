@@ -13,7 +13,6 @@ const { boot, freezeMotion, OWNER } = require("./lib.js");
   const settle = (ms = 120) => page.waitForTimeout(ms);
   const rows = () => page.$$eval("#inbox-list .inbox-row", (r) => r.map((x) => ({ key: x.getAttribute("data-key"), title: x.querySelector(".inbox-title").textContent.replace(/\s+/g, " ").trim(), detail: x.querySelector(".inbox-detail").textContent.trim() })));
   const badge = () => page.$$eval(".inbox-badge", (bs) => bs.filter((b) => b.offsetParent !== null).map((b) => b.textContent));
-  const day = (n) => { const d = new Date(Date.now() - n * 86400000); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
   const openInbox = async () => { await page.evaluate(() => switchGroup("review", "inbox")); await settle(); };
 
   // 0. empty: no card on Home, a friendly page, no badge
@@ -26,8 +25,13 @@ const { boot, freezeMotion, OWNER } = require("./lib.js");
   ok("empty: no card on Home, the page says 'Inbox clear', no badge");
 
   // 1. seed one of each source
-  await page.evaluate((d) => {
+  await page.evaluate(() => {
     const now = Date.now(), DAY = 86400000;
+    // Use the browser's Manila calendar dates, including when CI's Node process runs in UTC.
+    const d = Array.from({ length: 101 }, (_, n) => {
+      const date = new Date(now - n * DAY);
+      return date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0") + "-" + String(date.getDate()).padStart(2, "0");
+    });
     window.sessions = [
       { id: now - 2 * DAY, name: "Sunday Main", date: d[2], venue: "Okada Manila", total: 3000, prize: 0, pnl: -3000, result: "bust" },
       { id: now - 40 * DAY, name: "Old session", date: d[40], venue: "Okada Manila", total: 3000, prize: 0, pnl: -3000, result: "bust" },
@@ -43,22 +47,22 @@ const { boot, freezeMotion, OWNER } = require("./lib.js");
     ];
     localStorage.setItem("pokerhq_drill_v1", JSON.stringify({ saved: ["pre-pushfold"] }));
     syncGlobalAliases(); refreshInboxNow();
-  }, [0, 1, day(2)].concat(new Array(38).fill(0)).map((_, i) => day(i)));
+  });
   await settle();
   const all = await rows().catch(() => []);
   await openInbox();
   const list = await rows();
-  assert.deepEqual(list.map((r) => r.key.split(":")[0]), ["session", "hand", "hand", "lesson", "lesson", "opponent", "drill"], JSON.stringify(list.map((r) => r.key)));
-  assert.equal(list.filter((r) => r.title.includes("Old session")).length, 0, "a session from 40 days ago is not nagged about");
+  assert.deepEqual(list.map((r) => r.key.split(":")[0]), ["session", "session", "hand", "hand", "lesson", "opponent", "drill"], JSON.stringify(list.map((r) => r.key)));
+  assert.match(list.find((r) => r.title.includes("Old session")).detail, /^Overdue debrief · played 40 days ago$/, "old debriefs stay visible instead of silently disappearing");
   assert.equal(list.filter((r) => r.title.includes("Other room")).length, 0, "villains at rooms you don't play are left alone");
   const groups = await page.$$eval("#inbox-list .inbox-group-title", (g) => g.map((x) => x.textContent.replace(/\s+/g, " ").trim()));
-  assert.deepEqual(groups, ["📝 Sessions to debrief 1", "🃏 Hands to review 2", "💡 Lessons due 2", "👤 Villain notes to refresh 1", "🎯 Saved drills 1"]);
-  assert.match(list[0].detail, /^No debrief yet · played 2 days ago$/);
-  assert.equal(list[1].title.replace(/^\S+\s/, ""), "KK vs the nit");    // older hand first
+  assert.deepEqual(groups, ["📝 Sessions to debrief 2", "🃏 Hands to review 2", "💡 Lessons due 1", "👤 Villain notes to refresh 1", "🎯 Saved drills 1"]);
+  assert.match(list[1].detail, /^No debrief yet · played 2 days ago$/);
+  assert.equal(list[2].title.replace(/^\S+\s/, ""), "KK vs the nit");    // older hand first
   assert.match(list.find((r) => r.title.includes("Big pot")).detail, /^Needs details · yesterday$/);
   assert.match(list.find((r) => r.key.startsWith("opponent")).detail, /^Notes last touched 100 days ago · Okada Manila$/);
   assert.match(list.find((r) => r.key.startsWith("drill")).title, /Push\/fold spot check/);
-  ok("seven items in five groups, in order: debrief, hands (oldest first), lessons, villains, drills; old sessions and other rooms left out");
+  ok("seven items in five groups: overdue debriefs stay, unresolved hands are not duplicated as lessons, and other rooms stay out");
 
   // 2. the badges and the Home card
   assert.deepEqual(await badge(), ["7", "7"], "the REVIEW tab and the Inbox sub-tab (the phone copies are hidden on a desktop)");
@@ -67,14 +71,14 @@ const { boot, freezeMotion, OWNER } = require("./lib.js");
   assert.equal(await page.locator("#inbox-home-wrap .inbox-row").count(), 3, "the card shows the top three");
   assert.match(await page.textContent("#inbox-home-wrap .inbox-card-top"), /Review Inbox\s*7/);
   assert.match(await page.textContent("#inbox-home-wrap .inbox-card-top button"), /OPEN INBOX · 4 more/);
-  assert.match(await page.textContent("#inbox-home-wrap .inbox-row"), /Sunday Main/);
+  assert.match(await page.textContent("#inbox-home-wrap .inbox-row"), /Old session/, "the oldest overdue debrief is first");
   await page.click("#inbox-home-wrap .inbox-card-top button");
   assert.equal(await page.evaluate(() => document.getElementById("page-inbox").classList.contains("active")), true);
   ok("badges show 7; Home shows the top 3 with 'OPEN INBOX · 4 more', which opens the page");
 
   // 3. Review opens the right thing for each kind
   const review = async (keyPrefix, nth) => page.locator('#inbox-list .inbox-row[data-key^="' + keyPrefix + '"]').nth(nth || 0).getByRole("button", { name: /^(REVIEW|FINISH|OPEN)/ }).click();
-  await review("session");
+  await review("session", 1);
   await page.waitForSelector("#modal-session-detail.open");
   assert.match(await page.textContent("#sd-title"), /Sunday Main/);
   await closeModals();
@@ -102,7 +106,7 @@ const { boot, freezeMotion, OWNER } = require("./lib.js");
   // 4. Mark resolved: the flag is written and saved, the item leaves, the badge drops, UNDO puts it back
   await openInbox();
   const resolve = (keyPrefix, nth) => page.locator('#inbox-list .inbox-row[data-key^="' + keyPrefix + '"]').nth(nth || 0).getByRole("button", { name: "MARK RESOLVED" }).click();
-  await resolve("session");
+  await resolve("session", 1);
   assert.ok(await page.evaluate(() => typeof sessions[0].debriefedAt === "number"), "debriefedAt is set");
   assert.equal((await rows()).length, 6);
   assert.deepEqual(await badge(), ["6", "6"]);
@@ -127,11 +131,11 @@ const { boot, freezeMotion, OWNER } = require("./lib.js");
   await resolve("drill");
   assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem("pokerhq_drill_v1")).saved), []);
   const after = await rows();
-  assert.deepEqual(after.map((r) => r.key.split(":")[0]).sort(), ["hand", "lesson", "session"].sort(), JSON.stringify(after.map((r) => r.key)));
+  assert.deepEqual(after.map((r) => r.key.split(":")[0]).sort(), ["hand", "lesson", "session", "session"].sort(), JSON.stringify(after.map((r) => r.key)));
   ok("resolving a review-later hand, a lesson ('got it'), a villain note and a saved drill each clears just that item");
 
   // undo for the drill too
-  await page.evaluate(() => { localStorage.setItem("pokerhq_drill_v1", JSON.stringify({ saved: ["pre-pushfold"] })); refreshInboxNow(); });
+  await page.evaluate(async () => { window.drillState = PokerHQDrills.normalizeState({ saved: ["pre-pushfold"] }); localStorage.setItem("pokerhq_drill_v1", JSON.stringify(window.drillState)); await window.fbSave('drillState',window.drillState); refreshInboxNow(); });
   await settle();
   await resolve("drill");
   await page.click("#undo-toast button");
@@ -149,7 +153,7 @@ const { boot, freezeMotion, OWNER } = require("./lib.js");
   await page.evaluate(() => { const o = document.getElementById("onboarding-overlay"); if (o) o.style.display = "none"; });
   await openInbox();
   const reloaded = await rows();
-  assert.deepEqual(reloaded.map((r) => r.key.split(":")[0]).sort(), ["drill", "hand", "lesson", "session"].sort(), "resolved items stay resolved after a reload; the un-done drill is back");
+  assert.deepEqual(reloaded.map((r) => r.key.split(":")[0]).sort(), ["drill", "hand", "lesson", "session", "session"].sort(), "resolved items stay resolved after a reload; the un-done drill is back");
   ok("after a reload the resolved items are still resolved");
 
   // 6. mark the debrief done from the session itself
@@ -190,7 +194,7 @@ const { boot, freezeMotion, OWNER } = require("./lib.js");
   ok("finishing a marker or updating a villain's notes clears the item by itself");
 
   // 8. it follows live changes: a Review later tap during a session lands in the inbox at once
-  await page.evaluate(() => { window.hands.length = 0; window.sessions.length = 0; localStorage.removeItem("pokerhq_drill_v1"); refreshInboxNow(); switchGroup("play", "sessions"); document.getElementById("s-name").value = "Live one"; switchGroup("home"); });
+  await page.evaluate(() => { window.hands.length = 0; window.sessions.length = 0; window.drillState = PokerHQDrills.normalizeState({}); localStorage.removeItem("pokerhq_drill_v1"); refreshInboxNow(); switchGroup("play", "sessions"); document.getElementById("s-name").value = "Live one"; switchGroup("home"); });
   await page.click("#timer-start-btn");
   await page.getByRole("button", { name: "SKIP", exact: true }).click();
   await page.evaluate(() => switchGroup("play", "sessions"));

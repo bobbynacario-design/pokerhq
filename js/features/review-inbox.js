@@ -31,6 +31,7 @@ function computeInbox() {
     hands: window.hands || [],
     opponents: window.opponents || [],
     savedDrills: typeof window.drillSavedList === 'function' ? window.drillSavedList() : [],
+    dismissedLeaks: (window.reviewState && window.reviewState.dismissedLeaks) || {},
     recentVenues: inboxRecentVenues()
   });
 }
@@ -44,6 +45,7 @@ function inboxRowHtml(item, compact) {
     '<div class="inbox-main"><div class="inbox-title"><span class="inbox-icon" aria-hidden="true">' + kind.icon + '</span> ' + esc(item.title) + '</div>' +
     '<div class="inbox-detail">' + esc(item.detail) + '</div></div>' +
     '<div class="inbox-actions"><button class="sec-action primary" onclick="inboxReview(\'' + key + '\')">' + reviewLabel + '</button>' +
+    (item.kind === 'leak' ? '<button class="sec-action" onclick="openPracticeFromLeak(\'' + key + '\')">CREATE PRACTICE DRILL</button>' : '') +
     '<button class="sec-action" onclick="inboxResolve(\'' + key + '\')" title="Clear this from your inbox">MARK RESOLVED</button></div></div>';
 }
 
@@ -107,6 +109,13 @@ function inboxReview(key) {
   if (item.kind === 'session') viewSessionDetail(item.ref);
   else if (item.kind === 'hand' || item.kind === 'lesson') { if (item.action === 'finish') editHand(item.ref); else openHandReplay(item.ref); }
   else if (item.kind === 'opponent') editOpponent(item.ref);
+  else if (item.kind === 'leak') {
+    switchGroup('review', 'hands');
+    setTimeout(function() {
+      var tag = String(item.ref || '').replace(/^tag:/, '');
+      if (typeof window.setHandTagFilter === 'function') window.setHandTagFilter(tag);
+    }, 0);
+  }
   else if (item.kind === 'drill' && typeof window.drillOpenSaved === 'function') window.drillOpenSaved(item.ref);
 }
 
@@ -125,6 +134,14 @@ function inboxResolve(key) {
   if (item.kind === 'drill') {
     if (typeof window.drillUnsave === 'function') window.drillUnsave(item.ref);
     if (typeof showUndoToast === 'function') showUndoToast(label, function() { window.drillResave(item.ref); refreshInboxNow(); }, 6000);
+    refreshInboxNow();
+    return;
+  }
+  if (item.kind === 'leak') {
+    window.reviewState = window.reviewState || { dismissedLeaks: {} };
+    window.reviewState.dismissedLeaks = window.reviewState.dismissedLeaks || {};
+    window.reviewState.dismissedLeaks[item.ref] = Date.now();
+    save('reviewState', window.reviewState);
     refreshInboxNow();
     return;
   }

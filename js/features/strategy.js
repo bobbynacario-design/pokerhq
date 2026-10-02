@@ -63,6 +63,7 @@ function deleteSpotlight(id) {
 }
 
 function renderStrategy() {
+  if (typeof renderPracticeDrills === 'function') renderPracticeDrills();
   renderStrategyNudge();
   if (typeof renderAiSettings === 'function') renderAiSettings();
   var newsEl = document.getElementById('gemini-news-list');

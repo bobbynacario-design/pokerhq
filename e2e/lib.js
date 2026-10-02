@@ -20,7 +20,7 @@ const MIME = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
 // The sign-in the harness performs (the fake auth module hands the app this user).
 const OWNER = { uid: "u1", email: "bobbynacario@gmail.com", isAnonymous: false };
 
-// opts: {viewport, signedIn (default true), demo (load the demo data)}
+// opts: {viewport, signedIn (default true), demo, expandDetails (audit hidden panels)}
 async function boot(opts) {
   opts = opts || {};
   const server = http.createServer((req, res) => {
@@ -33,7 +33,8 @@ async function boot(opts) {
   });
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   const port = server.address().port;
-  const browser = await chromium.launch();
+  const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE;
+  const browser = await chromium.launch(executablePath ? { executablePath } : {});
   const ctx = await browser.newContext({ viewport: opts.viewport || { width: 1280, height: 900 }, serviceWorkers: "block", timezoneId: "Asia/Manila" });
   const page = await ctx.newPage();
   const errors = [];
@@ -58,6 +59,7 @@ async function boot(opts) {
     await page.evaluate(() => { loadDemoMode(); });
     await page.waitForTimeout(300);
   }
+  if (opts.expandDetails) await page.evaluate(() => document.querySelectorAll('details.disclosure').forEach((el) => { el.open = true; }));
   // Ignore the noise from the CDNs we block on purpose.
   const realErrors = () => errors.filter((e) => !/Failed to load resource|net::ERR|ERR_FAILED|jspdf|fonts/i.test(e));
   const close = async () => { await browser.close(); server.close(); };

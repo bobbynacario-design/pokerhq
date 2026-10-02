@@ -19,7 +19,9 @@ test("buildBackupData fills defaults for missing docs", () => {
   assert.deepEqual(data.bankroll, {amount: 0, rule: 15});
   assert.deepEqual(data.satTarget, {name: "", buyin: 0});
   assert.equal(data.timer, null);
-  assert.equal(Object.keys(data).length, 17);
+  assert.equal(Object.keys(data).length, 19);
+  assert.deepEqual(data.drillState, {});
+  assert.deepEqual(data.reviewState, {dismissedLeaks: {}});
   assert.deepEqual(data.trips, [], "trips and their costs are part of the backup");
   assert.deepEqual(data.tripExpenses, []);
 });

@@ -48,7 +48,7 @@ const LEAKS = () => {
 };
 
 (async () => {
-  const { page, dialogs, realErrors, close } = await boot({ viewport: { width: 1280, height: 1000 }, demo: true });
+  const { page, dialogs, realErrors, close } = await boot({ viewport: { width: 1280, height: 1000 }, demo: true, expandDetails: true });
   const ok = (m) => console.log("ok  " + m);
   await freezeMotion(page);
   const closeModals = () => page.evaluate(() => document.querySelectorAll(".modal-overlay.open").forEach((m) => m.classList.remove("open")));
@@ -85,6 +85,18 @@ const LEAKS = () => {
     await settle();
     (await leaks()).forEach((l) => problems.push(label + " → " + l));
   }
+  await page.evaluate(() => { switchGroup('plan','calendar');renderSlateLocationFilter();document.getElementById('slate-location').value='okada';document.getElementById('slate-budget').value=18500;document.getElementById('slate-travel').value=500;document.getElementById('slate-hotel').value=1000;renderSlateOptimizer(); });
+  await settle();(await leaks()).forEach(l=>problems.push('whole-plan budget → '+l));
+  await page.evaluate(() => { document.getElementById('slate-personalize').open=true;document.querySelectorAll('.slate-why').forEach(function(el){el.open=true;}); });
+  await settle();(await leaks()).forEach(l=>problems.push('personal pick explanations → '+l));
+  await page.evaluate(() => { var a=tourneys[0];tourneys.push(Object.assign({},a,{id:9999,name:a.name+' ',notes:'Buy-in ₱7,500'}));openCalendarCleanup();previewCalendarMerge(a.id,9999); });
+  await settle();(await leaks()).forEach(l=>problems.push('merge preview → '+l));
+  await page.evaluate(() => { openCalendarCleanup();document.querySelector('#cleanup-body .cleanup-pairs').open=true; });
+  await settle();(await leaks()).forEach(l=>problems.push('batch duplicate actions → '+l));
+  await page.evaluate(() => { previewCalendarBatch();document.querySelector('#cleanup-body .cleanup-pairs').open=true; });
+  await settle();(await leaks()).forEach(l=>problems.push('batch duplicate preview → '+l));
+  await page.evaluate(() => { closeModal('modal-calendar-cleanup');openPracticeFromHand(hands[0].id);savePracticeDraft(); });
+  await settle();(await leaks()).forEach(l=>problems.push('practice drill → '+l));
   for (const id of MODALS) {
     await page.evaluate((i) => { document.querySelectorAll(".modal-overlay.open").forEach((m) => m.classList.remove("open")); openModal(i); }, id);
     await settle(80);

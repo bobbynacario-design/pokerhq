@@ -3,7 +3,7 @@
 // thing to do today, in 2 minutes or in 10. Which drill comes up is picked by
 // js/data/drills.js from what's happening in the app (a pinned event coming up, a
 // rough last session, a thin bankroll, no hands logged). Progress lives on this
-// device only (localStorage) — it's a habit nudge, not data worth syncing.
+// synced with the rest of the profile so progress follows the player across devices.
 (function () {
   var KEY = 'pokerhq_drill_v1';
   var viewSaved = null;   // a saved drill being revisited instead of today's pick
@@ -13,18 +13,21 @@
   function escape(s) { return typeof window.esc === 'function' ? window.esc(s) : String(s == null ? '' : s); }
 
   function load() {
+    if (window.drillState && typeof window.drillState === 'object') return lib().normalizeState(window.drillState);
     var raw = null;
     try { raw = JSON.parse(localStorage.getItem(KEY)); } catch (e) { raw = null; }
     return lib().normalizeState(raw);
   }
   function save(state) {
-    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* private mode / full: keep working in memory */ }
+    window.drillState = state;
+    if (!window._demoMode) try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* private mode / full: keep working in memory */ }
+    if (typeof window.save === 'function') window.save('drillState', state);
   }
-  function update(fn) {
+  function update(fn, keepNote) {
+    if (!keepNote) note = '';
     var s = fn(load());
     save(s);
     window.renderDailyDrill();
-    note = '';
   }
 
   function fmtDay(dt) { return todayLocal(dt); }
@@ -175,7 +178,7 @@
       // "not today" also moves on, so the drill you just dismissed stops being the card.
       if (kind === 'notToday') { viewSaved = null; next = lib().skip(next, today); }
       return next;
-    });
+    }, true);
   };
   window.drillSave = function () {
     var today = todayLocal(), s = load(), cur = current(s, today);

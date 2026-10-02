@@ -56,13 +56,14 @@ const { boot, out } = require("./lib.js");
   assert.match(await page.textContent("#format-breakdown"), /Pick a Format/);
   ok("only unrecorded sessions: shows a hint to pick a Format");
 
-  // 7. CSV has Format as the LAST column (existing spreadsheets keep their columns)
+  // 7. CSV keeps Format in its existing column and appends final-table status.
   await page.evaluate(() => { window.sessions = [{ id: 1, name: "a", date: "2026-01-01", total: 1000, prize: 0, bounties: 0, pnl: -1000, result: "bust", venue: "X", structure: "Turbo", position: 9, field: 40, hours: 2 }]; syncGlobalAliases(); });
   const csv = await page.evaluate(() => { let cap = ""; const O = window.Blob; window.Blob = function (p) { cap = p.join(""); return new O(p); }; const oc = HTMLAnchorElement.prototype.click; HTMLAnchorElement.prototype.click = function () {}; exportCSV(); window.Blob = O; HTMLAnchorElement.prototype.click = oc; return cap; });
   const [head, first] = csv.split("\n");
-  assert.ok(head.endsWith(",Fasting,Format"), head);
-  assert.ok(first.endsWith(",Turbo"), first);
-  ok("CSV: Format added as the last column");
+  assert.ok(head.endsWith(",Fasting,Format,Final Table"), head);
+  assert.ok(first.endsWith(",Turbo,Not recorded"), first);
+  assert.equal(head.split(',')[18], 'Format');
+  ok("CSV: existing Format column is kept, final-table status is appended");
 
   assert.deepEqual(realErrors(), []);
   ok("no page errors");

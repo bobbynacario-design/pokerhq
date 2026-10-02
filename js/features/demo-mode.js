@@ -109,21 +109,63 @@ var _demoSatTarget = {name:'Okada Manila Millions Main Event', buyin:7500};
 
 function initDemoModeFeature() {}
 
-function loadDemoMode() {
-  if (!confirm('This will load sample data so you can explore PokerHQ.\n\nYour real data is safe and will not be affected.')) return;
+var _demoOriginal = null;
+function demoClone(value) { return JSON.parse(JSON.stringify(value)); }
+function demoDayOffset(from, to) {
+  var a=from.split('-').map(Number),b=to.split('-').map(Number);
+  return Math.round((Date.UTC(b[0],b[1]-1,b[2])-Date.UTC(a[0],a[1]-1,a[2]))/86400000);
+}
+function demoShiftDate(value, offset) {
+  var date=new Date(value+'T12:00:00');if(isNaN(date.getTime()))return value;
+  date.setDate(date.getDate()+offset);return todayLocal(date);
+}
+function buildDemoData(today) {
+  var past=demoDayOffset('2026-03-22',demoShiftDate(today,-1)),future=demoDayOffset('2026-04-15',demoShiftDate(today,1));
+  var data={sessions:demoClone(_demoSessions),tourneys:demoClone(_demoTourneys),hands:demoClone(_demoHands),strategies:demoClone(_demoStrategies),satellites:demoClone(_demoSatellites),opponents:demoClone(_demoOpponents),walletLedger:demoClone(_demoWalletLedger),trips:demoClone(_demoTrips),tripExpenses:demoClone(_demoTripExpenses)};
+  ['sessions','satellites','walletLedger'].forEach(function(key){data[key].forEach(function(item){item.date=demoShiftDate(item.date,past);});});
+  data.sessions.forEach(function(s){s.finalTable=s.result==='final';s.structure=s.rebuy?'Re-entry':'Freezeout';});
+  data.tourneys.forEach(function(t,i){var range=parseTourneyDateRange(t);if(!range)return;t.date=demoShiftDate(todayLocal(range.start),future);var d=new Date(t.date+'T12:00:00');t.day=String(d.getDate());t.month=d.toLocaleDateString('en-US',{month:'short'}).toUpperCase();t.time=i%2?'12:00':'18:00';t.planning=i===0;});
+  data.trips.forEach(function(t){var offset=t.id===8801?past:future;t.start=demoShiftDate(t.start,offset);t.end=demoShiftDate(t.end,offset);});
+  data.tripExpenses.forEach(function(e){e.date=demoShiftDate(e.date,past);});
+  data.hands.forEach(function(h){var s=data.sessions.find(function(s){return s.id===h.sessionId;});if(s)h.session=s.name+' — '+s.date;if(h.marker)h.marker.at+=past*86400000;});
+  data.opponents.forEach(function(o){o.added=demoShiftDate(o.added,past);});
+  data.strategies[0].week='Week of '+demoShiftDate(today,-1);
+  return data;
+}
+function resetDemoTimer() {
+  if(_timerInterval)clearInterval(_timerInterval);_timerInterval=null;_timerStart=null;_timerElapsed=0;
+  document.getElementById('timer-display').textContent='00:00:00';
+  document.getElementById('timer-start-btn').style.display='inline-block';document.getElementById('timer-start-btn').textContent='START';
+  document.getElementById('timer-stop-btn').style.display='none';document.getElementById('timer-log-btn').style.display='none';
+}
+function enterGuestDemo() { loadDemoMode(true); startDemoTour(); }
+
+function loadDemoMode(skipConfirmation) {
+  if (skipConfirmation !== true && !confirm('This will load sample data so you can explore PokerHQ.\n\nYour real data is safe and will not be affected.')) return;
+  if(!window._demoMode) {
+    _demoOriginal={data:getBackupSnapshot().data,draft:demoClone(_activeSessionDraft),editing:_editingSessionId,form:[]};
+    document.querySelectorAll('#page-sessions input,#page-sessions select,#page-sessions textarea').forEach(function(el){_demoOriginal.form.push({id:el.id,value:el.value,checked:el.checked});});
+  }
   window._demoMode = true;
+  hideUndoToast();
+  if(typeof invalidateSlateDraft==='function')invalidateSlateDraft();
+  var demo=buildDemoData(todayLocal());
+  resetDemoTimer();_editingSessionId=null;
   clearActiveSessionDraft();
-  window.sessions   = _demoSessions.slice();
-  window.tourneys   = _demoTourneys.slice();
-  window.hands      = _demoHands.slice();
-  window.strategies = _demoStrategies.slice();
-  window.satellites = _demoSatellites.slice();
-  window.opponents  = _demoOpponents.slice();
+  clearSessionForm();
+  window.sessions   = demo.sessions;
+  window.tourneys   = demo.tourneys;
+  window.hands      = demo.hands;
+  window.strategies = demo.strategies;
+  window.satellites = demo.satellites;
+  window.opponents  = demo.opponents;
   window.bankroll   = Object.assign({}, _demoBankroll);
   window.wallet     = Object.assign({}, _demoWallet);
-  window.walletLedger = _demoWalletLedger.slice();
-  window.trips = _demoTrips.slice();
-  window.tripExpenses = _demoTripExpenses.slice();
+  window.walletLedger = demo.walletLedger;
+  window.trips = demo.trips;
+  window.tripExpenses = demo.tripExpenses;
+  window.newsItems=[];window.spotlights=[];window.drillState={};window.reviewState={dismissedLeaks:{}};window.goals={};window.reminderSettings={};
+  if(window.syncGlobalAliases)window.syncGlobalAliases();
   sessions   = window.sessions;
   tourneys   = window.tourneys;
   hands      = window.hands;
@@ -140,7 +182,10 @@ function loadDemoMode() {
   var clearBtn = document.getElementById('demo-clear-btn');
   if (badge) badge.classList.add('visible');
   if (clearBtn) clearBtn.classList.add('visible');
-  if (typeof _calYear !== 'undefined') { _calYear = 2026; _calMonth = 3; }
+  document.getElementById('demo-tour-btn').classList.add('visible');
+  calYear=new Date().getFullYear();calMonth=new Date().getMonth();
+  document.getElementById('login-overlay').classList.add('hidden');
+  document.getElementById('signout-btn').style.display='none';
   switchGroup('home');
   refreshDashboard();
   renderCalendarMonth();
@@ -158,8 +203,14 @@ function loadDemoMode() {
 }
 
 function clearDemoMode() {
+  closeDemoTour();
+  document.getElementById('demo-tour-btn').classList.remove('visible');
+  var cleanUrl=new URL(location.href);cleanUrl.searchParams.delete('demo');history.replaceState(null,'',cleanUrl.href);
+  hideUndoToast();
+  if(typeof invalidateSlateDraft==='function')invalidateSlateDraft();
+  resetDemoTimer();
+  _activeSessionDraft=null;
   window._demoMode = false;
-  clearActiveSessionDraft();
   window.sessions   = load('sessions', []);
   window.tourneys   = load('tourneys', []);
   window.hands      = load('hands', []);
@@ -187,7 +238,20 @@ function clearDemoMode() {
   var clearBtn = document.getElementById('demo-clear-btn');
   if (badge) badge.classList.remove('visible');
   if (clearBtn) clearBtn.classList.remove('visible');
-  if (window.fbLoadAll) window.fbLoadAll();
+  if(_demoOriginal){
+    Object.keys(_demoOriginal.data).forEach(function(key){if(key!=='timer')window[key==='news'?'newsItems':key]=_demoOriginal.data[key];});
+    _activeSessionDraft=_demoOriginal.draft;_editingSessionId=_demoOriginal.editing;
+    clearRatings();
+    _demoOriginal.form.forEach(function(field){var el=document.getElementById(field.id);if(el){el.value=field.value;el.checked=field.checked;}});
+    ['focus','energy','sleep'].forEach(function(key){var value=Number(document.getElementById('s-'+key).value);if(value)applyRatingValue('s-'+key,key+'-btns',value);});
+    restoreTimerState(_demoOriginal.data.timer);
+    _demoOriginal=null;
+  }
+  if(window.syncGlobalAliases)window.syncGlobalAliases();
+  renderSessionEditBanner();
+  if(window.__pokerhqAuthUid){document.getElementById('signout-btn').style.display='';if(window.fbLoadAll)window.fbLoadAll();}
+  else if(window.pokerhqShowSignIn)window.pokerhqShowSignIn();
+  else document.getElementById('login-overlay').classList.remove('hidden');
   refreshDashboard();
   renderCalendarMonth();
   renderCalendarList();

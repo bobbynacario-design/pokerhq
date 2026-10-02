@@ -117,7 +117,7 @@ const PAGES = [
 const MODALS = ["modal-tourney", "modal-hand", "modal-opponent", "modal-satellite", "modal-voice", "modal-readiness"];
 
 async function audit(viewport) {
-  const { page, close } = await boot({ viewport, demo: true });
+  const { page, close } = await boot({ viewport, demo: true, expandDetails: true });
   await freezeMotion(page);
   await page.evaluate(() => document.body.classList.add("light"));
   const problems = [];
@@ -127,6 +127,17 @@ async function audit(viewport) {
     (await page.evaluate(MEASURE)).forEach((r) => problems.push(Object.assign({ page: label }, r)));
   };
   for (const [label, prep] of PAGES) await scan(label, prep);
+  await scan('compact playing these', () => { switchGroup('plan','calendar');tourneys.push({id:9876,date:'2099-10-03',name:'Pinned tournament',venue:'Okada Manila',buyin:3000,planning:true});renderPlannedEvents();document.getElementById('planned-details').open=true; });
+  await scan('slate whole-plan budget', () => { switchGroup('plan','calendar');renderSlateLocationFilter();document.getElementById('slate-location').value='okada';document.getElementById('slate-budget').value=18500;document.getElementById('slate-limits').open=true;renderSlateOptimizer(); });
+  await scan('personal planning and pick explanations', () => { document.getElementById('slate-personalize').open=true;document.querySelectorAll('.slate-why').forEach(function(el){el.open=true;}); });
+  await scan('calendar merge preview', () => { var a=tourneys[0];tourneys.push(Object.assign({},a,{id:9999,name:a.name+' ',planning:true,notes:'Extra source detail'}));openCalendarCleanup();previewCalendarMerge(a.id,9999); });
+  await scan('calendar batch actions and group preview', () => { openCalendarCleanup();document.querySelector('#cleanup-body .cleanup-pairs').open=true; });
+  await scan('calendar batch confirmation', () => { previewCalendarBatch();document.querySelector('#cleanup-body .cleanup-pairs').open=true; });
+  await scan('practice drill and progress', () => { closeModal('modal-calendar-cleanup');openPracticeFromHand(hands[0].id);savePracticeDraft(); });
+  await scan('blind clock and BB', () => { replaceActiveSessionDraft({date:todayLocal(),name:'Live controls'});setLiveClockField('bigBlind',400);setLiveClockField('chips',20000);switchGroup('play','sessions');renderActiveSessionSurface(); });
+  await scan('re-entry guard and budget review', () => { replaceActiveSessionDraft({date:todayLocal(),name:'Guard controls',buyin:3000,reentryGuard:{cap:4000,protect:1500}});switchGroup('play','sessions');updateBulletCount(1);document.querySelector('#play-active-session-wrap .reentry-settings').open=true; });
+  await scan('guided demo tour', () => { switchGroup('home');startDemoTour(); });
+  await page.evaluate(() => closeDemoTour());
   for (const id of MODALS) await scan("modal:" + id, (i) => { document.querySelectorAll(".modal-overlay.open").forEach((m) => m.classList.remove("open")); openModal(i); }, id);
   await scan("modal:session-detail", () => { document.querySelectorAll(".modal-overlay.open").forEach((m) => m.classList.remove("open")); switchGroup("review", "sessions"); viewSessionDetail(sessions[0].id, true); });
   // live hand markers: the running-session card with its big buttons, Hand History with tag chips and the

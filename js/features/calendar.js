@@ -297,33 +297,8 @@ function exportCalendarICS() {
 }
 
 function dedupeTourneys() {
-  var list = window.tourneys || [];
-  // Same identity key the event importers use: canonical date + name + venue.
-  var keyOf = (typeof getImportedTourneyFingerprint === 'function')
-    ? getImportedTourneyFingerprint
-    : function(t) { return [(t.date || ''), (t.name || ''), (t.venue || '')].join('|').toLowerCase(); };
-  var seen = {}, kept = [];
-  list.forEach(function(t) {
-    var k = keyOf(t);
-    if (!seen[k]) { seen[k] = true; kept.push(t); }
-  });
-  var removed = list.length - kept.length;
-  if (removed === 0) {
-    alert('No duplicate tournaments found.');
-    return;
-  }
-  if (!confirm('Found ' + removed + ' duplicate tournament(s) — same date, name and venue. Remove them? One copy of each is kept.')) return;
-  kept.sort(function(a, b) { return (a.date || '').localeCompare(b.date || ''); });
-  window.tourneys = kept;
-  tourneys = kept;
-  save('tourneys', tourneys);
-  renderCalendar();
-  if (typeof showUndoToast === 'function') showUndoToast('Removed ' + removed + ' duplicate tournament(s)', function() {
-    window.tourneys = list;
-    tourneys = list;
-    save('tourneys', tourneys);
-    renderCalendar();
-  });
+  openCalendarCleanup();
+  previewCalendarBatch();
 }
 
 function deleteTourney(id) {
@@ -343,6 +318,7 @@ function deleteTourney(id) {
 }
 
 function renderCalendar() {
+  if (typeof _slateDraft !== 'undefined' && _slateDraft) updateSlateSummary();
   renderPlannedEvents();
   renderCalendarMonth();
   renderCalendarList();
@@ -701,46 +677,76 @@ async function runCalendarSearches(searches, concurrency, onComplete) {
   return results;
 }
 
-// The "Playing These" card at the top of the calendar — the events you've
-// pinned, soonest first, with the running buy-in commitment. Empty (and the
-// card hidden) until you pin something.
+var _plannedExpanded = false;
+var _plannedPage = 0;
+var PLANNED_PAGE_SIZE = 6;
+
+function plannedVenue(t) {
+  return window.PokerHQStats ? window.PokerHQStats.placeOf(t.venue).label : (t.venue || 'Venue to confirm');
+}
+
+function changePlannedPage(delta) {
+  _plannedPage += delta;
+  renderPlannedEvents();
+  var button = document.getElementById(delta > 0 ? 'planned-next-page' : 'planned-prev-page');
+  if (!button || button.disabled) button = document.querySelector('#planned-details summary');
+  if (button) button.focus();
+}
+
+function removePlannedEvent(id) {
+  var buttons = Array.from(document.querySelectorAll('.planned-remove'));
+  var index = buttons.findIndex(function (b) { return b.dataset.id === String(id); });
+  togglePlanning(id);
+  buttons = Array.from(document.querySelectorAll('.planned-remove'));
+  var next = buttons[Math.min(Math.max(index, 0), buttons.length - 1)] || document.querySelector('#planned-details summary') || document.getElementById('vbtn-planned');
+  if (next) next.focus();
+}
+
+// Keep the plan small after applying a slate; expand to manage compact rows.
+// Renders preserve the user's open state and page while they remove picks.
 function renderPlannedEvents() {
   var wrap = document.getElementById('planned-events-wrap');
   if (!wrap) return;
+  var previous = wrap.querySelector('#planned-details');
+  if (previous) _plannedExpanded = previous.open;
   var planned = getUpcomingPlannedTourneys();
-  if (!planned.length) { wrap.innerHTML = ''; return; }
+  if (!planned.length) { wrap.innerHTML = ''; _plannedExpanded = false; _plannedPage = 0; return; }
 
+  var pages = Math.ceil(planned.length / PLANNED_PAGE_SIZE);
+  _plannedPage = Math.max(0, Math.min(_plannedPage, pages - 1));
   var totalBuyin = planned.reduce(function (s, p) { return s + (parseFloat(p.t.buyin) || 0); }, 0);
   var html = '<div class="planned-card">';
   html += '<div class="planned-hdr">';
   html += '<div class="planned-title"><span>★</span>Playing These</div>';
   html += '<div class="planned-summary">' + planned.length + ' event' + (planned.length > 1 ? 's' : '') +
-    ' · ₱' + totalBuyin.toLocaleString() + ' committed</div>';
+    ' · ' + fmtCur(totalBuyin) + ' in buy-ins</div>';
   html += '</div>';
+  var next = planned[0];
+  html += '<div class="planned-next"><div><div class="planned-next-label">Next up · ' + esc(next.range.start.toLocaleDateString('en-PH', { day: 'numeric', month: 'short', year: 'numeric' })) + '</div>';
+  html += '<div class="planned-next-name">' + esc(next.t.name) + '</div><div class="planned-venue">' + esc(plannedVenue(next.t)) + '</div></div>';
+  html += '<button class="sec-action planned-start" onclick="startSessionFromTourney(' + next.t.id + ')">▶ START NEXT</button></div>';
+  html += '<details id="planned-details"' + (_plannedExpanded ? ' open' : '') + '><summary>Manage ' + planned.length + ' event' + (planned.length > 1 ? 's' : '') + '</summary>';
+  var remaining=Number(window.bankroll&&window.bankroll.amount||0)-totalBuyin;
+  html += '<p class="planned-budget '+(remaining<0?'over-budget':'')+'">'+(remaining<0?'Plan exceeds bankroll by '+fmtCur(-remaining):fmtCur(remaining)+' bankroll remains after pinned buy-ins')+'. Travel, hotel and re-entries are additional.</p>';
   html += '<div class="planned-list">';
-  planned.forEach(function (p) {
+  planned.slice(_plannedPage * PLANNED_PAGE_SIZE, (_plannedPage + 1) * PLANNED_PAGE_SIZE).forEach(function (p) {
     var t = p.t;
     var d = p.range.start;
-    var day = d.getDate();
-    var mon = MONTH_SHORT_UPPER[d.getMonth()];
-    var liveStatus = gradeBuyin(t.buyin);
-    var sc = { target: 'ts-target', stretch: 'ts-stretch', skip: 'ts-skip' }[liveStatus] || 'ts-skip';
-    var sl = { target: 'TARGET', stretch: 'STRETCH', skip: 'SKIP' }[liveStatus] || 'SKIP';
-    html += '<div class="event-row planning" id="planned-row-' + t.id + '">';
-    html += '<div class="event-date-box"><div class="event-date-day">' + day + '</div><div class="event-date-mon">' + esc(mon) + '</div></div>';
-    html += '<div class="event-info"><div class="event-name">' + esc(t.name) + '</div>';
-    html += '<div class="event-meta">';
-    if (t.venue) html += '<span>' + esc(t.venue) + '</span>';
-    if (t.gtd) html += '<span>GTD: ' + esc(t.gtd) + '</span>';
-    html += '</div></div>';
-    html += '<div class="event-right">';
-    html += '<div class="event-buyin">₱' + (t.buyin ? Number(t.buyin).toLocaleString() : '0') + '</div>';
-    html += '<span class="tourney-status ' + sc + '">' + sl + '</span>';
-    html += '<button class="sec-action" style="font-size:10px;padding:3px 9px;margin-top:2px;border-color:var(--green);color:var(--green)" onclick="startSessionFromTourney(' + t.id + ')">▶ START SESSION</button>';
-    html += '<button class="pin-btn pinned" title="Remove from your plan" onclick="togglePlanning(' + t.id + ')">★</button>';
+    html += '<div class="planned-row" id="planned-row-' + t.id + '">';
+    html += '<time class="planned-date" datetime="' + toDateInputValue(d) + '">' + d.getDate() + ' ' + esc(MONTH_SHORT_UPPER[d.getMonth()]) + '<span>' + d.getFullYear() + '</span></time>';
+    html += '<div class="planned-info"><div class="planned-event-name">' + esc(t.name) + '</div><div class="planned-venue">' + esc(plannedVenue(t)) + '</div></div>';
+    html += '<div class="planned-buyin">' + fmtCur(Number(t.buyin) || 0) + '</div><div class="planned-actions">';
+    html += '<button class="sec-action" title="Start session" aria-label="Start session for ' + esc(t.name) + '" onclick="startSessionFromTourney(' + t.id + ')">▶</button>';
+    html += '<button class="sec-action planned-remove" data-id="' + t.id + '" title="Remove from plan" aria-label="Remove ' + esc(t.name) + ' from your plan" onclick="removePlannedEvent(' + t.id + ')"><span class="planned-remove-label">Remove</span><span class="planned-remove-icon" aria-hidden="true">×</span></button>';
     html += '</div></div>';
   });
-  html += '</div></div>';
+  html += '</div>';
+  if (pages > 1) {
+    html += '<div class="planned-pagination"><span>' + (_plannedPage * PLANNED_PAGE_SIZE + 1) + '–' + Math.min((_plannedPage + 1) * PLANNED_PAGE_SIZE, planned.length) + ' of ' + planned.length + '</span><div>';
+    html += '<button id="planned-prev-page" class="sec-action"' + (_plannedPage === 0 ? ' disabled' : '') + ' onclick="changePlannedPage(-1)" aria-label="Previous planned events">← Prev</button>';
+    html += '<button id="planned-next-page" class="sec-action"' + (_plannedPage === pages - 1 ? ' disabled' : '') + ' onclick="changePlannedPage(1)" aria-label="Next planned events">Next →</button></div></div>';
+  }
+  html += '</details></div>';
   wrap.innerHTML = html;
 }
 
@@ -772,6 +778,7 @@ function visibleTourneys() {
 // Fills the location selector from ALL events (so the choices don't shrink when
 // "Planned only" is on) and shows how many events the current choice leaves.
 function renderCalendarVenueFilter() {
+  if (typeof renderSlateLocationFilter === 'function') renderSlateLocationFilter();
   var sel = document.getElementById('cal-venue-filter');
   if (!sel || !window.PokerHQStats) return;
   var all = (tourneys || []).filter(function (t) { return t && typeof t === 'object'; });
@@ -1173,7 +1180,7 @@ function renderCalendarList() {
       if (t.notes) html += '<span>' + esc(t.notes) + '</span>';
       html += '</div></div>';
       html += '<div class="event-right">';
-      html += '<div class="event-buyin">₱' + t.buyin.toLocaleString() + '</div>';
+      html += '<div class="event-buyin">' + (Number(t.buyin)>0 ? fmtCur(Number(t.buyin)) : 'Buy-in to confirm') + '</div>';
       html += '<span class="' + badgeCls + '">' + badgeTxt + '</span>';
       html += '<span class="tourney-status ' + sc + '">' + sl + '</span>';
       html += '<button class="sec-action" style="font-size:10px;padding:3px 9px;margin-top:2px;border-color:var(--green);color:var(--green)" onclick="startSessionFromTourney(' + t.id + ')">▶ START SESSION</button>';

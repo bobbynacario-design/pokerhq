@@ -143,7 +143,7 @@ function renderDashboardExtras() {
       invested += s.total || 0;
       returned += sessionWinnings(s);
       hours += s.hours || 0;
-      if (s.result === 'itm' || s.result === 'final') itm++;
+      if (Number(s.prize) > 0) itm++;
     });
     var pnl = returned - invested;
     return {

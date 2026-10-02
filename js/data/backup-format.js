@@ -100,6 +100,8 @@
     // tolerate older files without them, but reject them if present and malformed.
     if (typeof source.goals !== "undefined" && !isObj(source.goals)) return { ok: false, message: "Backup goals data is invalid." };
     if (typeof source.reminderSettings !== "undefined" && !isObj(source.reminderSettings)) return { ok: false, message: "Backup reminder settings are invalid." };
+    if (typeof source.drillState !== "undefined" && !isObj(source.drillState)) return { ok: false, message: "Backup drill state is invalid." };
+    if (typeof source.reviewState !== "undefined" && !isObj(source.reviewState)) return { ok: false, message: "Backup review state is invalid." };
 
     var data = {};
     var dropped = 0, droppedIn = [];
@@ -124,6 +126,8 @@
     data.satTarget = clone(source.satTarget, { name: "", buyin: 0 });
     data.goals = isObj(source.goals) ? clone(source.goals, {}) : {};
     data.reminderSettings = isObj(source.reminderSettings) ? clone(source.reminderSettings, {}) : {};
+    data.drillState = isObj(source.drillState) ? clone(source.drillState, {}) : {};
+    data.reviewState = isObj(source.reviewState) ? clone(source.reviewState, { dismissedLeaks: {} }) : { dismissedLeaks: {} };
     data.timer = typeof source.timer === "undefined" ? null : clone(source.timer, null);
 
     return {

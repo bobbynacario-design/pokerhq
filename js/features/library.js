@@ -428,6 +428,8 @@ function getBackupSnapshot() {
       opponents: cloneBackupValue(window.opponents || [], []),
       goals: cloneBackupValue(window.goals || {}, {}),
       reminderSettings: cloneBackupValue(window.reminderSettings || {}, {}),
+      drillState: cloneBackupValue(window.drillState || {}, {}),
+      reviewState: cloneBackupValue(window.reviewState || { dismissedLeaks: {} }, { dismissedLeaks: {} }),
       timer: cloneBackupValue(load('timer', null), null)
     }
   };
@@ -602,6 +604,12 @@ function applyBackupRestore(data) {
   window.reminderSettings = data.reminderSettings || {};
   persist('reminderSettings', window.reminderSettings);
 
+  window.drillState = data.drillState || {};
+  persist('drillState', window.drillState);
+
+  window.reviewState = data.reviewState || { dismissedLeaks: {} };
+  persist('reviewState', window.reviewState);
+
   var timerState = data.timer || { running: false, startedAt: null, elapsed: 0 };
   if (typeof resetTimerState === 'function') resetTimerState();
   persist('timer', timerState);
@@ -688,14 +696,14 @@ function exportCSV() {
     return;
   }
   if (window.PokerHQPrivacy && !window.PokerHQPrivacy.confirmExport('CSV file')) return;   // Privacy Mode: files carry real amounts
-  var headers = ['Date', 'Tournament', 'Venue', 'Buy-in', 'Rebuys', 'Total Invested', 'Field', 'Position', 'Prize', 'Bounties', 'P&L', 'Hours', 'Result', 'Notes', 'Focus', 'Energy', 'Sleep', 'Fasting', 'Format'];
+  var headers = ['Date', 'Tournament', 'Venue', 'Buy-in', 'Rebuys', 'Total Invested', 'Field', 'Position', 'Prize', 'Bounties', 'P&L', 'Hours', 'Result', 'Notes', 'Focus', 'Energy', 'Sleep', 'Fasting', 'Format', 'Final Table'];
   var rows = sessions.map(function(s) {
     return [
       s.date || '', s.name || '', s.venue || '',
       s.buyin || 0, s.rebuy || 0, s.total || 0,
       s.field || '', s.position || '', s.prize || 0, s.bounties || 0, s.pnl || 0,
       s.hours || 0, s.result || '', s.notes || '',
-      s.focus || '', s.energy || '', s.sleep || '', s.fasting || '', s.structure || ''
+      s.focus || '', s.energy || '', s.sleep || '', s.fasting || '', s.structure || '', typeof s.finalTable === 'boolean' ? (s.finalTable ? 'Yes' : 'No') : (s.result === 'final' ? 'Yes (legacy)' : 'Not recorded')
     ].map(csvField).join(',');
   });
   var csv = [headers.join(',')].concat(rows).join('\n');

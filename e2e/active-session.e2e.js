@@ -93,20 +93,22 @@ const { boot } = require("./lib.js");
   await page.waitForTimeout(300);
   await closeModals();
   const done = await page.evaluate(() => ({
-    name: sessions[0].name, pnl: sessions[0].pnl, result: sessions[0].result, bullets: sessions[0].bullets, focus: sessions[0].focus,
+    name: sessions[0].name, pnl: sessions[0].pnl, rebuy: sessions[0].rebuy, total: sessions[0].total, result: sessions[0].result, bullets: sessions[0].bullets, focus: sessions[0].focus,
     bankroll: bankroll.amount, handSession: hands[0].sessionId === sessions[0].id, handKey: hands[0].pendingSessionKey || "",
     draft: typeof _activeSessionDraft === "undefined" ? null : _activeSessionDraft,
   }));
   assert.equal(done.name, "E2E Sunday Main");
   assert.equal(done.result, "itm");
-  assert.equal(done.pnl, 6000, "P&L is the ₱9,000 prize minus the ₱3,000 buy-in");
+  assert.equal(done.rebuy, 3000, "the recorded second bullet reaches the final session form");
+  assert.equal(done.total, 6000);
+  assert.equal(done.pnl, 3000, "P&L includes both the ₱3,000 buy-in and ₱3,000 recorded re-entry");
   assert.equal(done.bullets, 2);
   assert.equal(done.focus, 9);
-  assert.equal(done.bankroll, 56000);
+  assert.equal(done.bankroll, 53000);
   assert.equal(done.handSession, true, "the captured hand is now attached to the finished session");
   assert.equal(done.handKey, "", "and no longer waits on a pending key");
   assert.equal(done.draft, null, "the active session is over");
-  ok("LOG SESSION: ITM +₱6,000, bankroll ₱56,000, hand attached to the session, active session cleared");
+  ok("LOG SESSION: ITM +₱3,000 after both bullets, bankroll ₱53,000, hand attached to the session, active session cleared");
 
   // 9. the active-session card is gone and PLAY offers a fresh start
   await page.evaluate(() => switchGroup("play", "sessions"));

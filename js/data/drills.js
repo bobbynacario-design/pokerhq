@@ -319,6 +319,12 @@
     if (parseDay(s.tucked)) out.tucked = s.tucked;
     if (MOODS.some(function (m) { return m.key === s.mood; })) out.mood = s.mood;
     if (s.level === "deep") out.level = "deep";
+    if (Array.isArray(s.practice)) out.practice = s.practice.filter(function(p) {
+      return isObj(p) && typeof p.id === 'string' && /^[\w:-]+$/.test(p.id) && typeof p.title === 'string' && typeof p.prompt === 'string';
+    }).map(function(p) {
+      return {id:p.id,title:p.title,prompt:p.prompt,sourceHandId:isFinite(Number(p.sourceHandId)) ? Number(p.sourceHandId)||null : null,sourceTag:p.sourceTag || '',createdAt:Number(p.createdAt)||0,
+        days:Array.from(new Set((Array.isArray(p.days)?p.days:[]).filter(function(d){return !!parseDay(d);}))).sort()};
+    });
     return out;
   }
 

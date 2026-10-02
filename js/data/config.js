@@ -24,6 +24,8 @@ export const FIRESTORE_KEYS = [
   "opponents",
   "goals",
   "reminderSettings",
+  "drillState",
+  "reviewState",
   "timer"
 ];
 

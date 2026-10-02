@@ -14,7 +14,7 @@
     list.forEach(function (s) {
       invested += num(s.total);
       returned += num(s.prize) + num(s.bounties);
-      if (s.result === "itm" || s.result === "final") itm++;
+      if (num(s.prize) > 0) itm++;
       if (num(s.hours) > 0) { hours += num(s.hours); timedPnl += num(s.pnl); }
     });
     var pnl = returned - invested;

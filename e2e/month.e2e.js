@@ -1,7 +1,7 @@
 const assert = require("assert").strict;
 const { boot, out } = require("./lib.js");
 (async () => {
-  const { page, realErrors, close } = await boot({ viewport: { width: 1100, height: 900 } });
+  const { page, realErrors, close } = await boot({ viewport: { width: 1100, height: 900 }, expandDetails: true });
   const ok = (m) => console.log("ok  " + m);
   await page.evaluate(() => { window.sessions.length = 0; switchGroup("home"); refreshDashboard(); });
   assert.match(await page.textContent("#month-breakdown"), /month-by-month/);
@@ -12,7 +12,8 @@ const { boot, out } = require("./lib.js");
   const rows = await page.$$eval("#month-breakdown tbody tr", (trs) => trs.map((t) => [t.children[0].textContent.replace(" *", ""), t.children[1].textContent]));
   console.log("    " + rows.map((r) => r.join(":")).join("  "));
   assert.ok(rows.length >= 4 && rows.length <= 12);
-  assert.equal(rows[0][0], "Mar 2026", "newest month first (demo data ends March 2026)");
+  const latestMonth=await page.evaluate(() => new Date(sessions[0].date+'T12:00:00').toLocaleDateString('en-PH',{month:'short',year:'numeric'}));
+  assert.equal(rows[0][0], latestMonth, "newest month first (demo follows today's date)");
   assert.equal(rows.reduce((n, r) => n + parseInt(r[1], 10), 0), 20, "12-month table covers all 20 demo sessions");
   ok("demo data: " + rows.length + " months, newest first, sessions add up to 20");
 

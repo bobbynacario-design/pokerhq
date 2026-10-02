@@ -161,7 +161,7 @@ const S = require("./lib.js").OUT;
   ok("'What do you need today?' narrows the theme");
 
   // 11. a drill's button opens the right tool
-  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem("pokerhq_drill_v1")); s.saved = ["pre-pushfold", "icm-bubble", "post-odds", "live-table"]; localStorage.setItem("pokerhq_drill_v1", JSON.stringify(s)); renderTodayGlance(); });
+  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem("pokerhq_drill_v1")); s.saved = ["pre-pushfold", "icm-bubble", "post-odds", "live-table"]; window.drillState = s; localStorage.setItem("pokerhq_drill_v1", JSON.stringify(s)); renderTodayGlance(); });
   const goCases = { "pre-pushfold": ["OPEN ADVISOR", () => document.getElementById("calc-panel-icm").classList.contains("active") && document.getElementById("page-calculator").classList.contains("active")],
     "icm-bubble": ["OPEN ICM CALCULATOR", () => document.getElementById("calc-panel-icmcalc").classList.contains("active")],
     "post-odds": ["OPEN HANDS", () => document.getElementById("page-hands").classList.contains("active")],

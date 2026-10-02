@@ -21,6 +21,7 @@ function readScopedUiJson(baseKey, legacyKey, fallback) {
 }
 
 function saveScopedUiJson(baseKey, value) {
+  if (window._demoMode) return;
   try {
     var cfg = window.PokerHQConfig || {};
     var key = cfg.resolveUiStorageKey ? cfg.resolveUiStorageKey(baseKey) : LEGACY_ACTIVE_SESSION_DRAFT_STORAGE_KEY;
@@ -56,22 +57,14 @@ function getCloudSizeWarnings(force) {
 var CLOUD_LIST_LABELS = { sessions: 'Sessions', hands: 'Hands', tourneys: 'Calendar events', strategies: 'Strategy notes', news: 'News', spotlights: 'Spotlights', walletLedger: 'Treasury ledger', satellites: 'Satellites', opponents: 'Opponents', trips: 'Trips', tripExpenses: 'Trip costs' };
 
 function cloudSizeWarningHtml() {
-  var warnings = getCloudSizeWarnings(false);
   var meta = window._syncMeta || {};
-  if (!warnings.length && !meta.tooLarge) return '';
-  var top = warnings[0];
-  var key = meta.tooLarge || (top && top.key);
+  // Large lists are automatically sharded by sync.js. Only show a warning if
+  // Firestore actually refuses a write despite that fallback.
+  if (!meta.tooLarge) return '';
+  var key = meta.tooLarge;
   var label = CLOUD_LIST_LABELS[key] || key;
-  var critical = !!meta.tooLarge || (top && top.level === 'critical');
-  var text;
-  if (meta.tooLarge) {
-    text = '⚠ ' + label + ' has outgrown cloud sync (1 MB limit per list), so new changes to it are saved on this device only. Download a JSON backup, then delete items you no longer need.';
-  } else {
-    var kb = Math.round(top.bytes / 1024);
-    text = '⚠ ' + label + ' is at ' + top.pct + '% of the cloud size limit (about ' + kb + ' KB of 1,024 KB). ' + (critical ? 'Saving will start failing soon — ' : '') + 'download a JSON backup and delete items you no longer need.';
-    if (warnings.length > 1) text += ' (' + (warnings.length - 1) + ' other list' + (warnings.length > 2 ? 's are' : ' is') + ' also getting large.)';
-  }
-  return '<div class="reliability-warn' + (critical ? ' critical' : '') + '">' + esc(text) + '</div>';
+  var text = '⚠ ' + label + ' could not be split for cloud sync, so the newest change is safe on this device but has not reached the cloud. Download a JSON backup, then retry or trim old items.';
+  return '<div class="reliability-warn critical">' + esc(text) + '</div>';
 }
 
 function getReliabilitySnapshot() {
@@ -161,7 +154,8 @@ function syncActiveDraftFromForm() {
   _activeSessionDraft.venue = document.getElementById('s-venue').value || _activeSessionDraft.venue || '';
   _activeSessionDraft.structure = document.getElementById('s-structure').value || _activeSessionDraft.structure || '';
   _activeSessionDraft.packageName = document.getElementById('s-package').value || _activeSessionDraft.packageName || '';
-  _activeSessionDraft.buyin = parseFloat(document.getElementById('s-buyin').value) || _activeSessionDraft.buyin || 0;
+  _activeSessionDraft.buyin = parseFloat(document.getElementById('s-buyin').value) || 0;
+  _activeSessionDraft.rebuy = parseFloat(document.getElementById('s-rebuy').value) || 0;
   _activeSessionDraft.focus = parseFloat(document.getElementById('s-focus').value) || _activeSessionDraft.focus || 0;
   _activeSessionDraft.energy = parseFloat(document.getElementById('s-energy').value) || _activeSessionDraft.energy || 0;
   _activeSessionDraft.sleep = parseFloat(document.getElementById('s-sleep').value) || _activeSessionDraft.sleep || 0;
@@ -179,6 +173,7 @@ function hydrateSessionFormFromDraft(force) {
     ['s-structure', _activeSessionDraft.structure || ''],
     ['s-package', _activeSessionDraft.packageName || ''],
     ['s-buyin', _activeSessionDraft.buyin || ''],
+    ['s-rebuy', _activeSessionDraft.rebuy || ''],
     ['s-focus', _activeSessionDraft.focus || ''],
     ['s-energy', _activeSessionDraft.energy || ''],
     ['s-sleep', _activeSessionDraft.sleep || ''],
@@ -263,6 +258,9 @@ function renderPreSessionPrepBlock() {
 }
 
 function scoreReadinessState(state) {
+  var fields = ['sleep','energy','food','bankrollFit','strategyReviewed','villainNotes'];
+  var remaining = fields.filter(function(field) { return !state[field]; }).length;
+  if (remaining) return { score: null, level: 'incomplete', title: 'Complete check-in', detail: 'Choose the remaining '+remaining+' answers to see your readiness. You can also skip and start.' };
   var score = 0;
   if (state.sleep === 'good') score += 1;
   else if (state.sleep === 'poor') score -= 2;
@@ -301,8 +299,8 @@ function buildInitialReadinessState() {
       energy: existing.energy || '',
       food: existing.food || '',
       bankrollFit: existing.bankrollFit || '',
-      strategyReviewed: existing.strategyReviewed || 'no',
-      villainNotes: existing.villainNotes || 'no'
+      strategyReviewed: existing.strategyReviewed || '',
+      villainNotes: existing.villainNotes || ''
     };
   }
   var venue = _activeSessionDraft && _activeSessionDraft.venue ? _activeSessionDraft.venue : '';
@@ -312,14 +310,16 @@ function buildInitialReadinessState() {
     energy: '',
     food: '',
     bankrollFit: getReadinessBankrollFitChoice(buyin),
-    strategyReviewed: 'no',
-    villainNotes: getVenueOpponentCount(venue) > 0 ? 'yes' : 'no'
+    strategyReviewed: '',
+    villainNotes: venue ? (getVenueOpponentCount(venue) > 0 ? 'yes' : 'no') : ''
   };
 }
 
 function renderReadinessCheck() {
   if (!_readinessState) _readinessState = buildInitialReadinessState();
   var score = scoreReadinessState(_readinessState);
+  var startBtn = document.getElementById('readiness-start-btn');
+  if (startBtn) startBtn.disabled = score.level === 'incomplete';
   var titleEl = document.getElementById('readiness-title');
   var detailEl = document.getElementById('readiness-detail');
   var pillEl = document.getElementById('readiness-pill');
@@ -382,6 +382,7 @@ function skipReadinessCheck() {
 function confirmReadinessCheck() {
   if (!_readinessState) _readinessState = buildInitialReadinessState();
   var score = scoreReadinessState(_readinessState);
+  if (score.level === 'incomplete') { renderReadinessCheck(); return; }
   ensureActiveSessionDraft();
   _activeSessionDraft.readiness = {
     sleep: _readinessState.sleep || '',
@@ -437,12 +438,13 @@ function renderActiveSessionSurface() {
     var prep = renderPreSessionPrepBlock();
     var buyin = _activeSessionDraft && _activeSessionDraft.buyin ? '₱'+fmt(_activeSessionDraft.buyin) : 'Buy-in not set';
     el.innerHTML =
-      '<div class="active-session-card"><div class="active-session-top"><div><div class="surface-kicker">Play</div><div class="active-session-title">'+esc(label || 'Active session')+'</div><div class="active-session-sub">'+esc(venue)+' · '+buyin+' · Timer '+timerState.toLowerCase()+'. Quick actions stay linked to this run.</div></div><div class="surface-actions"><button class="sec-action" onclick="switchGroup(\'play\',\'sessions\')">OPEN PLAY</button><button class="sec-action" onclick="endActiveSession()">END SESSION</button></div></div><div class="active-session-grid"><div class="active-session-metric"><div class="active-session-metric-label">Timer</div><div class="active-session-metric-value" id="active-session-timer-copy">'+(document.getElementById('timer-display') ? document.getElementById('timer-display').textContent : '00:00:00')+'</div></div><div class="active-session-metric"><div class="active-session-metric-label">Bullets</div><div class="active-session-metric-value">'+bullets+'</div></div><div class="active-session-metric"><div class="active-session-metric-label">Focus</div><div class="active-session-metric-value">'+focus+'</div></div><div class="active-session-metric"><div class="active-session-metric-label">Energy</div><div class="active-session-metric-value">'+energy+'</div></div></div>'+liveMarkersHtml()+'<div class="active-session-actions"><button class="sec-action primary" onclick="openHandModalForActiveSession()">CAPTURE HAND</button><button class="sec-action" onclick="openActiveOpponentCapture()">CAPTURE VILLAIN NOTE</button><button class="sec-action" onclick="jumpToMentalCheckin()">MENTAL CHECK-IN</button><button class="sec-action" onclick="logTimerToSession()">LOG TIMER TO SESSION</button></div>'+prep+scouting+'<div class="active-session-quick"><div class="quick-panel"><div class="quick-panel-title">Quick check-in</div><div class="quick-checkins"><button class="quick-checkin" onclick="applyQuickCheckin(\'rough\')">ROUGH</button><button class="quick-checkin" onclick="applyQuickCheckin(\'steady\')">STEADY</button><button class="quick-checkin" onclick="applyQuickCheckin(\'sharp\')">SHARP</button></div></div><div class="quick-panel"><div class="quick-panel-title">Re-entry / bullet count</div><div class="quick-counter"><div><div class="status-sub" style="margin-top:0">Track bullets before you log the final result.</div></div><div class="counter-controls"><button class="counter-btn" onclick="updateBulletCount(-1)">−</button><div class="counter-value">'+bullets+'</div><button class="counter-btn" onclick="updateBulletCount(1)">+</button></div></div></div></div></div>';
+      '<div class="active-session-card"><div class="active-session-top"><div><div class="surface-kicker">Play</div><div class="active-session-title">'+esc(label || 'Active session')+'</div><div class="active-session-sub">'+esc(venue)+' · '+buyin+' · Timer '+timerState.toLowerCase()+'. Quick actions stay linked to this run.</div></div><div class="surface-actions"><button class="sec-action" onclick="switchGroup(\'play\',\'sessions\')">OPEN PLAY</button><button class="sec-action" onclick="endActiveSession()">END SESSION</button></div></div><div class="active-session-grid"><div class="active-session-metric"><div class="active-session-metric-label">Timer</div><div class="active-session-metric-value" id="active-session-timer-copy">'+(document.getElementById('timer-display') ? document.getElementById('timer-display').textContent : '00:00:00')+'</div></div><div class="active-session-metric"><div class="active-session-metric-label">Bullets</div><div class="active-session-metric-value">'+bullets+'</div></div><div class="active-session-metric"><div class="active-session-metric-label">Focus</div><div class="active-session-metric-value">'+focus+'</div></div><div class="active-session-metric"><div class="active-session-metric-label">Energy</div><div class="active-session-metric-value">'+energy+'</div></div></div>'+liveMarkersHtml()+'<div class="active-session-actions"><button class="sec-action primary" onclick="openHandModalForActiveSession()">CAPTURE HAND</button><button class="sec-action" onclick="openActiveOpponentCapture()">CAPTURE VILLAIN NOTE</button><button class="sec-action" onclick="jumpToMentalCheckin()">MENTAL CHECK-IN</button><button class="sec-action" onclick="logTimerToSession()">LOG TIMER TO SESSION</button></div>'+(id==='play-active-session-wrap'?liveClockHtml():'')+prep+scouting+reentryGuardHtml(id==='play-active-session-wrap')+'<div class="active-session-quick"><div class="quick-panel"><div class="quick-panel-title">Quick check-in</div><div class="quick-checkins"><button class="quick-checkin" onclick="applyQuickCheckin(\'rough\')">ROUGH</button><button class="quick-checkin" onclick="applyQuickCheckin(\'steady\')">STEADY</button><button class="quick-checkin" onclick="applyQuickCheckin(\'sharp\')">SHARP</button></div></div><div class="quick-panel"><div class="quick-panel-title">Re-entry / bullet count</div><div class="quick-counter"><div><div class="status-sub" style="margin-top:0">Track bullets before you log the final result.</div></div><div class="counter-controls"><button class="counter-btn" onclick="updateBulletCount(-1)">−</button><div class="counter-value">'+bullets+'</div><button class="counter-btn" onclick="updateBulletCount(1)">+</button></div></div></div></div></div>';
   });
   var empty = document.getElementById('play-empty-wrap');
   if (empty) {
     empty.innerHTML = hasDraft ? '' : '<div class="play-empty"><div class="play-empty-title">No active session yet</div><div class="play-empty-sub">Start from CALENDAR LIST when you have a scheduled event, or use HOME only for a manual session.</div><button class="sec-action" onclick="startSessionFromHome()">MANUAL SESSION</button></div>';
   }
+  refreshLiveClock();
   renderReliability();
   if (typeof refreshInbox === 'function') refreshInbox();   // the Review Inbox follows data changes
 }
@@ -472,9 +474,9 @@ function applyQuickCheckin(mode) {
   persistActiveSessionDraft();
 }
 
-function updateBulletCount(delta) {
+function updateBulletCount(delta,reviewed) {
   ensureActiveSessionDraft();
-  _activeSessionDraft.bullets = Math.max(1, (_activeSessionDraft.bullets || 1) + delta);
+  if (!changeReentryBullet(delta,reviewed)) return;
   persistActiveSessionDraft();
 }
 
@@ -709,6 +711,7 @@ function startSessionFromTourney(tid) {
   resetTimerState();
   replaceActiveSessionDraft({
     date: parsedDate || todayLocal(),
+    tourneyId: t.id,
     name: t.name || '',
     venue: t.venue || '',
     structure: normalizeFormat(t.structure),

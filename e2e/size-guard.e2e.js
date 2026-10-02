@@ -11,30 +11,10 @@ const { boot, out } = require("./lib.js");
   assert.equal(await card(), null);
   ok("small data: no warning");
 
-  await page.evaluate(() => { window.hands = [{ id: 1, title: "big", desc: "x".repeat(780000) }]; });
-  await render();
-  let c = await card();
-  assert.ok(c && !c.critical, "amber at ~75%");
-  assert.match(c.text, /Hands is at 7\d% of the cloud size limit/);
-  assert.match(c.text, /download a JSON backup/i);
-  assert.doesNotMatch(c.text, /Saving will start failing/);
-  ok("~75%: amber warning names the list and percentage — \"" + c.text.slice(0, 70) + "…\"");
-
   await page.evaluate(() => { window.hands = [{ id: 1, title: "big", desc: "x".repeat(990000) }]; window.sessions = [{ id: 2, name: "s", notes: "y".repeat(760000), total: 1, prize: 0, pnl: -1, result: "bust", date: "2026-01-01" }]; });
   await render();
-  c = await card();
-  assert.ok(c.critical, "red at 90%+");
-  assert.match(c.text, /Hands is at 9\d%/);
-  assert.match(c.text, /Saving will start failing soon/);
-  assert.match(c.text, /1 other list is also getting large/);
-  ok("~95%: red 'saving will start failing soon', and it notes the other large list");
-
-  // caching: a change inside 30s isn't re-measured (cheap), but force refreshes
-  await page.evaluate(() => { window.hands = []; window.sessions = []; renderReliability(); });
-  assert.ok(await card(), "still shows from the 30s cache (renders are frequent)");
-  await render();
-  assert.equal(await card(), null, "and clears when re-measured");
-  ok("measurement is cached 30s (renders are frequent) and clears once data shrinks");
+  assert.equal(await card(), null, "large logical lists are automatically sharded, not presented as doomed saves");
+  ok("large lists do not show obsolete 1 MiB warnings because sync shards them automatically");
 
   // sync says 'too large'
   await page.evaluate(() => { setSyncStatus("error", "Too large to sync", { tooLarge: "hands" }); });
@@ -42,7 +22,7 @@ const { boot, out } = require("./lib.js");
   assert.match(detail, /too large to sync/i);
   const warn = await card();
   assert.ok(warn && warn.critical);
-  assert.match(warn.text, /Hands has outgrown cloud sync/);
+  assert.match(warn.text, /Hands could not be split for cloud sync/);
   assert.match(await page.textContent("#dashboard-reliability-wrap .reliability-pill"), /Too large to sync/);
   ok("a refused save shows 'Too large to sync' with what to do");
   await page.evaluate(() => { setSyncStatus("ok", "Synced"); });
