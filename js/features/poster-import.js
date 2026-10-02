@@ -249,6 +249,7 @@ function posterEdit(i, field, value, redraw) {
     d.rate = value === 'PHP' ? null : (d.rateMemory[value] || posterDefaultRate(value));
   }
   else if (field === 'time') d.time = P.normalizeTime(value);
+  else if (field === 'date') { d.date = value; d.movedFrom = null; }
   else d[field] = value;
   if (field === 'date' || field === 'name' || field === 'venue') {
     var wasDup = d.duplicate;
@@ -299,7 +300,14 @@ function addPosterEvents() {
     if (typeof renderCalendar === 'function') renderCalendar();
   }
   var ids = added.map(function(t) { return t.id; });
-  var label = added.length ? 'Added ' + added.length + ' event' + (added.length === 1 ? '' : 's') + ' from the poster' + (skipped ? ' (' + skipped + ' already there)' : '') : 'Nothing added: ' + (skipped === 1 ? 'that event is' : 'those events are') + ' already on your calendar';
+  var shown = '';
+  if (added.length && typeof calYear !== 'undefined') {
+    var now = new Date();
+    if (calYear !== now.getFullYear() || calMonth !== now.getMonth()) {
+      shown = ' · showing ' + ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][calMonth] + ' ' + calYear;
+    }
+  }
+  var label = added.length ? 'Added ' + added.length + ' event' + (added.length === 1 ? '' : 's') + ' from the poster' + (skipped ? ' (' + skipped + ' already there)' : '') + shown : 'Nothing added: ' + (skipped === 1 ? 'that event is' : 'those events are') + ' already on your calendar';
   if (typeof showUndoToast === 'function') {
     showUndoToast(label, function() {
       window.tourneys = (window.tourneys || []).filter(function(t) { return ids.indexOf(t.id) === -1; });

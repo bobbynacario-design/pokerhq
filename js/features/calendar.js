@@ -1138,7 +1138,10 @@ function renderCalendarList() {
       var sl = { target: 'TARGET', stretch: 'STRETCH', skip: 'SKIP' }[liveStatus] || 'SKIP';
 
       html += '<div class="' + rowCls + '" id="event-row-' + t.id + '">';
-      html += '<div class="event-date-box"><div class="event-date-day">' + esc(day) + '</div><div class="event-date-mon">' + esc(mon) + '</div></div>';
+      // the box shows day and month only, so an event from another year would look like one of this year's: say the year
+      var yearM = String(t.date || '').match(/^(\d{4})-\d{2}-\d{2}/);
+      var yearTag = yearM && Number(yearM[1]) !== new Date().getFullYear() ? '<div class="event-date-year">' + yearM[1] + '</div>' : '';
+      html += '<div class="event-date-box"><div class="event-date-day">' + esc(day) + '</div><div class="event-date-mon">' + esc(mon) + '</div>' + yearTag + '</div>';
       html += '<div class="event-info">';
       html += '<div class="event-name">' + esc(t.name) + '</div>';
       html += '<div class="event-meta">';

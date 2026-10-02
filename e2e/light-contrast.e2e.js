@@ -153,6 +153,8 @@ async function audit(viewport) {
     _poster.notes = "Ignored the cash game list.";
     posterShowStage("confirm"); renderPosterDrafts();
   });
+  // the calendar list when an event is from another year: its date box carries the year
+  await scan("calendar list (event from another year)", () => { document.querySelectorAll(".modal-overlay.open").forEach((m) => m.classList.remove("open")); tourneys.push({ id: 424244, date: (new Date().getFullYear() - 1) + "-10-12", day: "12", month: "OCT", name: "Last year's main", venue: "Okada Manila", buyin: 5500, status: "target", type: "main" }); switchGroup("plan", "calendar"); setView("list"); renderCalendar(); if (!document.querySelector(".event-date-year")) throw new Error("the year tag did not render"); });
   await scan("toast", () => { document.querySelectorAll(".modal-overlay.open").forEach((m) => m.classList.remove("open")); switchGroup("home"); showUndoToast("Removed a tournament", function () {}, 60000); const b = document.getElementById("update-banner"); if (b) b.style.display = "flex"; });
   await close();
   return problems;

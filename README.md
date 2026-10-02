@@ -115,6 +115,10 @@ player ticks reaches the calendar.
   rate. **Warnings** (still addable): a date more than 30 days ago, no buy-in, and fields Claude marked as unsure
   (outlined in orange). Duplicates (same date + name + venue as an existing event, the calendar's own fingerprint) come
   unticked and badged.
+- **Years.** When a poster prints no year and Claude's guess is already past, the date is moved to the next one coming up
+  (with a warning naming the original). A year that *is* printed is never changed, so an old poster stays old. The
+  calendar's list view shows the year on any event that is not from this year, and the "Added…" toast says which month the
+  calendar moved to when that is not the current one.
 - `js/features/poster-import.js` owns the pop-up. The photo is decoded, shrunk to at most 1568 px and re-encoded as JPEG
   under 4 MB (stays inside Claude's 5 MB image limit and the 10 MB callable limit) and is **never stored**.
   Adding uses the calendar's own `importCalendarUpdateEvents`, so records have the same shape, dedupe and pesos as the

@@ -281,3 +281,36 @@ test("WIRING the calendar importer keeps the start time the poster reader found 
   const events = readFile("functions/events.js");
   assert.match(events, /\.time/, "the alert code reads the tournament's time field");
 });
+
+// ---- a poster without a year must not land in a past year (it would never show on this year's calendar) ----
+test("no year printed and Claude guessed a past one: the date moves to the next one coming up, with a warning that says so", () => {
+  const d = P.normalizeEvent(raw({ date: "2025-10-12", uncertain: ["date"] }), ctx());
+  assert.equal(d.date, "2026-10-12");
+  assert.equal(d.movedFrom, "2025-10-12");
+  assert.equal(d.ready, true);
+  const w = d.warnings.filter((x) => x.field === "date");
+  assert.equal(w.length, 1, "one date warning, not two");
+  assert.match(w[0].text, /2025-10-12.*moved to the next one coming up/);
+  assert.doesNotMatch(w[0].text, /more than a month ago/);
+});
+
+test("a date earlier this year with no year printed goes to next year; one still ahead is left alone", () => {
+  assert.equal(P.normalizeEvent(raw({ date: "2026-03-05", uncertain: ["date"] }), ctx()).date, "2027-03-05");
+  const ahead = P.normalizeEvent(raw({ date: "2026-10-12", uncertain: ["date"] }), ctx());
+  assert.equal(ahead.date, "2026-10-12");
+  assert.equal(ahead.movedFrom, undefined);
+  assert.equal(P.normalizeEvent(raw({ date: TODAY, uncertain: ["date"] }), ctx()).date, TODAY, "today counts as upcoming");
+});
+
+test("a multi-day event keeps its length when its year is moved, and a leap day skips to a leap year", () => {
+  const d = P.normalizeEvent(raw({ date: "2025-10-12", endDate: "2025-10-14", uncertain: ["date"] }), ctx());
+  assert.deepEqual([d.date, d.endDate], ["2026-10-12", "2026-10-14"]);
+  assert.equal(P.normalizeEvent(raw({ date: "2024-02-29", uncertain: ["date"] }), ctx()).date, "2028-02-29");
+});
+
+test("a year that IS printed is never changed: an old poster stays old, with the 'more than a month ago' warning", () => {
+  const d = P.normalizeEvent(raw({ date: "2025-10-12", uncertain: [] }), ctx());
+  assert.equal(d.date, "2025-10-12");
+  assert.equal(d.movedFrom, undefined);
+  assert.ok(d.warnings.some((w) => /more than a month ago/.test(w.text)));
+});

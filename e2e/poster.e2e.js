@@ -183,6 +183,46 @@ const { boot, freezeMotion } = require("./lib.js");
   assert.equal(await page.evaluate(() => tourneys.some((t) => t.id === 424242)), true, "the event that was already there is untouched");
   ok("UNDO takes out the poster events and leaves the rest of the calendar alone");
 
+  // 8b. an event that lands in another year must never be invisible: no year printed -> moved to the coming one;
+  // a printed past year -> kept, but the list shows the year and the toast says where the calendar went
+  const yr = Number(dates.today.slice(0, 4));
+  const readOne = async (ev) => {
+    await page.evaluate((e) => { window.__aiFixture = { events: [e], posterNotes: "" }; window.__aiMode = "ok"; }, ev);
+    await page.evaluate(() => { calYear = new Date().getFullYear(); calMonth = new Date().getMonth(); renderCalendar(); setView("month"); });
+    await page.click("#cal-poster-btn");
+    await page.setInputFiles("#poster-file", { name: "poster.png", mimeType: "image/png", buffer: photoBuffer });
+    await page.waitForFunction(() => !document.getElementById("poster-read-btn").disabled);
+    await page.click("#poster-read-btn");
+    await page.waitForSelector("#poster-stage-confirm", { state: "visible" });
+  };
+  const noYear = { name: "No Year Main", date: (yr - 1) + "-" + dates.d10.slice(5), endDate: "", time: "14:00", venue: "Okada Manila", buyin: 5500, currency: "PHP", gtd: "", structure: "Regular", category: "main", notes: "", uncertain: ["date"] };
+  await readOne(noYear);
+  assert.equal(await page.inputValue('[data-field="date"] input'), dates.d10, "the guessed past year was moved to the coming one");
+  assert.match(await text(".poster-issues"), new RegExp("No year was printed, so Claude's date \\(" + noYear.date + "\\) was moved to the next one coming up"));
+  assert.doesNotMatch(await text(".poster-issues"), /more than a month ago/);
+  await page.click("#poster-add-btn");
+  await settle(200);
+  const inGrid = async () => page.$$eval("#cal-days-grid .cal-event-bar", (b) => b.map((x) => x.textContent.trim()));
+  assert.deepEqual((await inGrid()).filter((n) => n === "No Year Main").length > 0, true, "it is on the month grid the player is looking at");
+  assert.doesNotMatch(await text("#undo-toast-label"), /showing/, "the calendar did not have to move, so the toast does not say it did");
+  await page.click("#undo-toast .toast-btn"); await settle();
+  ok("a poster with no year never lands in a past year: the date moves to the next one coming up, is warned about, and shows on this month's grid");
+
+  const printed = Object.assign({}, noYear, { name: "Printed Old Year", uncertain: [] });
+  await readOne(printed);
+  assert.equal(await page.inputValue('[data-field="date"] input'), printed.date, "a printed year is left as printed");
+  assert.match(await text(".poster-issues"), /more than a month ago/);
+  await page.click("#poster-add-btn");
+  await settle(200);
+  assert.match(await text("#undo-toast-label"), new RegExp("^Added 1 event from the poster · showing \\w+ " + (yr - 1) + "$"), "the toast says the calendar moved, and to where");
+  await page.evaluate(() => { calYear = new Date().getFullYear(); calMonth = new Date().getMonth(); renderCalendar(); setView("list"); });
+  assert.match(await text('#calendar-list .event-row:has(.event-name:text("Printed Old Year")) .event-date-box'), new RegExp(dates.d10.slice(8).replace(/^0/, "") + "\\s*" + "\\w{3}" + "\\s*" + (yr - 1)), "the list says which year");
+  assert.equal(await page.$$eval("#cal-days-grid .cal-event-bar", (b) => b.filter((x) => x.textContent.trim() === "Printed Old Year").length), 0, "and it is rightly not on this year's grid");
+  await page.evaluate(() => setView("month"));
+  await page.click("#undo-toast .toast-btn"); await settle();
+  ok("a printed past year is kept, but the list shows the year and the toast says which month the calendar moved to");
+  await page.evaluate((fx) => { window.__aiFixture = fx; }, fixture);   // the later sections read the original seven events
+
   // 9. things that go wrong say so plainly and leave you where you were
   const tryRead = async (mode) => {
     await page.evaluate((m) => { window.__aiMode = m; }, mode);
@@ -211,7 +251,7 @@ const { boot, freezeMotion } = require("./lib.js");
   await page.click("#poster-read-btn");
   await page.waitForSelector("#poster-stage-pick", { state: "visible" });
   assert.match(await text("#poster-error"), /Could not open that picture/);
-  assert.equal(await page.evaluate(() => window.__sent.length), 1 + 5, "nothing was sent for a picture that could not be opened");
+  assert.equal(await page.evaluate(() => window.__sent.length), 1 + 2 + 5, "nothing was sent for a picture that could not be opened");
   await page.evaluate(() => closePosterImport());
   ok("a picture that can't be opened is reported and nothing is sent");
 

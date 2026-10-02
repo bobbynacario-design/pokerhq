@@ -30,6 +30,19 @@
     var d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
     return d.getFullYear() === Number(m[1]) && d.getMonth() === Number(m[2]) - 1 && d.getDate() === Number(m[3]);
   }
+  // The same month and day in the first year on or after today (YYYY-MM-DD in, YYYY-MM-DD out), or "" if there is none.
+  // Used when a poster prints no year: Claude may guess a past one, and an event in a past year would never
+  // show on this year's calendar.
+  function nextOccurrence(date, today) {
+    var m = String(date).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    var t = String(today).match(/^(\d{4})-/);
+    if (!m || !t) return "";
+    for (var y = Number(t[1]); y <= Number(t[1]) + 4; y++) {
+      var cand = y + "-" + m[2] + "-" + m[3];
+      if (isDate(cand) && cand >= today) return cand;
+    }
+    return "";
+  }
   function daysBetween(a, b) {   // both YYYY-MM-DD: b - a in whole days
     var pa = a.split("-").map(Number), pb = b.split("-").map(Number);
     return Math.round((Date.UTC(pb[0], pb[1] - 1, pb[2]) - Date.UTC(pa[0], pa[1] - 1, pa[2])) / 86400000);
@@ -212,6 +225,16 @@
       notes: str(r.notes, 160),
       uncertain: uncertain
     };
+    // no year printed (Claude flagged the date) but the guess is already past: take the next one coming up
+    if (d.date && isDate(c.today) && uncertain.indexOf("date") !== -1 && d.date < c.today) {
+      var upcoming = nextOccurrence(d.date, c.today);
+      if (upcoming) {
+        var shift = Number(upcoming.slice(0, 4)) - Number(d.date.slice(0, 4));
+        d.movedFrom = d.date;
+        d.date = upcoming;
+        if (d.endDate) { var e2 = (Number(d.endDate.slice(0, 4)) + shift) + d.endDate.slice(4); d.endDate = isDate(e2) ? e2 : ""; }
+      }
+    }
     if (d.endDate && d.date && d.endDate <= d.date) d.endDate = "";
     if (d.currency !== "PHP" && typeof c.rateFor === "function") { var rate = num(c.rateFor(d.currency)); if (rate > 0) d.rate = rate; }
     if (!cur.known && String(r.currency || "").trim()) uncertain.push("buyin");
@@ -232,7 +255,8 @@
     var flagged = arr(d.uncertain);
     var labels = { name: "name", date: "date", time: "start time", venue: "venue", buyin: "buy-in", gtd: "guarantee", structure: "format", category: "type" };
     flagged.forEach(function (f) {
-      if (f === "date" && d.date && !blocking.some(function (b) { return b.field === "date"; })) warnings.push({ field: "date", text: "Claude wasn't sure of the date (no year printed?). Check it." });
+      if (f === "date" && d.date && d.movedFrom) warnings.push({ field: "date", text: "No year was printed, so Claude's date (" + d.movedFrom + ") was moved to the next one coming up. Check it." });
+      else if (f === "date" && d.date && !blocking.some(function (b) { return b.field === "date"; })) warnings.push({ field: "date", text: "Claude wasn't sure of the date (no year printed?). Check it." });
       else if (f !== "date") warnings.push({ field: f, text: "Claude wasn't sure of the " + labels[f] + ". Check it." });
     });
     d.blocking = blocking;
