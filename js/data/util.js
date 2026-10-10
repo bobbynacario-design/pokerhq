@@ -6,6 +6,20 @@
 (function (root) {
   function pad2(n) { return n < 10 ? "0" + n : "" + n; }
 
+  // A tournament's organiser or schedule page, safe to put in a link: http(s)
+  // only, no user name or password, at most 500 characters. Anything else,
+  // including javascript: or data: addresses, is "".
+  function organiserUrl(raw) {
+    var value = String(raw == null ? "" : raw).trim();
+    if (!value || value.length > 500) return "";
+    try {
+      var url = new URL(value);
+      return (url.protocol === "https:" || url.protocol === "http:") && !url.username && !url.password ? url.href : "";
+    } catch (e) {
+      return "";
+    }
+  }
+
   // Calendar date (YYYY-MM-DD) in the device's LOCAL time zone. The old
   // `new Date().toISOString().split("T")[0]` returns the UTC date, which is the
   // previous day for the first 8 hours after midnight in Manila (UTC+8).
@@ -185,7 +199,8 @@
     utf8Length: utf8Length,
     estimateStoredBytes: estimateStoredBytes,
     cloudSizeWarnings: cloudSizeWarnings,
-    isCloudTooLargeError: isCloudTooLargeError
+    isCloudTooLargeError: isCloudTooLargeError,
+    organiserUrl: organiserUrl
   };
 
   if (typeof module !== "undefined" && module.exports) module.exports = api;

@@ -659,6 +659,9 @@ body.light .event-date-year{color:#7A4F00}
 .event-name{font-size:13px;font-weight:500;color:var(--ink);margin-bottom:.25rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 body.light .event-name{color:#1A1A1A}
 .event-meta{font-family:var(--mono);font-size:10px;color:var(--wa-35);display:flex;gap:.6rem;flex-wrap:wrap}
+.event-link{font-family:var(--mono);font-size:10px;color:var(--gold);text-decoration:underline;text-underline-offset:2px;white-space:nowrap}
+.event-link:hover,.event-link:focus-visible{text-decoration-thickness:2px;outline-offset:2px}
+.planned-info .event-link,.planned-next .event-link{display:inline-block;margin-top:.15rem;font-size:11px}
 body.light .event-meta{color:rgba(0,0,0,.66)}
 .event-right{display:flex;flex-direction:column;align-items:flex-end;gap:.3rem;flex-shrink:0}
 .event-buyin{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--gold)}

@@ -76,6 +76,10 @@ stay in memory; leaving the demo restores cached real data, drill progress and a
   group in one batch. It keeps an active/session-linked or pinned entry first and combines
   stars, complementary fields, notes and sources. Session links follow the kept entry;
   Undo restores the whole batch for 30 seconds. Individual pair review remains available.
+- **Organiser link**: an event with an organiser or schedule page (saved by poster or AI import, or typed in
+  the new **Organiser link** field of Add / Edit Tournament) shows **Organiser ↗** on its calendar list row and
+  in **Playing These**, and the exported calendar file carries it in the event description. Only http(s)
+  addresses are linked; anything else is refused on save and never shown as a link.
 - Add `?demo=1` to the app URL for a direct, sign-in-free sample-data tour: plan → capture
   a hand → review a session. **Copy demo link** shares that URL; **Tour** restarts the guide.
   Leaving demo removes the URL flag and restores real data. Demo actions remain in memory.

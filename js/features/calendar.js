@@ -32,7 +32,7 @@ function tourneyStartDateInputValue(tourney) {
 function openNewTourneyModal() {
   _editingTourneyId = null;
   setTourneyModalTitle('Add Tournament');
-  ['t-date', 't-enddate', 't-time', 't-name', 't-venue', 't-buyin', 't-gtd', 't-notes'].forEach(function(id) {
+  ['t-date', 't-enddate', 't-time', 't-name', 't-venue', 't-buyin', 't-gtd', 't-notes', 't-url'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -52,6 +52,8 @@ function editTourney(id) {
   var structureEl = document.getElementById('t-structure');
   if (structureEl && tourney.structure) structureEl.value = tourney.structure;
   document.getElementById('t-notes').value = tourney.notes || '';
+  var urlEl = document.getElementById('t-url');
+  if (urlEl) urlEl.value = organiserUrl(tourney.url);
   _editingTourneyId = id;
   setTourneyModalTitle('Edit Tournament');
   openModal('modal-tourney');
@@ -107,6 +109,12 @@ function addTourney() {
     return;
   }
   if (endInput && !startInput) endInput = '';
+  var urlInput = String((document.getElementById('t-url') || {}).value || '').trim();
+  var url = organiserUrl(urlInput);
+  if (urlInput && !url) {
+    alert('The organiser link needs to be a web address starting with https://');
+    return;
+  }
   if (_editingTourneyId) {
     var existing = tourneys.find(function(x) { return x.id === _editingTourneyId; });
     if (!existing) { _editingTourneyId = null; return; }
@@ -131,6 +139,7 @@ function addTourney() {
     existing.gtd = document.getElementById('t-gtd').value || '';
     existing.structure = document.getElementById('t-structure').value;
     existing.notes = document.getElementById('t-notes').value || '';
+    existing.url = url;
     existing.status = status;
     window.tourneys = tourneys;
     tourneys.sort(function(a, b) { return (a.date || '').localeCompare(b.date || ''); });
@@ -152,6 +161,7 @@ function addTourney() {
     gtd: document.getElementById('t-gtd').value || '',
     structure: document.getElementById('t-structure').value,
     notes: document.getElementById('t-notes').value || '',
+    url: url,
     status: status
   };
   window.tourneys.push(t);
@@ -267,6 +277,7 @@ function exportCalendarICS() {
     if (t.gtd) descParts.push('GTD ' + t.gtd);
     if (t.structure) descParts.push(t.structure);
     if (statusLabel) descParts.push(statusLabel);
+    if (organiserUrl(t.url)) descParts.push('Organiser: ' + organiserUrl(t.url));
     descParts.push('via PokerHQ');
     lines.push('BEGIN:VEVENT');
     lines.push('UID:pokerhq-' + (t.id || Math.random().toString(36).slice(2)) + '@pokerhq');
@@ -704,6 +715,13 @@ function removePlannedEvent(id) {
 
 // Keep the plan small after applying a slate; expand to manage compact rows.
 // Renders preserve the user's open state and page while they remove picks.
+// "Organiser ↗" for an event with a saved organiser or schedule page (set on
+// import, or in Add / Edit Tournament). Opens in a new tab.
+function organiserLinkHtml(t) {
+  var url = organiserUrl(t && t.url);
+  return url ? '<a class="event-link" href="' + esc(url) + '" target="_blank" rel="noopener noreferrer" title="Open the organiser page">Organiser ↗</a>' : '';
+}
+
 function renderPlannedEvents() {
   var wrap = document.getElementById('planned-events-wrap');
   if (!wrap) return;
@@ -723,7 +741,7 @@ function renderPlannedEvents() {
   html += '</div>';
   var next = planned[0];
   html += '<div class="planned-next"><div><div class="planned-next-label">Next up · ' + esc(next.range.start.toLocaleDateString('en-PH', { day: 'numeric', month: 'short', year: 'numeric' })) + '</div>';
-  html += '<div class="planned-next-name">' + esc(next.t.name) + '</div><div class="planned-venue">' + esc(plannedVenue(next.t)) + '</div></div>';
+  html += '<div class="planned-next-name">' + esc(next.t.name) + '</div><div class="planned-venue">' + esc(plannedVenue(next.t)) + '</div>' + organiserLinkHtml(next.t) + '</div>';
   html += '<button class="sec-action planned-start" onclick="startSessionFromTourney(' + next.t.id + ')">▶ START NEXT</button></div>';
   html += '<details id="planned-details"' + (_plannedExpanded ? ' open' : '') + '><summary>Manage ' + planned.length + ' event' + (planned.length > 1 ? 's' : '') + '</summary>';
   var remaining=Number(window.bankroll&&window.bankroll.amount||0)-totalBuyin;
@@ -734,7 +752,7 @@ function renderPlannedEvents() {
     var d = p.range.start;
     html += '<div class="planned-row" id="planned-row-' + t.id + '">';
     html += '<time class="planned-date" datetime="' + toDateInputValue(d) + '">' + d.getDate() + ' ' + esc(MONTH_SHORT_UPPER[d.getMonth()]) + '<span>' + d.getFullYear() + '</span></time>';
-    html += '<div class="planned-info"><div class="planned-event-name">' + esc(t.name) + '</div><div class="planned-venue">' + esc(plannedVenue(t)) + '</div></div>';
+    html += '<div class="planned-info"><div class="planned-event-name">' + esc(t.name) + '</div><div class="planned-venue">' + esc(plannedVenue(t)) + '</div>' + organiserLinkHtml(t) + '</div>';
     html += '<div class="planned-buyin">' + fmtCur(Number(t.buyin) || 0) + '</div><div class="planned-actions">';
     html += '<button class="sec-action" title="Start session" aria-label="Start session for ' + esc(t.name) + '" onclick="startSessionFromTourney(' + t.id + ')">▶</button>';
     html += '<button class="sec-action planned-remove" data-id="' + t.id + '" title="Remove from plan" aria-label="Remove ' + esc(t.name) + ' from your plan" onclick="removePlannedEvent(' + t.id + ')"><span class="planned-remove-label">Remove</span><span class="planned-remove-icon" aria-hidden="true">×</span></button>';
@@ -1178,6 +1196,7 @@ function renderCalendarList() {
       if (t.structure) html += '<span>' + esc(t.structure) + '</span>';
       if (t.gtd) html += '<span>GTD: ' + esc(t.gtd) + '</span>';
       if (t.notes) html += '<span>' + esc(t.notes) + '</span>';
+      html += organiserLinkHtml(t);
       html += '</div></div>';
       html += '<div class="event-right">';
       html += '<div class="event-buyin">' + (Number(t.buyin)>0 ? fmtCur(Number(t.buyin)) : 'Buy-in to confirm') + '</div>';

@@ -221,3 +221,12 @@ test("the session form offers exactly the formats the code knows", () => {
   const values = [...block.matchAll(/<option value="([^"]*)">/g)].map((m) => m[1]);
   assert.deepEqual(values, ["", ...u.SESSION_FORMATS]);
 });
+
+test("organiserUrl keeps http(s) organiser pages and rejects anything unsafe", () => {
+  assert.equal(u.organiserUrl("https://www.theasianpokertour.com/series/apt-championship-taipei-2026/"), "https://www.theasianpokertour.com/series/apt-championship-taipei-2026/");
+  assert.equal(u.organiserUrl("  https://wptseoul.com/schedule  "), "https://wptseoul.com/schedule");
+  assert.equal(u.organiserUrl("http://metrocardclub.com/events"), "http://metrocardclub.com/events");
+  for (const bad of ["javascript:alert(1)", "data:text/html,<b>x</b>", "ftp://example.com/x", "https://user:pass@example.com/", "not a link", "", null, undefined, "https://example.com/" + "x".repeat(500)]) {
+    assert.equal(u.organiserUrl(bad), "", String(bad).slice(0, 40));
+  }
+});
