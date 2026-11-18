@@ -23,7 +23,9 @@ jobs:
   # Real-browser tests: the app is served locally and driven in Chromium with the
   # Firebase pieces faked (see e2e/lib.js), so nothing touches live data.
   e2e:
-    runs-on: ubuntu-latest
+    # Playwright 1.56.1 has browser dependencies for Ubuntu 24.04; pin the
+    # runner so an ubuntu-latest image upgrade cannot break installation.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
