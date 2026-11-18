@@ -14,7 +14,9 @@ const { boot, out } = require("./lib.js");
       if (payload.kind === "transcribe") return { data: { text: "Raised pocket kings, villain shoved" } };
       if (payload.kind === "responses") {
         const n = window.__proxyCalls.filter((p) => p.kind === "responses").length;
-        return { data: { status: "completed", output: [{ type: "web_search_call" }], output_text: JSON.stringify({ asOf: "x", events: [{ date: "2026-11-1" + (n % 9), name: "Proxy Test Event " + n, venue: "Metro Card Club", buyin: 3000, gtd: "", structure: "Freezeout", category: "side", seatGuaranteed: false, region: "ph", accessible: true, notes: "n", source: "s", url: "https://example.com/e" + n }] }) } };
+        const dates = calendarResearchWindow();
+        const url = "https://example.com/e" + n;
+        return { data: { status: "completed", output: [{ type: "web_search_call", status: "completed", action: { type: "search", sources: [{ type: "url", url }] } }], output_text: JSON.stringify({ asOf: dates.from, events: [{ date: dates.from, time: "19:00", name: "Proxy Test Event " + n, venue: "Metro Card Club", buyin: 3000, gtd: "", structure: "Freezeout", category: "side", seatGuaranteed: false, region: "ph", accessible: true, notes: "n", source: "s", url }] }) } };
       }
       throw new Error("unexpected " + payload.kind);
     };
@@ -40,9 +42,54 @@ const { boot, out } = require("./lib.js");
   const first = await page.evaluate(() => window.__proxyCalls[0].body);
   assert.equal(first.model, "gpt-5.6-terra");
   assert.deepEqual(first.tools, [{ type: "web_search" }]);
+  assert.equal(first.tool_choice, "required");
+  assert.deepEqual(first.include, ["web_search_call.action.sources"]);
   const added = await page.evaluate(() => tourneys.filter((t) => /Proxy Test Event/.test(t.name)).length);
   assert.equal(added, 9);
+  assert.equal(await page.evaluate(() => tourneys.find((t) => /Proxy Test Event/.test(t.name)).time), "19:00");
+  assert.equal(await page.locator('#calendar-list a[href^="https://example.com/e"]').count(), 9);
+  assert.match(await page.textContent("#calendar-list"), /19:00 Manila time/);
   ok("calendar update with no key: 9 proxied searches, 9 events added");
+
+  // A fresh search must reconcile existing records, keep personal fields, and
+  // reject a fabricated source even when the rest of the event is well formed.
+  const originalId = await page.evaluate(() => {
+    const t = tourneys.find((t) => t.name === "Proxy Test Event 1");
+    t.planning = true; t.notes = "My travel plan";
+    const original = window.pokerhqOpenAiCall;
+    window.pokerhqOpenAiCall = async (payload) => {
+      const result = await original(payload);
+      if (payload.kind === "responses") {
+        const parsed = JSON.parse(result.data.output_text);
+        parsed.events[0].buyin = 5000;
+        parsed.events[0].time = "20:30";
+        parsed.events[0].gtd = "PHP 200,000";
+        parsed.events.push({...parsed.events[0], name: "Fabricated source", url: "https://not-retrieved.example/event"});
+        result.data.output_text = JSON.stringify(parsed);
+      }
+      return result;
+    };
+    window.__proxyCalls.length = 0;
+    localStorage.removeItem("pokerhq_cal_update_ts");
+    return t.id;
+  });
+  await page.evaluate(() => runCalendarUpdate());
+  assert.match(await page.textContent("#cal-update-status"), /Added 0 event\(s\) · Updated 9 event\(s\)/);
+  assert.match(await page.textContent("#cal-update-status"), /Skipped 9/);
+  const changed = await page.evaluate((id) => ({...tourneys.find((t) => t.id === id), count: tourneys.length}), originalId);
+  assert.equal(changed.count, 9);
+  assert.equal(changed.planning, true);
+  assert.equal(changed.notes, "My travel plan");
+  assert.equal(changed.buyin, 5000);
+  assert.equal(changed.time, "20:30");
+  assert.equal(changed.gtd, "PHP 200,000");
+  await page.click('#undo-toast .toast-btn');
+  const restored = await page.evaluate((id) => tourneys.find((t) => t.id === id), originalId);
+  assert.equal(restored.buyin, 3000);
+  assert.equal(restored.time, "19:00");
+  assert.equal(restored.planning, true);
+  assert.equal(restored.notes, "My travel plan");
+  ok("rerun: 9 details updated without duplicates, unsearched URLs rejected, personal fields preserved through Undo");
 
   // it still works from a Cloud Function error: message is shown, button re-enabled
   await page.evaluate(() => {

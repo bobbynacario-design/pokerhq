@@ -14,7 +14,7 @@ const RESPONSES_MODELS = new Set(["gpt-5.6-terra"]);
 const TRANSCRIBE_MODELS = new Set(["gpt-4o-mini-transcribe", "gpt-4o-transcribe", "whisper-1"]);
 const DEFAULT_TRANSCRIBE_MODEL = "gpt-4o-mini-transcribe";
 
-const RESPONSES_KEYS = new Set(["model", "input", "reasoning", "tools", "max_output_tokens", "text"]);
+const RESPONSES_KEYS = new Set(["model", "input", "reasoning", "tools", "tool_choice", "include", "max_output_tokens", "text"]);
 const MAX_OUTPUT_TOKENS_CEILING = 12000;
 const MAX_INPUT_CHARS = 30000;
 const MAX_SCHEMA_JSON_CHARS = 30000;
@@ -62,6 +62,17 @@ function validateResponsesRequest(body) {
         !REASONING_EFFORTS.has(body.reasoning.effort)) {
       return fail("Unsupported reasoning setting.");
     }
+  }
+
+  // Only expose the research controls the calendar needs, not arbitrary tool
+  // selection or access to other response internals.
+  if (body.tool_choice !== undefined && (body.tool_choice !== "required" ||
+      !body.tools || body.tools.length !== 1)) {
+    return fail("tool_choice must require the web_search tool.");
+  }
+  if (body.include !== undefined && (!Array.isArray(body.include) || body.include.length !== 1 ||
+      body.include[0] !== "web_search_call.action.sources")) {
+    return fail("Only web search sources may be included.");
   }
 
   if (body.text !== undefined) {

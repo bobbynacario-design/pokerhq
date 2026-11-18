@@ -381,7 +381,7 @@ function showCalUpdateLastRun() {
 }
 
 function calendarResearchContext() {
-  var today = new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
+  var today = calendarResearchWindow().from;
   var br = (window.bankroll && window.bankroll.amount) || 0;
   var rule = (window.bankroll && window.bankroll.rule) || 15;
   var maxBuyin = rule ? Math.round(br / rule) : 0;
@@ -435,10 +435,14 @@ function buildCalendarOutputRules(today, accThreshold) {
     + '• "main" = the flagship Main Event of a series.\n'
     + '• "side" = every other regular cash-prize tournament.\n'
     + 'Do NOT mark as satellite: Day 1 / starting flights of a Main (e.g. "Day 1A", "Warm-up Day 1C"), deepstacks, turbos, bounties, high rollers, or anything that pays out cash. If the prize is money (not a seat), it is "main" or "side", never "satellite" — even if its name contains "warm-up" or satellites feed into it.\n\n'
-    + 'Convert all buy-ins to Philippine Peso (note the original amount in notes if converted).\n\n'
+    + 'Use the total entry cost including fees as the buy-in. Convert foreign buy-ins to Philippine Peso only with a sourced exchange rate; note the original amount and rate in notes. Omit an event if the entry cost or conversion cannot be verified. Zero is allowed only for an explicitly confirmed freeroll.\n'
+    + 'For recurring schedules, confirm the schedule is currently in effect for EACH occurrence; do not project an old weekly schedule into new months. Open the exact source page and confirm it supports the date, entry cost and any claimed guarantee or start time.\n'
+    + 'Dates must be from ' + today + ' through ' + calendarResearchWindow().to + ', inclusive. '
+    + 'All dates AND start times must use Asia/Manila (UTC+8), matching this calendar and its reminders. Convert both the date and time for overseas events and note the original local start in notes. '
+    + 'Use time="HH:MM" in 24-hour format only when explicitly sourced; use an empty string when unknown. Never guess a start time.\n\n'
     + 'Respond with ONLY a single valid JSON object — no preamble, explanation, markdown, or code fences. Use exactly this shape:\n'
     + '{"asOf":"' + today + '","events":[{'
-    + '"date":"YYYY-MM-DD","name":"event name","venue":"full venue name","buyin":3000,'
+    + '"date":"YYYY-MM-DD","time":"HH:MM or empty string","name":"event name","venue":"full venue name","buyin":3000,'
     + '"gtd":"guarantee if known, else empty string","structure":"Freezeout|Re-entry|Turbo|Deep Stack|Bounty / PKO|Satellite / Qualifier|other",'
     + '"category":"satellite|main|side","seatGuaranteed":false,"region":"ph|apac","accessible":true,'
     + '"notes":"brief details, maximum 100 characters","source":"short source name","url":"https://exact-source-url"}]}\n'
@@ -459,10 +463,11 @@ var OPENAI_CALENDAR_UPDATE_SCHEMA = {
       items: {
         type: 'object',
         properties: {
-          date: { type: 'string' },
+          date: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' },
+          time: { type: 'string', pattern: '^(?:[01]\\d|2[0-3]):[0-5]\\d$|^$' },
           name: { type: 'string' },
           venue: { type: 'string' },
-          buyin: { type: 'number' },
+          buyin: { type: 'number', minimum: 0 },
           gtd: { type: 'string' },
           structure: { type: 'string', enum: ['Freezeout', 'Re-entry', 'Turbo', 'Deep Stack', 'Bounty / PKO', 'Satellite / Qualifier', 'other'] },
           category: { type: 'string', enum: ['satellite', 'main', 'side'] },
@@ -473,7 +478,7 @@ var OPENAI_CALENDAR_UPDATE_SCHEMA = {
           source: { type: 'string' },
           url: { type: 'string' }
         },
-        required: ['date', 'name', 'venue', 'buyin', 'gtd', 'structure', 'category', 'seatGuaranteed', 'region', 'accessible', 'notes', 'source', 'url'],
+        required: ['date', 'time', 'name', 'venue', 'buyin', 'gtd', 'structure', 'category', 'seatGuaranteed', 'region', 'accessible', 'notes', 'source', 'url'],
         additionalProperties: false
       }
     }
@@ -482,9 +487,107 @@ var OPENAI_CALENDAR_UPDATE_SCHEMA = {
   additionalProperties: false
 };
 
-function importCalendarUpdateEvents(events) {
+// Research uses a fixed Manila day, including when a device is travelling or a
+// run crosses midnight. Do not use Date's rollover parsing as validation.
+function calendarResearchWindow(now) {
+  var from = new Date((now === undefined ? Date.now() : Number(now)) + 8 * 3600000).toISOString().slice(0, 10);
+  return { from: from, to: new Date(Date.parse(from + 'T00:00:00Z') + 56 * 86400000).toISOString().slice(0, 10) };
+}
+
+function validCalendarResearchDate(value) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  var d = new Date(value + 'T00:00:00Z');
+  return !isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value;
+}
+
+function calendarSourceKey(value) {
+  if (typeof value !== 'string' || !/^https?:\/\//i.test(value)) return '';
+  try {
+    var url = new URL(value);
+    if (url.username || url.password || !url.hostname) return '';
+    url.hash = ''; // A section of the same retrieved page is still that source.
+    return url.href;
+  } catch (e) { return ''; }
+}
+
+function calendarSearchSources(output) {
+  var sources = new Set();
+  (output || []).forEach(function (item) {
+    if (!item) return;
+    if (item.type === 'web_search_call' && item.status === 'completed') {
+      var action = item.action || {};
+      (Array.isArray(action.sources) ? action.sources : []).forEach(function (source) {
+        var key = calendarSourceKey(source && source.url);
+        if (key) sources.add(key);
+      });
+      if (action.type === 'open_page' || action.type === 'find_in_page') {
+        var key = calendarSourceKey(action.url);
+        if (key) sources.add(key);
+      }
+    }
+    if (item.type === 'message') (item.content || []).forEach(function (part) {
+      (part.annotations || []).forEach(function (annotation) {
+        if (annotation.type !== 'url_citation') return;
+        var key = calendarSourceKey(annotation.url);
+        if (key) sources.add(key);
+      });
+    });
+  });
+  return sources;
+}
+
+function calendarResearchRejection(ev, sources, windowDates) {
+  if (!ev || typeof ev.name !== 'string' || !ev.name.trim() ||
+      typeof ev.venue !== 'string' || !ev.venue.trim()) return 'missing name or venue';
+  // Truncation recovery parses individual objects outside the API's schema
+  // guarantee. Apply the same required field types and enums here as well.
+  var properties = OPENAI_CALENDAR_UPDATE_SCHEMA.properties.events.items.properties;
+  if (Object.keys(properties).some(function (key) {
+    var field = properties[key];
+    return typeof ev[key] !== field.type || (field.enum && field.enum.indexOf(ev[key]) === -1);
+  })) return 'incomplete or malformed event details';
+  if (!validCalendarResearchDate(ev.date)) return 'invalid date';
+  if (ev.date < windowDates.from || ev.date > windowDates.to) return 'date outside the next eight weeks';
+  if (typeof ev.buyin !== 'number' || !Number.isFinite(ev.buyin) || ev.buyin < 0) return 'invalid buy-in';
+  if (typeof ev.time !== 'string' || (ev.time !== '' && !/^([01]\d|2[0-3]):[0-5]\d$/.test(ev.time))) return 'invalid start time';
+  if (['main', 'side', 'satellite'].indexOf(ev.category) === -1 ||
+      typeof ev.seatGuaranteed !== 'boolean' || (ev.category === 'satellite') !== ev.seatGuaranteed ||
+      (ev.structure === 'Satellite / Qualifier' && ev.category !== 'satellite')) return 'conflicting event classification';
+  var key = calendarSourceKey(ev.url);
+  if (typeof ev.source !== 'string' || !ev.source.trim() || !key || !sources.has(key)) return 'source not found in search results';
+  return '';
+}
+
+function importCalendarUpdateEvents(events, options) {
+  options = options || {};
   var added = [];
+  var changes = [];
+  var unchanged = 0;
+  var rejected = 0;
+  var windowDates = options.windowDates || calendarResearchWindow();
+  var fpOf = (typeof getImportedTourneyFingerprint === 'function')
+    ? getImportedTourneyFingerprint
+    : function (x) { return [(x.date || ''), (x.name || ''), (x.venue || '')].join('|').trim().toLowerCase(); };
+  var conflicts = new Set();
+  var detailsByIdentity = new Map();
+  if (options.research) (events || []).forEach(function (ev) {
+    if (calendarResearchRejection(ev, options.sources || new Set(), windowDates)) return;
+    var fp = fpOf(ev);
+    var previous = detailsByIdentity.get(fp);
+    if (previous && ['buyin', 'time', 'category', 'gtd', 'structure'].some(function (key) {
+      return previous[key] !== '' && ev[key] !== '' && previous[key] !== ev[key];
+    })) conflicts.add(fp);
+    var known = Object.assign({}, ev);
+    if (previous) Object.keys(known).forEach(function (key) {
+      if (known[key] === '') known[key] = previous[key];
+    });
+    detailsByIdentity.set(fp, known);
+  });
   (events || []).forEach(function (ev) {
+    // The poster importer shares this function. Research-only requirements must
+    // not block a user-reviewed photo with no web URL or an older date.
+    if (options.research && calendarResearchRejection(ev, options.sources || new Set(), windowDates)) { rejected++; return; }
+    if (options.research && conflicts.has(fpOf(ev))) { rejected++; return; }
     if (!ev || !ev.name) return;
     var bi = parseFloat(ev.buyin) || 0;
     var cat = String(ev.category || '').toLowerCase();
@@ -517,23 +620,70 @@ function importCalendarUpdateEvents(events) {
       url: /^https?:\/\//i.test(ev.url || '') ? ev.url : '',
       status: (typeof gradeBuyin === 'function') ? gradeBuyin(bi) : 'skip'
     };
-    if (/^\d{2}:\d{2}$/.test(ev.time || '')) t.time = ev.time;   // a start time printed on a poster (phone alerts need it)
-    var fpOf = (typeof getImportedTourneyFingerprint === 'function')
-      ? getImportedTourneyFingerprint
-      : function (x) { return [(x.date || ''), (x.name || ''), (x.venue || '')].join('|').toLowerCase(); };
+    if (/^\d{2}:\d{2}$/.test(ev.time || '') && /^([01]\d|2[0-3]):[0-5]\d$/.test(ev.time)) t.time = ev.time;
+    if (options.research) {
+      t.researchNotes = t.notes;
+      t.sourceCheckedAt = options.checkedAt || new Date().toISOString();
+      t.sourceVerification = 'search-result';
+      t.timeZone = 'Asia/Manila';
+    }
     var fp = fpOf(t);
-    var exists = (window.tourneys || []).some(function (x) { return fpOf(x) === fp; });
-    if (exists) return;
+    var existing = (window.tourneys || []).filter(function (x) { return fpOf(x) === fp; });
+    if (existing.length) {
+      // Conservative identity: same date, name and venue. Never merge separate
+      // flights or move a pinned/session-linked entry by guessing a reschedule.
+      if (!options.research) return;
+      if (existing.length > 1) { rejected++; return; }
+      existing.forEach(function (old) {
+        var next = Object.assign({}, old);
+        ['buyin', 'gtd', 'structure', 'type', 'category', 'sat', 'source', 'url', 'status', 'researchNotes', 'timeZone'].forEach(function (key) {
+          // Missing optional detail is not evidence that a known detail changed.
+          if (t[key] !== '') next[key] = t[key];
+        });
+        if (t.time) next.time = t.time;
+        if (t.notes && (!old.notes || old.notes === old.researchNotes)) next.notes = t.notes;
+        var changed = Object.keys(next).some(function (key) { return next[key] !== old[key]; });
+        if (!changed) { unchanged++; return; }
+        next.sourceCheckedAt = t.sourceCheckedAt;
+        next.sourceVerification = t.sourceVerification;
+        var priorChange = changes.filter(function (change) { return change.after.id === old.id; })[0];
+        if (priorChange) priorChange.after = Object.assign({}, next);
+        else changes.push({ before: Object.assign({}, old), after: Object.assign({}, next) });
+        window.tourneys[window.tourneys.indexOf(old)] = next;
+      });
+      return;
+    }
     window.tourneys.push(t);
     added.push(t);
   });
-  if (added.length) {
+  if (added.length || changes.length) {
     tourneys = window.tourneys;
     tourneys.sort(function (a, b) { return (a.date || '').localeCompare(b.date || ''); });
     save('tourneys', tourneys);
     renderCalendar();
   }
-  return added;
+  // Keep the poster import's array contract; research asks for the full report.
+  return options.research ? { added: added, changes: changes, unchanged: unchanged, rejected: rejected } : added;
+}
+
+function undoCalendarResearch(report) {
+  var addedIds = new Set(report.added.map(function (t) { return t.id; }));
+  window.tourneys = (window.tourneys || []).filter(function (t) { return !addedIds.has(t.id); }).map(function (t) {
+    // Restore only fields that still equal this run's changes. Keep any edits or
+    // pins made after import, and do not resurrect a subsequently deleted event.
+    var change = report.changes.filter(function (c) { return c.after.id === t.id; })[0];
+    if (!change) return t;
+    var restored = Object.assign({}, t);
+    Object.keys(change.after).forEach(function (key) {
+      if (t[key] !== change.after[key] || change.before[key] === change.after[key]) return;
+      if (Object.prototype.hasOwnProperty.call(change.before, key)) restored[key] = change.before[key];
+      else delete restored[key];
+    });
+    return restored;
+  });
+  tourneys = window.tourneys;
+  save('tourneys', tourneys);
+  renderCalendar();
 }
 
 // Recover event objects from the response even when the JSON is truncated at the
@@ -579,10 +729,11 @@ async function runCalendarUpdate() {
   if (cooldownWarning && !confirm(cooldownWarning)) return;
   try { localStorage.setItem(CAL_UPDATE_TS_KEY, String(Date.now())); } catch (e) {}
   if (btn) { btn.disabled = true; btn.textContent = '⏳ SEARCHING…'; }
+  var windowDates = calendarResearchWindow();
   var searches = CALENDAR_MANILA_SEARCHES.map(function (search) {
-    return { label: search.label, local: true, prompt: buildCalendarVenuePrompt(search) };
+    return { label: search.label, local: true, windowDates: windowDates, prompt: buildCalendarVenuePrompt(search) };
   });
-  searches.push({ label: 'Other PH & APAC', local: false, prompt: buildCalendarRegionalPrompt() });
+  searches.push({ label: 'Other PH & APAC', local: false, windowDates: windowDates, prompt: buildCalendarRegionalPrompt() });
   setCalUpdateStatus('🔎 Searching 8 Manila rooms individually (0/' + searches.length + ')…', 'muted');
   try {
     var completed = 0;
@@ -595,28 +746,28 @@ async function runCalendarUpdate() {
     var events = successful.reduce(function (all, result) { return all.concat(result.events); }, []);
     var searchCount = successful.reduce(function (count, result) { return count + result.searchCount; }, 0);
     var truncated = successful.some(function (result) { return result.truncated; });
-    var added = importCalendarUpdateEvents(events);
-    var asOf = new Date().toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' });
+    var sources = new Set();
+    successful.forEach(function (result) { result.sources.forEach(function (source) { sources.add(source); }); });
+    var report = importCalendarUpdateEvents(events, { research: true, sources: sources, windowDates: windowDates });
+    var added = report.added;
+    var updated = report.changes.length;
+    var rejected = report.rejected + successful.reduce(function (n, result) { return n + result.rejected; }, 0);
+    var asOf = windowDates.from;
     try { localStorage.setItem(CAL_UPDATE_LAST_KEY, asOf); } catch (e) {}
     var moreNote = truncated ? ' The list was long and may be incomplete — run UPDATE EVENTS again to capture the rest.' : '';
     var missing = results.filter(function (result) { return result.local && !result.error && !result.events.length; }).map(function (result) { return result.label; });
     var failed = results.filter(function (result) { return !!result.error; });
-    var coverageNote = missing.length ? ' No current verified listing found for: ' + missing.join(', ') + '.' : '';
+    var coverageNote = missing.length ? ' No current source-matched listing found for: ' + missing.join(', ') + '.' : '';
     if (failed.length) coverageNote += ' ' + failed.length + ' search' + (failed.length === 1 ? '' : 'es') + ' failed; run again to retry.';
+    if (rejected) coverageNote += ' Skipped ' + rejected + ' listing(s) with invalid details or unmatched sources.';
     if (!events.length) {
-      setCalUpdateStatus('○ Searched all 8 Manila rooms separately, but found no current listing with both an exact date and buy-in.' + coverageNote, 'muted');
-    } else if (!added.length) {
-      setCalUpdateStatus('✓ Already up to date — every verified event found is on your calendar (' + searchCount + ' web searches).' + coverageNote + moreNote, truncated ? 'muted' : 'ok');
+      setCalUpdateStatus('○ Completed ' + successful.length + '/' + searches.length + ' searches; no current listing passed the source and detail checks.' + coverageNote + moreNote, 'muted');
+    } else if (!added.length && !updated) {
+      setCalUpdateStatus('✓ No changes to existing events (' + searchCount + ' web searches).' + coverageNote + moreNote, truncated || rejected || failed.length ? 'muted' : 'ok');
     } else {
       var sats = added.filter(function (t) { return isSatelliteTourney(t); }).length;
-      setCalUpdateStatus('✓ Added ' + added.length + ' event(s)' + (sats ? ' · ' + sats + ' satellite/qualifier' : '') + ' from ' + searchCount + ' web searches. Review on the calendar.' + coverageNote + moreNote, 'ok');
-      if (typeof showUndoToast === 'function') showUndoToast('Added ' + added.length + ' event(s) from AI update', function () {
-        var ids = {}; added.forEach(function (t) { ids[t.id] = true; });
-        window.tourneys = (window.tourneys || []).filter(function (t) { return !ids[t.id]; });
-        tourneys = window.tourneys;
-        save('tourneys', tourneys);
-        renderCalendar();
-      });
+      setCalUpdateStatus('✓ Added ' + added.length + ' event(s) · Updated ' + updated + ' event(s)' + (sats ? ' · ' + sats + ' satellite/qualifier' : '') + ' from ' + searchCount + ' web searches. Review the linked sources on the calendar.' + coverageNote + moreNote, truncated || rejected || failed.length ? 'muted' : 'ok');
+      if (typeof showUndoToast === 'function') showUndoToast('AI update: ' + added.length + ' added · ' + updated + ' updated', function () { undoCalendarResearch(report); });
     }
   } catch (e) {
     setCalUpdateStatus('✗ ' + e.message, 'error');
@@ -630,6 +781,8 @@ async function runOneCalendarSearch(search) {
       model: 'gpt-5.6-terra',
       reasoning: { effort: 'low' },
       tools: [{ type: 'web_search' }],
+      tool_choice: 'required',
+      include: ['web_search_call.action.sources'],
       input: search.prompt,
       max_output_tokens: 6000,
       text: {
@@ -648,7 +801,9 @@ async function runOneCalendarSearch(search) {
     }
     var data = await response.json();
     var outputItems = Array.isArray(data.output) ? data.output : [];
-    var searchCount = outputItems.filter(function (item) { return item && item.type === 'web_search_call'; }).length;
+    var searchCount = outputItems.filter(function (item) { return item && item.type === 'web_search_call' && item.status === 'completed'; }).length;
+    if (!searchCount) throw new Error('No completed web search was returned for ' + search.label + '; no events were imported.');
+    if (data.status !== 'completed' && data.status !== 'incomplete') throw new Error('The event search did not complete.');
     var text = data.output_text || outputItems
       .filter(function (item) { return item && item.type === 'message'; })
       .reduce(function (parts, item) { return parts.concat(item.content || []); }, [])
@@ -658,16 +813,30 @@ async function runOneCalendarSearch(search) {
     var parsed = null;
     try { parsed = JSON.parse(text); } catch (e) {}
     var events = (parsed && Array.isArray(parsed.events)) ? parsed.events : extractEventObjects(text);
+    if ((!parsed || !Array.isArray(parsed.events)) && !events.length) throw new Error('The search returned no readable event list.');
+    var windowDates = search.windowDates || calendarResearchWindow();
+    var asOfMatch = /"asOf"\s*:\s*("[^"\\]*")/.exec(text);
+    var asOf = parsed ? parsed.asOf : (asOfMatch ? JSON.parse(asOfMatch[1]) : '');
+    if (asOf !== windowDates.from) throw new Error('The search returned an outdated or missing research date.');
+    var sources = calendarSearchSources(outputItems);
+    var rejected = 0;
+    events = events.filter(function (ev) {
+      if (!calendarResearchRejection(ev, sources, windowDates)) return true;
+      rejected++;
+      return false;
+    });
     return {
       label: search.label,
       local: search.local,
       events: events,
       searchCount: searchCount,
+      sources: Array.from(sources),
+      rejected: rejected,
       truncated: data.status === 'incomplete' || (!parsed && events.length > 0),
       error: ''
     };
   } catch (e) {
-    return { label: search.label, local: search.local, events: [], searchCount: 0, truncated: false, error: e.message || String(e) };
+    return { label: search.label, local: search.local, events: [], sources: [], rejected: 0, searchCount: 0, truncated: false, error: e.message || String(e) };
   }
 }
 
@@ -719,7 +888,8 @@ function removePlannedEvent(id) {
 // import, or in Add / Edit Tournament). Opens in a new tab.
 function organiserLinkHtml(t) {
   var url = organiserUrl(t && t.url);
-  return url ? '<a class="event-link" href="' + esc(url) + '" target="_blank" rel="noopener noreferrer" title="Open the organiser page">Organiser ↗</a>' : '';
+  var label = t && t.sourceVerification === 'search-result' ? (t.source || 'Event source') + ' · matched to search ↗' : 'Organiser ↗';
+  return url ? '<a class="event-link" href="' + esc(url) + '" target="_blank" rel="noopener noreferrer" title="Open the organiser page">' + esc(label) + '</a>' : '';
 }
 
 function renderPlannedEvents() {
@@ -1193,9 +1363,11 @@ function renderCalendarList() {
       html += '<div class="event-name">' + esc(t.name) + '</div>';
       html += '<div class="event-meta">';
       if (t.venue) html += '<span>' + esc(t.venue) + '</span>';
+      if (t.time) html += '<span>Start: ' + esc(t.time) + (t.timeZone === 'Asia/Manila' ? ' Manila time' : '') + '</span>';
       if (t.structure) html += '<span>' + esc(t.structure) + '</span>';
       if (t.gtd) html += '<span>GTD: ' + esc(t.gtd) + '</span>';
       if (t.notes) html += '<span>' + esc(t.notes) + '</span>';
+      if (t.researchNotes && t.researchNotes !== t.notes) html += '<span>' + esc(t.researchNotes) + '</span>';
       html += organiserLinkHtml(t);
       html += '</div></div>';
       html += '<div class="event-right">';

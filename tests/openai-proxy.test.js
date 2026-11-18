@@ -62,6 +62,12 @@ test("rejects models, fields, tools and sizes it should not relay", () => {
   bad((b) => { b.tools = [{type: "code_interpreter"}]; }, /web_search/);
   bad((b) => { b.tools = [{type: "web_search"}, {type: "web_search"}]; }, /one tool/i);
   bad((b) => { b.tools = [{type: "web_search", filters: {}}]; }, /web_search/);
+  bad((b) => { b.tool_choice = "auto"; }, /tool_choice/);
+  bad((b) => { b.tool_choice = {type: "function", name: "x"}; }, /tool_choice/);
+  bad((b) => { b.tool_choice = "required"; delete b.tools; }, /tool_choice/);
+  bad((b) => { b.include = ["file_search_call.results"]; }, /sources/);
+  bad((b) => { b.include = "web_search_call.action.sources"; }, /sources/);
+  bad((b) => { b.include = ["web_search_call.action.sources", "x"]; }, /sources/);
   bad((b) => { b.max_output_tokens = 999999; }, /out of range/);
   bad((b) => { b.max_output_tokens = 0; }, /out of range/);
   bad((b) => { b.max_output_tokens = "4000"; }, /out of range/);
@@ -81,9 +87,11 @@ test("rejects models, fields, tools and sizes it should not relay", () => {
 
 test("accepts the optional pieces the app uses", () => {
   const b = good();
+  b.tool_choice = "required";
+  b.include = ["web_search_call.action.sources"];
   b.text = {verbosity: "low", format: {type: "json_schema", name: "poker_calendar_events", strict: true, schema: {type: "object"}}};
   assert.equal(P.validateResponsesRequest(b).ok, true);
-  delete b.tools; delete b.reasoning; delete b.text;
+  delete b.tools; delete b.reasoning; delete b.text; delete b.tool_choice; delete b.include;
   assert.equal(P.validateResponsesRequest(b).ok, true);
 });
 

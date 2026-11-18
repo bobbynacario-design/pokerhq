@@ -336,6 +336,28 @@ text colours. Write new text colours with those instead of `rgba(255,255,255,…
 
 ## AI without keys
 
+Calendar **Update Events** requires completed web searches and matches each event's
+source URL against the retrieved URLs or citations returned by OpenAI. Listings
+without a source match, a real ISO date within the next eight weeks, an explicit
+nonnegative numeric buy-in, or a valid optional `HH:MM` start time are skipped.
+Source matching establishes that the page was retrieved; AI still interprets its
+schedule, so calendar rows link directly to the source for checking.
+
+Start dates and times from research use **Asia/Manila (UTC+8)**, including converted
+overseas starts. Unknown start times remain blank. Reruns update buy-ins, known
+times, guarantees, structures, classifications and sources for the same date,
+name and venue. Event IDs, pins, session links and personal notes are retained;
+new research notes appear alongside personal notes. Conflicting results and
+ambiguous duplicate identities are skipped. Missing optional details do not clear
+known times or guarantees. Undo covers both additions and detail updates. A new
+date/name/venue is treated as a separate event rather than guessing a reschedule.
+User-reviewed poster imports retain their existing workflow.
+
+The source controls require deploying the updated `pokerhqOpenAiCall` function
+alongside the frontend. The proxy allows only the calendar's `required` search
+choice and `web_search_call.action.sources` inclusion. See the
+[OpenAI web search documentation](https://developers.openai.com/api/docs/guides/tools-web-search).
+
 Signed in as the owner, the AI features work without pasting an API key on each device:
 Anthropic goes through `pokerhqAiCall` and OpenAI (calendar **Update Events**, voice hand
 capture) through `pokerhqOpenAiCall`. A key saved on a device still takes priority. The OpenAI
