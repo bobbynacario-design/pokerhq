@@ -3,6 +3,9 @@ const { boot, out } = require("./lib.js");
 const S = require("./lib.js").OUT;
 (async () => {
   const { page, realErrors, close } = await boot({ viewport: { width: 1100, height: 1400 } });
+  // These October fixtures include upcoming pins; keep their reference day
+  // fixed so the planned-events card remains testable after October ends.
+  await page.clock.setFixedTime(new Date("2026-10-01T04:00:00Z"));
   const ok = (m) => console.log("ok  " + m);
 
   const seed = () => page.evaluate(() => {
