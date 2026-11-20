@@ -80,6 +80,12 @@ stay in memory; leaving the demo restores cached real data, drill progress and a
   the new **Organiser link** field of Add / Edit Tournament) shows **Organiser ↗** on its calendar list row and
   in **Playing These**, and the exported calendar file carries it in the event description. Only http(s)
   addresses are linked; anything else is refused on save and never shown as a link.
+- **AI event search** opens the PokerStars LIVE Manila tournament index, discovers current linked
+  schedules, then reads their individual tournaments and starting flights in weekly batches.
+  **Why events were skipped** lists source review notes, invalid details, unmatched sources,
+  conflicting listings and failed schedule searches, with source links where available.
+  A failed schedule does not discard events verified from other schedules. Following linked
+  schedules uses additional AI requests beyond the nine venue/region searches.
 - Add `?demo=1` to the app URL for a direct, sign-in-free sample-data tour: plan → capture
   a hand → review a session. **Copy demo link** shares that URL; **Tour** restarts the guide.
   Leaving demo removes the URL flag and restores real data. Demo actions remain in memory.

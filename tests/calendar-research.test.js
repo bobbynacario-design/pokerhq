@@ -9,6 +9,8 @@ const NOW = Date.parse("2026-11-18T10:00:00Z");
 const URL_A = "https://room.example/schedule?edition=2026";
 const URL_B = "https://room.example/corrected-schedule";
 const dates = { from: "2026-11-18", to: "2027-01-13" };
+const INDEX = "https://www.pokerstarslivemanila.com/tournaments/";
+const SCHEDULE = INDEX + "megastack25/";
 const event = (patch) => Object.assign({
   date: "2026-11-20", time: "19:00", name: "Friday Deepstack", venue: "Metro Card Club",
   buyin: 3000, gtd: "PHP 100,000", structure: "Deep Stack", category: "side",
@@ -44,6 +46,114 @@ const run = (c, data) => {
   return c.runOneCalendarSearch({label: "Metro", local: true, windowDates: dates, prompt: "Find current tournaments"});
 };
 const opts = () => ({research: true, sources: new Set([URL_A, URL_B]), windowDates: dates});
+const opened = (url) => ({type: "web_search_call", status: "completed", action: {type: "open_page", url}});
+const indexTask = (c) => {
+  const venue = c.CALENDAR_MANILA_SEARCHES.find((s) => s.indexUrl);
+  return {...venue, local: true, windowDates: dates, prompt: c.buildCalendarVenuePrompt(venue)};
+};
+const discovery = (patch) => ({status: "completed", output: [opened(INDEX), searchCall([SCHEDULE])],
+  output_text: JSON.stringify({asOf: dates.from, schedules: [{name: "Megastack 25", url: SCHEDULE,
+    from: "2026-11-26", to: "2026-12-07"}], skipped: [], ...patch})});
+
+test("PokerStars opens the index, discovers current links and reads each week of the linked schedule", async () => {
+  const c = load(), requests = [];
+  c.callOpenAIResponses = async (body) => {
+    requests.push(body);
+    assert.equal(require("../functions/openai-proxy.js").validateResponsesRequest(body).ok, true);
+    let data;
+    if (body.text.format.schema.properties.schedules) data = discovery();
+    else {
+      const from = /start date is between (\d{4}-\d{2}-\d{2})/.exec(body.input)[1];
+      data = response([event({date: from, name: "Flight " + from, url: SCHEDULE})], {output: [opened(SCHEDULE)]});
+    }
+    return {ok: true, json: async () => data};
+  };
+  const [r] = await c.runCalendarSearches([indexTask(c)], 1);
+  assert.equal(r.error, "");
+  assert.equal(requests.length, 3, "index discovery plus two bounded schedule extractions");
+  assert.match(requests[0].input, /Open this official tournament index FIRST/);
+  assert.match(requests[0].input, /https:\/\/www.pokerstarslivemanila.com\/tournaments\//);
+  assert.match(requests[0].input, /Follow its current tournament schedule links, including Daily Tournaments/);
+  assert.equal(r.events.length, 2);
+  assert.equal(r.events[0].date, "2026-11-26");
+  assert.equal(r.events[1].date, "2026-12-03");
+  assert.equal(r.searchCount, 4);
+  assert.ok(r.sources.includes(SCHEDULE));
+});
+
+test("finding the index in search results does not count as opening it", async () => {
+  const c = load();
+  c.callOpenAIResponses = async () => ({ok: true, json: async () => ({...discovery(), output: [searchCall([INDEX, SCHEDULE])]})});
+  const r = await c.runCalendarIndexSearch(indexTask(c));
+  assert.match(r.error, /did not open the official tournament index/);
+  assert.equal(r.events.length, 0);
+});
+
+test("discovery explains stale, invalid and unretrieved links instead of following them", async () => {
+  const c = load();
+  c.callOpenAIResponses = async () => ({ok: true, json: async () => discovery({schedules: [
+    {name: "Old schedule", url: SCHEDULE, from: "2025-01-01", to: "2025-01-10"},
+    {name: "Guessed schedule", url: INDEX + "made-up/", from: "", to: ""},
+    {name: "External link", url: "https://unrelated.example/tournaments/", from: "", to: ""}
+  ], skipped: [{name: "No schedule yet", date: "", url: INDEX, reason: "No linked timetable published"}]})});
+  const r = await c.runCalendarIndexSearch(indexTask(c));
+  assert.equal(r.error, "");
+  assert.equal(r.events.length, 0);
+  assert.equal(r.skipped.length, 4);
+  assert.match(r.skipped[0].reason, /Source review: No linked timetable/);
+  assert.match(r.skipped[1].reason, /outside the next eight weeks/);
+  assert.match(r.skipped[2].reason, /not retrieved/);
+});
+
+test("each schedule must actually be opened, and a failed week does not discard a successful week", async () => {
+  const c = load();
+  c.callOpenAIResponses = async (body) => {
+    let data = discovery();
+    if (!body.text.format.schema.properties.schedules) {
+      const first = body.input.includes("between 2026-11-26 and 2026-12-02");
+      data = response([event({date: "2026-12-03", url: SCHEDULE})], {output: first ? [searchCall([SCHEDULE])] : [opened(SCHEDULE)]});
+    }
+    return {ok: true, json: async () => data};
+  };
+  const r = await c.runCalendarIndexSearch(indexTask(c));
+  assert.equal(r.events.length, 1);
+  assert.match(r.skipped[0].reason, /did not open the linked schedule/);
+  assert.equal(r.skipped[0].url, SCHEDULE);
+});
+
+test("schedule extraction rejects another week's dates and another page's events with reasons", async () => {
+  const c = load();
+  c.callOpenAIResponses = async () => ({ok: true, json: async () => response([
+    event({date: '2026-11-26', url: SCHEDULE}),
+    event({date: '2026-12-03', url: SCHEDULE}),
+    event({date: '2026-11-26', url: URL_A})
+  ], {output: [opened(SCHEDULE), searchCall([URL_A])]})});
+  const r = await c.runOneCalendarSearch({...indexTask(c), indexUrl: undefined, scheduleUrl: SCHEDULE,
+    eventDates: {from: '2026-11-26', to: '2026-12-02'}});
+  assert.equal(r.events.length, 1);
+  assert.match(r.skipped[0].reason, /outside this schedule/);
+  assert.match(r.skipped[1].reason, /does not match the opened schedule/);
+});
+
+test("skipped details retain event identity, source and a specific reason from research and import checks", async () => {
+  const c = load();
+  const r = await run(c, response([event({name: "Bad date", date: "2026-11-31"}), event({name: "Missing cost", buyin: null}),
+    event({name: "Unknown source", url: URL_B})], {output_text: JSON.stringify({asOf: dates.from,
+      events: [event({name: "Bad date", date: "2026-11-31"}), event({name: "Missing cost", buyin: null}), event({name: "Unknown source", url: URL_B})],
+      skipped: [{name: "Final", date: "2026-11-21", url: URL_A, reason: "Continuation with no new entry"}]})}));
+  assert.equal(r.rejected, 3);
+  assert.equal(r.skipped.length, 4);
+  assert.match(r.skipped.find((s) => s.name === "Bad date").reason, /invalid date/);
+  assert.match(r.skipped.find((s) => s.name === "Missing cost").reason, /buyin/);
+  assert.match(r.skipped.find((s) => s.name === "Unknown source").reason, /source not found/);
+  assert.equal(r.skipped[0].url, URL_A);
+  const conflict = c.importCalendarUpdateEvents([event(), event({buyin: 5000})], opts());
+  assert.equal(conflict.skipped.length, 2);
+  assert.match(conflict.skipped[0].reason, /conflicting/);
+  c.window.tourneys.push({...event(), id: 1}, {...event(), id: 2});
+  const duplicate = c.importCalendarUpdateEvents([event()], opts());
+  assert.match(duplicate.skipped[0].reason, /multiple saved events/);
+});
 
 test("Manila research days are independent of device timezone and span eight weeks", () => {
   const c = load();
@@ -210,12 +320,18 @@ test("the full update reports changes and skips, and its Undo handles both inser
   const c = load();
   c.window.tourneys.push({...event(), id: 42, planning: true});
   c.runCalendarSearches = async () => [{label: "Metro", local: true, error: "", truncated: false,
-    sources: [URL_A], searchCount: 1, rejected: 2, events: [event({buyin: 5000}), event({name: "New tournament"})]}];
+    sources: [URL_A], searchCount: 1, rejected: 2,
+    skipped: [c.calendarSkip(event({name: "Bad date"}), "invalid date"), c.calendarSkip(event({name: "Missing source"}), "source not found in search results")],
+    events: [event({buyin: 5000}), event({name: "New tournament"})]}];
+  c.showCalendarSearchDetails = (items) => { c.details = items; };
   c.setCalUpdateStatus = (message) => { c.status = message; };
   c.showUndoToast = (message, undo) => { c.undo = undo; };
   await c.runCalendarUpdate();
   assert.match(c.status, /Added 1 event\(s\) · Updated 1 event\(s\)/);
   assert.match(c.status, /Skipped 2/);
+  assert.equal(c.details.length, 2);
+  assert.equal(c.details[0].name, "Bad date");
+  assert.equal(c.details[0].reason, "invalid date");
   c.undo();
   assert.equal(c.window.tourneys.length, 1);
   assert.equal(c.window.tourneys[0].buyin, 3000);

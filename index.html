@@ -786,6 +786,11 @@
   </div>
 
   <div id="cal-update-status" class="tip" style="display:none;width:100%;margin-bottom:1rem"></div>
+  <details id="cal-update-details" class="cal-update-details" hidden>
+    <summary>Why events were skipped</summary>
+    <p>Source review notes come from the AI. Other reasons come from the calendar’s import checks. Open a source to check the schedule.</p>
+    <ul id="cal-update-skips"></ul>
+  </details>
 
   <div class="form-card" id="slate-optimizer-card" style="margin-bottom:1.25rem">
     <div class="sec-hdr" style="margin-bottom:.8rem"><div class="sec-title"><span>🧭</span>Slate Optimizer</div><button class="sec-action primary" onclick="renderSlateOptimizer()">BUILD SLATE</button></div>

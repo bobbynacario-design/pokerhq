@@ -57,12 +57,20 @@ vm.runInThisContext(fs.readFileSync("js/data/ai-proxy.js", "utf8"));
       !calendarSource.includes("type: 'web_search'") ||
       !calendarSource.includes("type: 'json_schema'") ||
       !calendarSource.includes("callOpenAIResponses") ||
-      !calendarSource.includes("runCalendarSearches(searches, 3") ||
-      !calendarSource.includes("timeoutMs: 75000")) {
+      !calendarSource.includes("runCalendarSearches(searches, 3")) {
     throw new Error("Calendar research request is not configured for OpenAI web search");
   }
 
   vm.runInThisContext(calendarSource);
+  let calendarTimeout = 0;
+  const originalResponsesCall = global.callOpenAIResponses;
+  global.callOpenAIResponses = async (_body, options) => {
+    calendarTimeout = options.timeoutMs;
+    return {ok: true, json: async () => ({output: [], status: "completed"})};
+  };
+  await runOneCalendarSearch({label: "Compatibility check", prompt: "Find tournaments"});
+  global.callOpenAIResponses = originalResponsesCall;
+  if (calendarTimeout !== 75000) throw new Error("Calendar research is missing its default request timeout");
   if (CALENDAR_MANILA_SEARCHES.length !== 8) {
     throw new Error("Calendar research must run one dedicated search for each priority Manila room");
   }
