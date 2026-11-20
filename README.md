@@ -85,7 +85,11 @@ stay in memory; leaving the demo restores cached real data, drill progress and a
   **Why events were skipped** lists source review notes, invalid details, unmatched sources,
   conflicting listings and failed schedule searches, with source links where available.
   A failed schedule does not discard events verified from other schedules. Following linked
-  schedules uses additional AI requests beyond the nine venue/region searches.
+  schedules uses additional AI requests beyond the eight venue/region searches.
+  Manila rooms have specific official source links and follow-up searches when a first pass
+  finds no verified events. Metro also checks its public Big Events feed; Prime and its former
+  name 2Ace are searched together. Blocked sites, expired posters and missing entry costs
+  remain visible as evidence gaps; old weekly schedules are never projected into new dates.
 - Add `?demo=1` to the app URL for a direct, sign-in-free sample-data tour: plan → capture
   a hand → review a session. **Copy demo link** shares that URL; **Tour** restarts the guide.
   Leaving demo removes the URL flag and restores real data. Demo actions remain in memory.

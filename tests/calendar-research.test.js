@@ -56,6 +56,66 @@ const discovery = (patch) => ({status: "completed", output: [opened(INDEX)],
   output_text: JSON.stringify({asOf: dates.from, schedules: [{name: "Megastack 25", url: SCHEDULE,
     from: "2026-11-26", to: "2026-12-07"}], skipped: [], ...patch})});
 
+test("Manila room profiles include Metro's public feed and search Prime/2Ace as one room", () => {
+  const c = load();
+  const metro = c.CALENDAR_MANILA_SEARCHES.find((room) => room.label === 'Metro Card Club');
+  assert.ok(metro.sourceUrls.includes('https://metrocardclub.com/wp-json/wp/v2/pages?slug=big-events'));
+  const prompt = c.buildCalendarVenuePrompt(metro);
+  assert.match(prompt, /Add the entry-fee to the buy-in/);
+  assert.match(prompt, /Do not omit a confirmed Manila event because its buy-in exceeds/);
+  const prime = c.CALENDAR_MANILA_SEARCHES.filter((room) => /Prime|2Ace/i.test(room.query));
+  assert.equal(prime.length, 1);
+  assert.match(prime[0].query, /2Ace/);
+  assert.ok(prime[0].sourceUrls.includes('https://www.facebook.com/GGPOKERROOM/'));
+});
+
+test("empty room searches follow alternate sources and import dated named events with full entry fees", async () => {
+  const c = load(), requests = [];
+  const metro = c.CALENDAR_MANILA_SEARCHES[0];
+  const feed = metro.sourceUrls.find((url) => url.includes('wp-json'));
+  c.callOpenAIResponses = async (body) => {
+    requests.push(body);
+    return {ok: true, json: async () => requests.length === 1 ? response([], {output_text: JSON.stringify({asOf: dates.from, events: [],
+      skipped: [{name: 'Daily posters', date: '2026-10-26', url: metro.sourceUrls[0], reason: 'Printed dates are in the past'}]})})
+      : response([event({date: '2026-12-09', time: '', name: 'Metro Christmas Special', buyin: 11000, url: feed}),
+        event({date: '2027-01-04', time: '', name: 'Metro Million Showdown', buyin: 1500, url: feed})], {output: [opened(feed)]})};
+  };
+  const [r] = await c.runCalendarSearches([{...metro, roomSearch: true, local: true, windowDates: dates, prompt: c.buildCalendarVenuePrompt(metro)}], 1);
+  assert.equal(requests.length, 2);
+  assert.match(requests[1].input, /FOLLOW-UP FOR MISSING ROOM COVERAGE/);
+  assert.match(requests[1].input, /Printed dates are in the past/);
+  assert.equal(r.events.length, 2);
+  assert.equal(r.searchCount, 2);
+  assert.equal(r.error, '');
+  assert.match(r.skipped[0].reason, /First search/);
+  const imported = c.importCalendarUpdateEvents(r.events, {research: true, sources: new Set(r.sources), windowDates: dates});
+  assert.equal(imported.added.length, 2);
+  assert.equal(imported.added[0].buyin, 11000);
+});
+
+test("successful room searches do not repeat; auth failures are not retried", async () => {
+  const c = load();
+  let count = 0;
+  c.callOpenAIResponses = async () => { count++; return {ok: true, json: async () => response([event()])}; };
+  assert.equal((await c.runCalendarRoomSearch({label: 'Metro', windowDates: dates, prompt: 'Find events'})).events.length, 1);
+  assert.equal(count, 1);
+  c.callOpenAIResponses = async () => { count++; return {ok: false, status: 401}; };
+  assert.match((await c.runCalendarRoomSearch({label: 'Metro', windowDates: dates, prompt: 'Find events'})).error, /key was rejected/);
+  assert.equal(count, 2, 'no second paid call for a rejected key');
+});
+
+test("unverified rooms remain empty after follow-up and show the remaining evidence gap", async () => {
+  const c = load();
+  let count = 0;
+  c.callOpenAIResponses = async () => { count++; return {ok: true, json: async () => response([])}; };
+  const r = await c.runCalendarRoomSearch({label: 'Masters', windowDates: dates, prompt: 'Find events', sourceUrls: [URL_A]});
+  assert.equal(count, 2);
+  assert.equal(r.events.length, 0);
+  assert.equal(c.window.tourneys.length, 0);
+  assert.match(r.skipped[0].reason, /No current dated tournament with a verified entry cost after two searches/);
+  assert.equal(r.skipped[0].url, URL_A);
+});
+
 test("PokerStars opens the index, discovers current links and reads each week of the linked schedule", async () => {
   const c = load(), requests = [];
   c.callOpenAIResponses = async (body) => {
