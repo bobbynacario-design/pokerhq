@@ -39,12 +39,12 @@ const { boot, out } = require("./lib.js");
   assert.equal(await page.evaluate(() => window.__proxyCalls[0].kind), "ping");
   ok("settings say 'keyless'; Test Connection pings the server function");
 
-  // Nine venue/region tasks plus a discovered schedule through the same proxy.
+  // Seven distinct rooms plus a region and one discovered schedule.
   await page.evaluate(() => { localStorage.removeItem("pokerhq_cal_update_ts"); window.tourneys.length = 0; window.__proxyCalls.length = 0; switchGroup("plan", "calendar"); });
   await page.evaluate(() => runCalendarUpdate());
   await page.waitForFunction(() => /Added \d+ event/.test(document.getElementById("cal-update-status").textContent), null, { timeout: 20000 });
   const calls = await page.evaluate(() => window.__proxyCalls.map((c) => c.kind));
-  assert.equal(calls.length, 10, "8 Manila rooms + regional + linked schedule");
+  assert.equal(calls.length, 9, "7 Manila rooms + regional + linked schedule");
   assert.ok(calls.every((k) => k === "responses"));
   const first = await page.evaluate(() => window.__proxyCalls[0].body);
   assert.equal(first.model, "gpt-5.6-terra");
@@ -52,13 +52,13 @@ const { boot, out } = require("./lib.js");
   assert.equal(first.tool_choice, "required");
   assert.deepEqual(first.include, ["web_search_call.action.sources"]);
   const added = await page.evaluate(() => tourneys.filter((t) => /Proxy Test Event/.test(t.name)).length);
-  assert.equal(added, 9);
+  assert.equal(added, 8);
   assert.equal(await page.evaluate(() => tourneys.find((t) => /Proxy Test Event/.test(t.name)).time), "19:00");
-  assert.equal(await page.locator('#calendar-list a[href^="https://example.com/e"]').count(), 8);
+  assert.equal(await page.locator('#calendar-list a[href^="https://example.com/e"]').count(), 7);
   assert.equal(await page.locator('#calendar-list a[href="https://www.pokerstarslivemanila.com/tournaments/current-schedule/"]').count(), 1);
   assert.equal(await page.locator('#cal-update-details').isVisible(), false);
   assert.match(await page.textContent("#calendar-list"), /19:00 Manila time/);
-  ok("calendar update with no key: index followed, linked schedule opened, 9 events added");
+  ok("calendar update with no key: index followed, linked schedule opened, 8 events added");
 
   // A fresh search must reconcile existing records, keep personal fields, and
   // reject a fabricated source even when the rest of the event is well formed.
@@ -83,10 +83,10 @@ const { boot, out } = require("./lib.js");
     return t.id;
   });
   await page.evaluate(() => runCalendarUpdate());
-  assert.match(await page.textContent("#cal-update-status"), /Added 0 event\(s\) · Updated 9 event\(s\)/);
-  assert.match(await page.textContent("#cal-update-status"), /Skipped 9/);
+  assert.match(await page.textContent("#cal-update-status"), /Added 0 event\(s\) · Updated 8 event\(s\)/);
+  assert.match(await page.textContent("#cal-update-status"), /Skipped 8/);
   await page.click('#cal-update-details summary');
-  assert.equal(await page.locator('#cal-update-skips li').count(), 9);
+  assert.equal(await page.locator('#cal-update-skips li').count(), 8);
   assert.match(await page.textContent('#cal-update-skips'), /Fabricated source.*source not found in search results/);
   assert.equal(await page.locator('#cal-update-skips a').first().getAttribute('rel'), 'noopener noreferrer');
   await page.locator('#cal-update-details').screenshot({path: out('event-search-skips-desktop.png')});
@@ -95,7 +95,7 @@ const { boot, out } = require("./lib.js");
   await page.locator('#cal-update-details').screenshot({path: out('event-search-skips-phone.png')});
   await page.setViewportSize({width: 1200, height: 1000});
   const changed = await page.evaluate((id) => ({...tourneys.find((t) => t.id === id), count: tourneys.length}), originalId);
-  assert.equal(changed.count, 9);
+  assert.equal(changed.count, 8);
   assert.equal(changed.planning, true);
   assert.equal(changed.notes, "My travel plan");
   assert.equal(changed.buyin, 5000);
@@ -107,7 +107,7 @@ const { boot, out } = require("./lib.js");
   assert.equal(restored.time, "19:00");
   assert.equal(restored.planning, true);
   assert.equal(restored.notes, "My travel plan");
-  ok("rerun: 9 details updated without duplicates, unsearched URLs rejected, personal fields preserved through Undo");
+  ok("rerun: 8 details updated without duplicates, unsearched URLs rejected, personal fields preserved through Undo");
 
   // it still works from a Cloud Function error: message is shown, button re-enabled
   await page.evaluate(() => {
