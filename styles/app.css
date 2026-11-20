@@ -1671,6 +1671,12 @@ body.light .view-btn.active,body.light .cal-venue-select.active{color:var(--gold
 #cleanup-body .cleanup-pairs>summary{cursor:pointer;color:var(--wa-70);font-size:12px;line-height:1.7}
 #cleanup-body .surface-actions{flex-wrap:wrap}
 #cleanup-body .review-card>strong{overflow-wrap:anywhere}
+.cal-update-details{margin:0 0 1rem;padding:.85rem 1rem;border:1px solid var(--rim);border-radius:8px;color:var(--ink);font-size:12px;line-height:1.7;overflow-wrap:anywhere}
+.cal-update-details>summary{cursor:pointer;color:var(--gold)}
+.cal-update-details p{color:var(--wa-70);margin:.6rem 0}
+.cal-update-details ul{padding-left:1.25rem;max-height:24rem;overflow-y:auto}
+.cal-update-details li{margin:.45rem 0}
+.cal-update-details a{color:var(--gold);white-space:nowrap}
 .practice-card{margin:1rem 0}
 .practice-card h3{font-size:15px}
 @media(max-width:600px){.demo-tour{flex-direction:column;align-items:stretch;padding:1rem}.live-clock-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.demo-banner{flex-wrap:wrap}.demo-banner>div:last-child{flex-wrap:wrap}}
