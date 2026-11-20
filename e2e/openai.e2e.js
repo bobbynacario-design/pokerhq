@@ -18,8 +18,7 @@ const { boot, out } = require("./lib.js");
         const index = "https://www.pokerstarslivemanila.com/tournaments/";
         const schedule = index + "current-schedule/";
         if (payload.body.text.format.schema.properties.schedules) return { data: {status: "completed",
-          output: [{type: "web_search_call", status: "completed", action: {type: "open_page", url: index}},
-            {type: "web_search_call", status: "completed", action: {type: "search", sources: [{type: "url", url: schedule}]}}],
+          output: [{type: "web_search_call", status: "completed", action: {type: "open_page", url: index}}],
           output_text: JSON.stringify({asOf: dates.from, schedules: [{name: "Current schedule", url: schedule, from: dates.from, to: dates.from}], skipped: []})} };
         const linked = payload.body.input.includes("LINKED SCHEDULE TASK");
         const url = linked ? schedule : "https://example.com/e" + n;

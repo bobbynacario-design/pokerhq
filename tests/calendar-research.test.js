@@ -51,7 +51,8 @@ const indexTask = (c) => {
   const venue = c.CALENDAR_MANILA_SEARCHES.find((s) => s.indexUrl);
   return {...venue, local: true, windowDates: dates, prompt: c.buildCalendarVenuePrompt(venue)};
 };
-const discovery = (patch) => ({status: "completed", output: [opened(INDEX), searchCall([SCHEDULE])],
+// Reading links from an index does not add its targets to action.sources.
+const discovery = (patch) => ({status: "completed", output: [opened(INDEX)],
   output_text: JSON.stringify({asOf: dates.from, schedules: [{name: "Megastack 25", url: SCHEDULE,
     from: "2026-11-26", to: "2026-12-07"}], skipped: [], ...patch})});
 
@@ -77,8 +78,8 @@ test("PokerStars opens the index, discovers current links and reads each week of
   assert.equal(r.events.length, 2);
   assert.equal(r.events[0].date, "2026-11-26");
   assert.equal(r.events[1].date, "2026-12-03");
-  assert.equal(r.searchCount, 4);
-  assert.ok(r.sources.includes(SCHEDULE));
+  assert.equal(r.searchCount, 3);
+  assert.ok(r.sources.includes(c.calendarSourceKey(SCHEDULE)));
 });
 
 test("finding the index in search results does not count as opening it", async () => {
@@ -89,11 +90,11 @@ test("finding the index in search results does not count as opening it", async (
   assert.equal(r.events.length, 0);
 });
 
-test("discovery explains stale, invalid and unretrieved links instead of following them", async () => {
+test("discovery explains stale and unsafe links instead of following them", async () => {
   const c = load();
   c.callOpenAIResponses = async () => ({ok: true, json: async () => discovery({schedules: [
     {name: "Old schedule", url: SCHEDULE, from: "2025-01-01", to: "2025-01-10"},
-    {name: "Guessed schedule", url: INDEX + "made-up/", from: "", to: ""},
+    {name: "Outside schedule directory", url: "https://www.pokerstarslivemanila.com/venue/", from: "", to: ""},
     {name: "External link", url: "https://unrelated.example/tournaments/", from: "", to: ""}
   ], skipped: [{name: "No schedule yet", date: "", url: INDEX, reason: "No linked timetable published"}]})});
   const r = await c.runCalendarIndexSearch(indexTask(c));
@@ -102,7 +103,7 @@ test("discovery explains stale, invalid and unretrieved links instead of followi
   assert.equal(r.skipped.length, 4);
   assert.match(r.skipped[0].reason, /Source review: No linked timetable/);
   assert.match(r.skipped[1].reason, /outside the next eight weeks/);
-  assert.match(r.skipped[2].reason, /not retrieved/);
+  assert.match(r.skipped[2].reason, /not an official tournament schedule URL/);
 });
 
 test("each schedule must actually be opened, and a failed week does not discard a successful week", async () => {
@@ -118,7 +119,21 @@ test("each schedule must actually be opened, and a failed week does not discard 
   const r = await c.runCalendarIndexSearch(indexTask(c));
   assert.equal(r.events.length, 1);
   assert.match(r.skipped[0].reason, /did not open the linked schedule/);
-  assert.equal(r.skipped[0].url, SCHEDULE);
+  assert.equal(r.skipped[0].url, c.calendarSourceKey(SCHEDULE));
+});
+
+test("PokerStars slash and canonical URL forms corroborate the same opened schedule", async () => {
+  const c = load();
+  const url = INDEX + 'december-special/';
+  const canonical = url.slice(0, -1);
+  c.callOpenAIResponses = async () => ({ok: true, json: async () => response([
+    event({date: '2026-12-08', url})
+  ], {output: [opened(canonical)]})});
+  const r = await c.runOneCalendarSearch({...indexTask(c), scheduleUrl: url});
+  assert.equal(r.error, '');
+  assert.equal(r.events.length, 1);
+  assert.notEqual(c.calendarSourceKey(url + '?edition=2026'), c.calendarSourceKey(url + '?edition=2025'));
+  assert.notEqual(c.calendarSourceKey(URL_A), c.calendarSourceKey(URL_A.replace('schedule?', 'schedule/?')));
 });
 
 test("schedule extraction rejects another week's dates and another page's events with reasons", async () => {

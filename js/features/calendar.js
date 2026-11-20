@@ -554,6 +554,11 @@ function calendarSourceKey(value) {
     var url = new URL(value);
     if (url.username || url.password || !url.hostname) return '';
     url.hash = ''; // A section of the same retrieved page is still that source.
+    // PokerStars serves slash URLs but declares slashless canonical URLs. The
+    // web tool can report either form for the same official schedule page.
+    if (url.hostname === 'www.pokerstarslivemanila.com' && url.pathname.startsWith('/tournaments/')) {
+      url.pathname = url.pathname.replace(/\/+$/, '');
+    }
     return url.href;
   } catch (e) { return ''; }
 }
@@ -936,7 +941,7 @@ async function runCalendarIndexSearch(search) {
   try {
     var discovery = await fetchCalendarResearch({ label: search.label, windowDates: windowDates,
       prompt: 'Today is ' + windowDates.from + '. Open this official tournament index FIRST using the web tool: ' + search.indexUrl + '\n'
-        + 'Follow its current tournament schedule links, including Daily Tournaments. Open the linked pages to confirm their effective dates. '
+        + 'Follow its current tournament schedule links, including Daily Tournaments. Collect their links and effective dates from the index; each linked page will be opened for verification in a separate request. '
         + 'Find ALL schedules overlapping ' + windowDates.from + ' through ' + windowDates.to + ', inclusive. '
         + 'Do not stop at festival summary rows; individual dated tournaments will be extracted in separate requests. '
         + 'Only use exact links found on the index, on the same website under /tournaments/. Do not guess URLs or reuse last year’s edition. '
@@ -959,8 +964,12 @@ async function runCalendarIndexSearch(search) {
     discovery.parsed.schedules.forEach(function (schedule) {
       var key = calendarSourceKey(schedule && schedule.url);
       var url = key ? new URL(key) : null;
-      if (!url || url.origin !== index.origin || !url.pathname.startsWith(index.pathname) || url.pathname === index.pathname || !sources.has(key)) {
-        skipped.push(calendarSkip(schedule, 'schedule link was not retrieved from the official index search', search.label));
+      // Index anchors are candidates, not independently retrieved sources yet.
+      // Follow same-site schedule links even when discovery action.sources only
+      // contains the index. The child request must open the schedule and match
+      // each event to its retrieved URL before anything can be imported.
+      if (!url || url.origin !== index.origin || !url.pathname.startsWith(index.pathname) || url.pathname === index.pathname) {
+        skipped.push(calendarSkip(schedule, 'not an official tournament schedule URL', search.label));
         return;
       }
       if (seen.has(key)) return;
